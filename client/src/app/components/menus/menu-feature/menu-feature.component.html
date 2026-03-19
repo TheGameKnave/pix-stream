@@ -1,0 +1,60 @@
+<div #scrollArea *transloco="let t" appScrollIndicator>
+  <ul>
+    <!-- Home link -->
+    <li class="link-home" #itemEl>
+      <a
+        [routerLink]="''"
+        routerLinkActive="selected"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [attr.aria-label]="t('page.Momentum')"
+        [pTooltip]="showTooltip() ? t('page.Momentum') : null"
+        tooltipPosition="bottom"
+        [tooltipDisabled]="!showTooltip()"
+        [showDelay]="tooltipShowDelay"
+        [hideDelay]="tooltipHideDelay"
+      >
+        <img src="assets/icons/icon-72x72.png" [alt]="t('a11y.{name} Logo', { name: 'Angular' })" width="48" height="48" />
+        @if (!isMobile()) { {{ t('page.Momentum') }} }
+      </a>
+      <hr />
+    </li>
+
+    <!-- Dynamic components -->
+    @for (p of helpersService.enabledComponents(); track p.name; let i = $index) {
+      <li #itemEl>
+        <a
+          [routerLink]="[p.name | slug]"
+          routerLinkActive="selected"
+          [attr.aria-label]="t('nav.' + p.name)"
+          [pTooltip]="showTooltip() ? t('nav.' + p.name) : null"
+          tooltipPosition="top"
+          [tooltipDisabled]="!showTooltip()"
+          [showDelay]="tooltipShowDelay"
+          [hideDelay]="tooltipHideDelay"
+        >
+          <i class="{{ p.icon }}"></i>
+          @if (!isMobile()) { <span class="label">{{ t('nav.' + p.name) }}</span> }
+        </a>
+      </li>
+    }
+    
+    <!-- Donation button -->
+    <li class="kofi-button" #itemEl>
+      <hr />
+      <a
+        href="https://ko-fi.com/K3K81AQJZO"
+        target="_blank"
+        [class.disabled]="!connectivity.isOnline()"
+        [attr.aria-label]="t('page.Support')"
+        [pTooltip]="showTooltip() ? t('page.Support') : null"
+        tooltipPosition="top"
+        [tooltipDisabled]="!showTooltip()"
+        [showDelay]="tooltipShowDelay"
+        [hideDelay]="tooltipHideDelay"
+      >
+        <img src="assets/icons/kofi-logo.png" [alt]="t('a11y.{name} Logo', { name: 'Ko-fi' })" width="42" height="34" loading="lazy" />
+        @if (!isMobile()) { {{ t('page.Support') }} }
+      </a>
+    </li>
+  </ul>
+</div>

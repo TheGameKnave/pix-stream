@@ -1,0 +1,33 @@
+<app-dialog-menu position="right" width="24rem">
+  <!-- Trigger: Language Button -->
+  <span menu-trigger>
+    <i class="pi pi-language"></i>&nbsp;<i [class]="'fi fi-' + translocoLoader.getCountry(translate.getActiveLang())"></i>
+  </span>
+
+  <!-- Menu Content: Language Selection -->
+  <div menu-content *transloco="let t">
+    <div menu-header>
+      <h3>
+        <i class="pi pi-language"></i>
+        {{ t('menu.Language') }}
+      </h3>
+      <hr />
+    </div>
+
+    <div menu-body appScrollIndicator class="menu-language-body">
+      <ul>
+        @for (ln of supportedLanguages; track ln) {
+          <li [class]="'i18n-' + ln">
+            <button
+              type="button"
+              appMenuClose
+              [ngClass]="{'selected': ln === translate.getActiveLang()}"
+              (click)="onI18n($event)"
+              (keydown.enter)="onI18n($event)"
+            ><i [class]="'fi fi-' + translocoLoader.getCountry(ln)"></i> {{ translocoLoader.getNativeName(ln) }}</button>
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+</app-dialog-menu>

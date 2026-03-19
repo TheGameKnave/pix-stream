@@ -1,0 +1,11 @@
+{
+  "featureFlags": {
+    "GraphQL API": true,
+    "IndexedDB": true,
+    "Installers": true,
+    "Notifications": true,
+    "App Version": true,
+    "Environment": true,
+    "Language": true
+  }
+}

@@ -1,0 +1,66 @@
+<ng-template #dialogTemplate>
+  @if (options(); as opts) {
+    <div *transloco="let t" class="dialog-confirm-panel">
+      <!-- Header -->
+      <div class="dialog-confirm-header">
+        <h2>
+          @if (opts.icon) {
+            <i [class]="opts.icon" [style.color]="opts.iconColor || ''"></i>
+          }
+          {{ t(opts.title) }}
+        </h2>
+      </div>
+
+      <!-- Content -->
+      <div class="dialog-confirm-content">
+        <!-- Simple message or custom template -->
+        @if (opts.contentTemplate) {
+          <ng-container [ngTemplateOutlet]="opts.contentTemplate" />
+        } @else if (opts.message) {
+          <p>{{ t(opts.message) }}</p>
+        }
+
+        <!-- Confirmation text input -->
+        @if (opts.requireConfirmationText) {
+          <div class="dialog-confirm-input">
+            <label for="confirmationInput">
+              {{ t('profile.Type {text} to confirm', { text: opts.requireConfirmationText }) }}
+            </label>
+            <input
+              pInputText
+              id="confirmationInput"
+              type="text"
+              [value]="confirmationInput()"
+              (input)="onConfirmationInputChange($event)"
+              autocomplete="off"
+            />
+          </div>
+        }
+
+        <!-- Error message -->
+        @if (error()) {
+          <p-message severity="error" [text]="error()!" />
+        }
+      </div>
+
+      <!-- Footer buttons -->
+      <div class="dialog-confirm-footer">
+        <p-button
+          [label]="t(opts.cancelLabel || defaultLabels.CANCEL)"
+          severity="secondary"
+          [text]="true"
+          [disabled]="loading()"
+          (onClick)="onCancel()"
+        />
+        <p-button
+          [label]="t(opts.confirmLabel || defaultLabels.OK)"
+          [severity]="opts.confirmSeverity || 'primary'"
+          [icon]="opts.confirmIcon || ''"
+          [loading]="loading()"
+          [disabled]="isConfirmDisabled()"
+          (onClick)="onConfirm()"
+        />
+      </div>
+    </div>
+  }
+</ng-template>

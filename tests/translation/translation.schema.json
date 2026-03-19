@@ -1,0 +1,1540 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Translation File Schema",
+  "type": "object",
+  "properties": {
+    "Accept": {
+      "type": "string",
+      "description": "Common: Accept/confirm button (e.g., cookies)"
+    },
+    "Cancel": {
+      "type": "string",
+      "description": "Common: Cancel button"
+    },
+    "Decline": {
+      "type": "string",
+      "description": "Common: Decline/reject button (e.g., cookies)"
+    },
+    "Email": {
+      "type": "string",
+      "description": "Common: Email field label"
+    },
+    "No": {
+      "type": "string",
+      "description": "Common: Negative response"
+    },
+    "OK": {
+      "type": "string",
+      "description": "Common: OK/dismiss button"
+    },
+    "optional": {
+      "type": "string",
+      "description": "Common: Optional field indicator (e.g., in parentheses after label)"
+    },
+    "Password": {
+      "type": "string",
+      "description": "Common: Password field label"
+    },
+    "Permission": {
+      "type": "string",
+      "description": "Notifications: Permission status label"
+    },
+    "Platform": {
+      "type": "string",
+      "description": "Notifications: Platform type label (Tauri/Web)"
+    },
+    "Save": {
+      "type": "string",
+      "description": "Common: Save button"
+    },
+    "Status": {
+      "type": "string",
+      "description": "Notifications: Status section header"
+    },
+    "Supported": {
+      "type": "string",
+      "description": "Notifications: Browser support label"
+    },
+    "Username": {
+      "type": "string",
+      "description": "Common: Username field label"
+    },
+    "Yes": {
+      "type": "string",
+      "description": "Common: Affirmative response"
+    },
+
+    "a11y": {
+      "type": "object",
+      "properties": {
+        "{name} Logo": {
+          "type": "string",
+          "description": "Accessibility: Alt text for logo images"
+        },
+        "Close menu": {
+          "type": "string",
+          "description": "Accessibility: Button label to close dropdown/menu"
+        },
+        "Open menu": {
+          "type": "string",
+          "description": "Accessibility: Button label to open dropdown/menu"
+        },
+        "Read": {
+          "type": "string",
+          "description": "Accessibility: Notification read status"
+        },
+        "unread": {
+          "type": "string",
+          "description": "Accessibility: Screen reader text for unread count badge"
+        },
+        "Unread": {
+          "type": "string",
+          "description": "Accessibility: Notification unread status"
+        }
+      },
+      "required": [
+        "{name} Logo",
+        "Close menu",
+        "Open menu",
+        "Read",
+        "unread",
+        "Unread"
+      ],
+      "additionalProperties": false
+    },
+
+    "auth": {
+      "type": "object",
+      "properties": {
+        "Bot check failed. This may be due to network issues or security restrictions. Please reload the page…": {
+          "type": "string",
+          "description": "Auth: Turnstile CAPTCHA failure message"
+        },
+        "Choose a username": {
+          "type": "string",
+          "description": "Auth: Username field placeholder"
+        },
+        "Confirm New Password": {
+          "type": "string",
+          "description": "Auth: New password confirmation label"
+        },
+        "Confirm Password": {
+          "type": "string",
+          "description": "Auth: Password confirmation field label"
+        },
+        "Create Account": {
+          "type": "string",
+          "description": "Auth: Signup submit button"
+        },
+        "Current Password": {
+          "type": "string",
+          "description": "Auth: Current password field label (for changes)"
+        },
+        "Current password is required": {
+          "type": "string",
+          "description": "Auth: Current password validation error"
+        },
+        "Did you mean": {
+          "type": "string",
+          "description": "Auth: Email typo suggestion prefix"
+        },
+        "Didn’t receive the code? Check your spam folder, whitelist mail.app.supabase.io, or try logging in if you already have an account.": {
+          "type": "string",
+          "description": "Auth: OTP troubleshooting help text"
+        },
+        "Email is required": {
+          "type": "string",
+          "description": "Auth: Email validation error"
+        },
+        "Email or Username": {
+          "type": "string",
+          "description": "Auth: Combined email/username field label"
+        },
+        "Email or username is required": {
+          "type": "string",
+          "description": "Auth: Combined field validation error"
+        },
+        "Enter your current password": {
+          "type": "string",
+          "description": "Auth: Current password placeholder"
+        },
+        "Enter your email": {
+          "type": "string",
+          "description": "Auth: Email field placeholder"
+        },
+        "Enter your email or username": {
+          "type": "string",
+          "description": "Auth: Combined field placeholder"
+        },
+        "Enter your new password": {
+          "type": "string",
+          "description": "Auth: New password placeholder"
+        },
+        "Enter your password": {
+          "type": "string",
+          "description": "Auth: Password field placeholder"
+        },
+        "Forgot your password?": {
+          "type": "string",
+          "description": "Auth: Password reset link text"
+        },
+        "I agree to the": {
+          "type": "string",
+          "description": "Auth: Privacy policy agreement prefix (followed by link)"
+        },
+        "I confirm that I am 16 years of age or older": {
+          "type": "string",
+          "description": "Auth: Age verification checkbox label"
+        },
+        "If an account with that information exists, a password reset email has been sent.": {
+          "type": "string",
+          "description": "Auth: Password reset confirmation (intentionally vague for security)"
+        },
+        "If this persists,": {
+          "type": "string",
+          "description": "Auth: Contact support message prefix (PHRASE SEQUENCE 1/3)"
+        },
+        "contact support": {
+          "type": "string",
+          "description": "Auth: Contact support link text (PHRASE SEQUENCE 2/3)"
+        },
+        "for help.": {
+          "type": "string",
+          "description": "Auth: Contact support message suffix (PHRASE SEQUENCE 3/3)"
+        },
+        "Import": {
+          "type": "string",
+          "description": "Auth: Storage import confirm button"
+        },
+        "Import Local Data": {
+          "type": "string",
+          "description": "Auth: Storage import dialog title"
+        },
+        "Log in": {
+          "type": "string",
+          "description": "Auth: Login form title"
+        },
+        "Logout": {
+          "type": "string",
+          "description": "Auth menu: Logout button"
+        },
+        "New Password": {
+          "type": "string",
+          "description": "Auth: New password field label"
+        },
+        "New verification code sent!": {
+          "type": "string",
+          "description": "Auth: OTP resend success message"
+        },
+        "Password is required": {
+          "type": "string",
+          "description": "Auth: Password validation error"
+        },
+        "Password updated successfully!": {
+          "type": "string",
+          "description": "Auth: Password change success message"
+        },
+        "Passwords do not match": {
+          "type": "string",
+          "description": "Auth: Password mismatch validation error"
+        },
+        "Please enter the 6-digit code": {
+          "type": "string",
+          "description": "Auth: OTP input placeholder"
+        },
+        "Re-enter your new password": {
+          "type": "string",
+          "description": "Auth: New password confirmation placeholder"
+        },
+        "Re-enter your password": {
+          "type": "string",
+          "description": "Auth: Password confirmation placeholder"
+        },
+        "Register or log in to access all features": {
+          "type": "string",
+          "description": "Auth menu: Unauthenticated user prompt"
+        },
+        "Resend code": {
+          "type": "string",
+          "description": "Auth: OTP resend link"
+        },
+        "Send Reset Code": {
+          "type": "string",
+          "description": "Auth: Password reset request button"
+        },
+        "Sign Up": {
+          "type": "string",
+          "description": "Auth: Signup form title"
+        },
+        "Skip": {
+          "type": "string",
+          "description": "Auth: Storage import cancel button"
+        },
+        "Switch to login": {
+          "type": "string",
+          "description": "Auth: Link to switch from OTP to login"
+        },
+        "The username you selected was unavailable. You can set a new one in your user profile": {
+          "type": "string",
+          "description": "Auth: Message when preferred username taken during signup"
+        },
+        "This device has saved data from before you logged in. Would you like to import it? (existing data won’t be overwritten)": {
+          "type": "string",
+          "description": "Auth: Storage import dialog message"
+        },
+        "Try Again": {
+          "type": "string",
+          "description": "Auth: Retry button after failure"
+        },
+        "Update Password": {
+          "type": "string",
+          "description": "Auth: Password change submit button"
+        },
+        "Username not available": {
+          "type": "string",
+          "description": "Auth: Username taken error"
+        },
+        "Verification Code": {
+          "type": "string",
+          "description": "Auth: OTP input field label"
+        },
+        "Verify Code": {
+          "type": "string",
+          "description": "Auth: OTP submit button"
+        },
+        "View Profile": {
+          "type": "string",
+          "description": "Auth menu: Link to profile page"
+        },
+        "We’ve sent a 6-digit verification code to:": {
+          "type": "string",
+          "description": "Auth: OTP sent confirmation message"
+        }
+      },
+      "required": [
+        "Bot check failed. This may be due to network issues or security restrictions. Please reload the page…",
+        "Choose a username",
+        "Confirm New Password",
+        "Confirm Password",
+        "Create Account",
+        "Current Password",
+        "Current password is required",
+        "Did you mean",
+        "Didn’t receive the code? Check your spam folder, whitelist mail.app.supabase.io, or try logging in if you already have an account.",
+        "Email is required",
+        "Email or Username",
+        "Email or username is required",
+        "Enter your current password",
+        "Enter your email",
+        "Enter your email or username",
+        "Enter your new password",
+        "Enter your password",
+        "Forgot your password?",
+        "I agree to the",
+        "I confirm that I am 16 years of age or older",
+        "If an account with that information exists, a password reset email has been sent.",
+        "If this persists,",
+        "contact support",
+        "for help.",
+        "Import",
+        "Import Local Data",
+        "Log in",
+        "Logout",
+        "New Password",
+        "New verification code sent!",
+        "Password is required",
+        "Password updated successfully!",
+        "Passwords do not match",
+        "Please enter the 6-digit code",
+        "Re-enter your new password",
+        "Re-enter your password",
+        "Register or log in to access all features",
+        "Resend code",
+        "Send Reset Code",
+        "Sign Up",
+        "Skip",
+        "Switch to login",
+        "The username you selected was unavailable. You can set a new one in your user profile",
+        "This device has saved data from before you logged in. Would you like to import it? (existing data won’t be overwritten)",
+        "Try Again",
+        "Update Password",
+        "Username not available",
+        "Verification Code",
+        "Verify Code",
+        "View Profile",
+        "We’ve sent a 6-digit verification code to:"
+      ],
+      "additionalProperties": false
+    },
+
+    "connectivity": {
+      "type": "object",
+      "properties": {
+        "You are currently offline": {
+          "type": "string",
+          "description": "Connectivity: Offline status banner message"
+        }
+      },
+      "required": [
+        "You are currently offline"
+      ],
+      "additionalProperties": false
+    },
+
+    "error": {
+      "type": "object",
+      "properties": {
+        "Authentication service not initialized": {
+          "type": "string",
+          "description": "Error: Auth service startup failure"
+        },
+        "Current password is incorrect": {
+          "type": "string",
+          "description": "Error: Wrong password during password change"
+        },
+        "Email update failed": {
+          "type": "string",
+          "description": "Error: Email change failure"
+        },
+        "Failed to delete account": {
+          "type": "string",
+          "description": "Error: Account deletion failure"
+        },
+        "Failed to delete username": {
+          "type": "string",
+          "description": "Error: Username removal failure"
+        },
+        "Failed to export data": {
+          "type": "string",
+          "description": "Error: Data export failure"
+        },
+        "Failed to resend verification code": {
+          "type": "string",
+          "description": "Error: OTP resend failure"
+        },
+        "Failed to update username": {
+          "type": "string",
+          "description": "Error: Username change failure"
+        },
+        "For security purposes, you can only request this after another {seconds} seconds.": {
+          "type": "string",
+          "description": "Error: Rate limiting message with countdown"
+        },
+        "Invalid credentials": {
+          "type": "string",
+          "description": "Error: Wrong email/password combination"
+        },
+        "Invalid email address": {
+          "type": "string",
+          "description": "Error: Email address format is invalid"
+        },
+        "Invalid or expired code. Please try again.": {
+          "type": "string",
+          "description": "Error: Generic OTP invalid message"
+        },
+        "Invalid username format": {
+          "type": "string",
+          "description": "Error: Username doesn’t meet format requirements"
+        },
+        "Login failed": {
+          "type": "string",
+          "description": "Error: Generic login failure"
+        },
+        "Not authenticated": {
+          "type": "string",
+          "description": "Error: Action requires login"
+        },
+        "Password reset failed": {
+          "type": "string",
+          "description": "Error: Password reset request failure"
+        },
+        "Password update failed": {
+          "type": "string",
+          "description": "Error: Password change failure"
+        },
+        "Please verify your email address before signing in.": {
+          "type": "string",
+          "description": "Error: Email not yet verified"
+        },
+        "Sign up failed": {
+          "type": "string",
+          "description": "Error: Generic signup failure"
+        },
+        "Username is required": {
+          "type": "string",
+          "description": "Error: Username validation error"
+        },
+        "Username not available": {
+          "type": "string",
+          "description": "Error: Username already taken or invalid"
+        },
+        "Verification failed": {
+          "type": "string",
+          "description": "Error: OTP verification failure"
+        },
+        "Your verification code has expired or is invalid. Please request a new one.": {
+          "type": "string",
+          "description": "Error: OTP expired or invalid"
+        }
+      },
+      "required": [
+        "Authentication service not initialized",
+        "Current password is incorrect",
+        "Email update failed",
+        "Failed to delete account",
+        "Failed to delete username",
+        "Failed to export data",
+        "Failed to resend verification code",
+        "Failed to update username",
+        "For security purposes, you can only request this after another {seconds} seconds.",
+        "Invalid credentials",
+        "Invalid email address",
+        "Invalid or expired code. Please try again.",
+        "Invalid username format",
+        "Login failed",
+        "Not authenticated",
+        "Password reset failed",
+        "Password update failed",
+        "Please verify your email address before signing in.",
+        "Sign up failed",
+        "Username is required",
+        "Username not available",
+        "Verification failed",
+        "Your verification code has expired or is invalid. Please request a new one."
+      ],
+      "additionalProperties": false
+    },
+
+    "feature": {
+      "type": "object",
+      "properties": {
+        "App Version": {
+          "type": "string",
+          "description": "Feature flag: App Version feature name"
+        },
+        "Environment": {
+          "type": "string",
+          "description": "Feature flag: Environment feature name"
+        },
+        "Features": {
+          "type": "string",
+          "description": "Feature flag: Features feature name"
+        },
+        "GraphQL API": {
+          "type": "string",
+          "description": "Feature flag: GraphQL API feature name"
+        },
+        "IndexedDB": {
+          "type": "string",
+          "description": "Feature flag: IndexedDB feature name"
+        },
+        "Installers": {
+          "type": "string",
+          "description": "Feature flag: Installers feature name"
+        },
+        "Language": {
+          "type": "string",
+          "description": "Feature flag: Language feature name"
+        },
+        "Notifications": {
+          "type": "string",
+          "description": "Feature flag: Notifications feature name"
+        }
+      },
+      "required": [
+        "App Version",
+        "Environment",
+        "Features",
+        "GraphQL API",
+        "IndexedDB",
+        "Installers",
+        "Language",
+        "Notifications"
+      ],
+      "additionalProperties": false
+    },
+
+    "menu": {
+      "type": "object",
+      "properties": {
+        "{environmentName} environment": {
+          "type": "string",
+          "description": "Environment badge text with interpolated name"
+        },
+        "Change Log": {
+          "type": "string",
+          "description": "Change log menu title"
+        },
+        "Development": {
+          "type": "string",
+          "description": "Environment name: Development"
+        },
+        "If it doesn’t update momentarily, please try to clear your cache and refresh your browser.": {
+          "type": "string",
+          "description": "Change log: Instruction for web users to refresh"
+        },
+        "If you encounter problems, use the web version at": {
+          "type": "string",
+          "description": "Change log: Desktop app fallback message prefix (PHRASE SEQUENCE 1/2)"
+        },
+        "until an app update is ready.": {
+          "type": "string",
+          "description": "Change log: Desktop app fallback message suffix (PHRASE SEQUENCE 2/2)"
+        },
+        "Language": {
+          "type": "string",
+          "description": "Language menu title"
+        },
+        "major version(s)": {
+          "type": "string",
+          "description": "Change log: Major version unit"
+        },
+        "minor version(s)": {
+          "type": "string",
+          "description": "Change log: Minor version unit"
+        },
+        "patch(es)": {
+          "type": "string",
+          "description": "Change log: Patch version unit"
+        },
+        "Production": {
+          "type": "string",
+          "description": "Environment name: Production"
+        },
+        "This app is {semver} out of date.": {
+          "type": "string",
+          "description": "Change log: Version outdated message"
+        }
+      },
+      "required": [
+        "{environmentName} environment",
+        "Change Log",
+        "Development",
+        "If it doesn’t update momentarily, please try to clear your cache and refresh your browser.",
+        "If you encounter problems, use the web version at",
+        "until an app update is ready.",
+        "Language",
+        "major version(s)",
+        "minor version(s)",
+        "patch(es)",
+        "Production",
+        "This app is {semver} out of date."
+      ],
+      "additionalProperties": false
+    },
+
+    "migration": {
+      "type": "object",
+      "properties": {
+        "Download a backup of your data from before the last update.": {
+          "type": "string",
+          "description": "Migration: Profile panel description"
+        },
+        "Export Previous Data": {
+          "type": "string",
+          "description": "Migration: Profile panel header and button for pre-migration backup"
+        },
+        "The previous data is available to download from your profile page.": {
+          "type": "string",
+          "description": "Migration: Toast notification detail for authenticated users"
+        },
+        "Your data has been updated to a new format.": {
+          "type": "string",
+          "description": "Migration: Toast notification summary after automatic migration"
+        }
+      },
+      "required": [
+        "Download a backup of your data from before the last update.",
+        "Export Previous Data",
+        "The previous data is available to download from your profile page.",
+        "Your data has been updated to a new format."
+      ],
+      "additionalProperties": false
+    },
+
+    "nav": {
+      "type": "object",
+      "properties": {
+        "Features": {
+          "type": "string",
+          "description": "Navigation: Features page link"
+        },
+        "GraphQL API": {
+          "type": "string",
+          "description": "Navigation: GraphQL API page link"
+        },
+        "IndexedDB": {
+          "type": "string",
+          "description": "Navigation: IndexedDB page link"
+        },
+        "Installers": {
+          "type": "string",
+          "description": "Navigation: Installers page link"
+        },
+        "Notifications": {
+          "type": "string",
+          "description": "Navigation: Notifications page link"
+        }
+      },
+      "required": [
+        "Features",
+        "GraphQL API",
+        "IndexedDB",
+        "Installers",
+        "Notifications"
+      ],
+      "additionalProperties": false
+    },
+
+    "notification": {
+      "type": "object",
+      "properties": {
+        "Achievement": {
+          "type": "string",
+          "description": "Test notification: Achievement button label"
+        },
+        "Achievement Unlocked": {
+          "type": "string",
+          "description": "Test notification: Achievement notification title"
+        },
+        "Check out the latest updates in the Features section!": {
+          "type": "string",
+          "description": "Test notification: Feature update notification body"
+        },
+        "Clear all": {
+          "type": "string",
+          "description": "Notification bell: Button to delete all notifications"
+        },
+        "Delete notification": {
+          "type": "string",
+          "description": "Notification bell: Button tooltip for deleting single notification"
+        },
+        "Enable Notifications": {
+          "type": "string",
+          "description": "Notification bell: Button to request permission"
+        },
+        "Feature Update": {
+          "type": "string",
+          "description": "Test notification: Feature update button label"
+        },
+        "Maintenance Alert": {
+          "type": "string",
+          "description": "Test notification: Maintenance button label"
+        },
+        "Mark all read": {
+          "type": "string",
+          "description": "Notification bell: Button to mark all as read"
+        },
+        "New Feature Available": {
+          "type": "string",
+          "description": "Test notification: Feature update notification title"
+        },
+        "No notifications": {
+          "type": "string",
+          "description": "Notification bell: Empty state message"
+        },
+        "Scheduled maintenance will occur tonight at {time}.": {
+          "type": "string",
+          "description": "Test notification: Maintenance notification body"
+        },
+        "System Maintenance": {
+          "type": "string",
+          "description": "Test notification: Maintenance notification title"
+        },
+        "Thanks for trying Angular Momentum—your modern Angular starter kit!": {
+          "type": "string",
+          "description": "Test notification: Welcome notification body"
+        },
+        "Unread Count": {
+          "type": "string",
+          "description": "Notifications: Number of unread notifications"
+        },
+        "Welcome!": {
+          "type": "string",
+          "description": "Test notification: Welcome notification title"
+        },
+        "Welcome Message": {
+          "type": "string",
+          "description": "Test notification: Welcome notification button label"
+        },
+        "You successfully tested the notification system!": {
+          "type": "string",
+          "description": "Test notification: Achievement notification body"
+        },
+        "Granted": {
+          "type": "string",
+          "description": "Notification permission status: permission granted"
+        },
+        "Not granted": {
+          "type": "string",
+          "description": "Notification permission status: permission not granted"
+        },
+        "Not supported": {
+          "type": "string",
+          "description": "Notification permission status: notifications not supported"
+        },
+        "Tauri (Native)": {
+          "type": "string",
+          "description": "Platform type label for Tauri native apps"
+        },
+        "Web/PWA": {
+          "type": "string",
+          "description": "Platform type label for web browser/PWA"
+        }
+      },
+      "required": [
+        "Achievement",
+        "Achievement Unlocked",
+        "Check out the latest updates in the Features section!",
+        "Clear all",
+        "Delete notification",
+        "Enable Notifications",
+        "Feature Update",
+        "Granted",
+        "Maintenance Alert",
+        "Mark all read",
+        "New Feature Available",
+        "No notifications",
+        "Not granted",
+        "Not supported",
+        "Scheduled maintenance will occur tonight at {time}.",
+        "System Maintenance",
+        "Tauri (Native)",
+        "Thanks for trying Angular Momentum—your modern Angular starter kit!",
+        "Unread Count",
+        "Web/PWA",
+        "Welcome!",
+        "Welcome Message",
+        "You successfully tested the notification system!"
+      ],
+      "additionalProperties": false
+    },
+
+    "page": {
+      "type": "object",
+      "properties": {
+        "Broadcast": {
+          "type": "string",
+          "description": "Notifications: Button to send server-broadcast notification"
+        },
+        "Enter some text to have it persist between page reloads (saved in browser storage)": {
+          "type": "string",
+          "description": "IndexedDB page description"
+        },
+        "How It Works": {
+          "type": "string",
+          "description": "Notifications: Information section header"
+        },
+        "If you find this project helpful and want to see it grow, consider supporting its development…": {
+          "type": "string",
+          "description": "Main page support request message"
+        },
+        "Install Angular Momentum on your device instead of using it via a web browser:": {
+          "type": "string",
+          "description": "Installers page description"
+        },
+        "Loading API documentation…": {
+          "type": "string",
+          "description": "GraphQL API: Loading state message"
+        },
+        "Local Notification": {
+          "type": "string",
+          "description": "Notifications: Client-side notification type name"
+        },
+        "Momentum": {
+          "type": "string",
+          "description": "Main page title / app name"
+        },
+        "Other Installers": {
+          "type": "string",
+          "description": "Installers: Header for additional download options"
+        },
+        "Persistent Text": {
+          "type": "string",
+          "description": "IndexedDB: Text input label"
+        },
+        "Platform Detection": {
+          "type": "string",
+          "description": "Notifications: Platform detection feature name"
+        },
+        "Push Notifications": {
+          "type": "string",
+          "description": "Notifications page title"
+        },
+        "Send Local": {
+          "type": "string",
+          "description": "Notifications: Button to send client-side notification"
+        },
+        "Send predefined notifications to test the system": {
+          "type": "string",
+          "description": "Notifications: Test section description"
+        },
+        "Sends a notification only to your current browser/device. Uses the NotificationService directly.": {
+          "type": "string",
+          "description": "Notifications: Local notification explanation"
+        },
+        "Sends a notification via GraphQL to the server, which broadcasts it to ALL connected clients via WebSocket.": {
+          "type": "string",
+          "description": "Notifications: Server broadcast explanation"
+        },
+        "Server Broadcast": {
+          "type": "string",
+          "description": "Notifications: Server-broadcast notification type name"
+        },
+        "Support": {
+          "type": "string",
+          "description": "Donate/support button label"
+        },
+        "Tauri apps use native OS notifications. Web/PWA uses browser notifications via Service Worker.": {
+          "type": "string",
+          "description": "Notifications: Platform detection explanation"
+        },
+        "Test Notifications": {
+          "type": "string",
+          "description": "Notifications: Test section header"
+        },
+        "This project is designed to rapidly spin up Angular applications within a monorepo with minimal configuration…": {
+          "type": "string",
+          "description": "Main page tagline description"
+        },
+        "Turn features on and off for feature flag testing": {
+          "type": "string",
+          "description": "Features page description"
+        },
+        "Unable to load API documentation. Please check your connection and try again.": {
+          "type": "string",
+          "description": "GraphQL API: Error message when docs fail to load"
+        }
+      },
+      "required": [
+        "Broadcast",
+        "Enter some text to have it persist between page reloads (saved in browser storage)",
+        "How It Works",
+        "If you find this project helpful and want to see it grow, consider supporting its development…",
+        "Install Angular Momentum on your device instead of using it via a web browser:",
+        "Loading API documentation…",
+        "Local Notification",
+        "Momentum",
+        "Other Installers",
+        "Persistent Text",
+        "Platform Detection",
+        "Push Notifications",
+        "Send Local",
+        "Send predefined notifications to test the system",
+        "Sends a notification only to your current browser/device. Uses the NotificationService directly.",
+        "Sends a notification via GraphQL to the server, which broadcasts it to ALL connected clients via WebSocket.",
+        "Server Broadcast",
+        "Support",
+        "Tauri apps use native OS notifications. Web/PWA uses browser notifications via Service Worker.",
+        "Test Notifications",
+        "This project is designed to rapidly spin up Angular applications within a monorepo with minimal configuration…",
+        "Turn features on and off for feature flag testing",
+        "Unable to load API documentation. Please check your connection and try again."
+      ],
+      "additionalProperties": false
+    },
+
+    "privacy": {
+      "type": "object",
+      "properties": {
+        "Analytics cookies disabled": {
+          "type": "string",
+          "description": "Privacy: Cookie consent status (disabled)"
+        },
+        "Analytics cookies enabled": {
+          "type": "string",
+          "description": "Privacy: Cookie consent status (enabled)"
+        },
+        "Authentication & Database": {
+          "type": "string",
+          "description": "Privacy: Supabase service category label"
+        },
+        "Behavior Analytics": {
+          "type": "string",
+          "description": "Privacy: Hotjar service category label"
+        },
+        "Bot Protection": {
+          "type": "string",
+          "description": "Privacy: Cloudflare Turnstile service category label"
+        },
+        "Complete Privacy Policy": {
+          "type": "string",
+          "description": "Privacy: Link to full policy document"
+        },
+        "Cookie preference not set": {
+          "type": "string",
+          "description": "Privacy: Cookie consent status (not yet chosen)"
+        },
+        "Cookie Preferences": {
+          "type": "string",
+          "description": "Privacy: Cookie preferences section header"
+        },
+        "Current status": {
+          "type": "string",
+          "description": "Privacy: Cookie status label"
+        },
+        "Last updated {date}": {
+          "type": "string",
+          "description": "Privacy: Policy last update date with localized date parameter"
+        },
+        "Learn more": {
+          "type": "string",
+          "description": "Privacy: Link to full privacy policy"
+        },
+        "Privacy": {
+          "type": "string",
+          "description": "Privacy: Short label for mobile footer"
+        },
+        "Privacy Policy": {
+          "type": "string",
+          "description": "Privacy: Page/link title"
+        },
+        "Questions or concerns?": {
+          "type": "string",
+          "description": "Privacy: Contact section header (PHRASE SEQUENCE 1/2)"
+        },
+        "Please contact us at": {
+          "type": "string",
+          "description": "Privacy: Contact prompt (followed by email) (PHRASE SEQUENCE 2/2)"
+        },
+        "Summary": {
+          "type": "string",
+          "description": "Privacy: Summary section header (PHRASE SEQUENCE 1/2)"
+        },
+        "We collect minimal personal information (email, username, password) to provide authentication services…": {
+          "type": "string",
+          "description": "Privacy: Summary paragraph text (PHRASE SEQUENCE 2/2)"
+        },
+        "Third-Party Services": {
+          "type": "string",
+          "description": "Privacy: Third-party services section header"
+        },
+        "This privacy notice for {companyName} describes how and why we might collect, store, use, and/or share your information when you use our services.": {
+          "type": "string",
+          "description": "Privacy: Policy introduction paragraph with company name parameter"
+        },
+        "Usage Analytics": {
+          "type": "string",
+          "description": "Privacy: Google Analytics service category label"
+        },
+        "We use cookies for analytics (Google Analytics, Hotjar) to improve your experience. You can change your preference at any time.": {
+          "type": "string",
+          "description": "Privacy: Cookie consent explanation"
+        },
+        "We use cookies to improve your experience and analyze site usage.": {
+          "type": "string",
+          "description": "Privacy: Cookie banner message"
+        },
+        "We use the following third-party services. Please review their privacy policies:": {
+          "type": "string",
+          "description": "Privacy: Third-party services intro text"
+        }
+      },
+      "required": [
+        "Analytics cookies disabled",
+        "Analytics cookies enabled",
+        "Authentication & Database",
+        "Behavior Analytics",
+        "Bot Protection",
+        "Complete Privacy Policy",
+        "Cookie preference not set",
+        "Cookie Preferences",
+        "Current status",
+        "Last updated {date}",
+        "Learn more",
+        "Privacy",
+        "Privacy Policy",
+        "Questions or concerns?",
+        "Please contact us at",
+        "Summary",
+        "We collect minimal personal information (email, username, password) to provide authentication services…",
+        "Third-Party Services",
+        "This privacy notice for {companyName} describes how and why we might collect, store, use, and/or share your information when you use our services.",
+        "Usage Analytics",
+        "We use cookies for analytics (Google Analytics, Hotjar) to improve your experience. You can change your preference at any time.",
+        "We use cookies to improve your experience and analyze site usage.",
+        "We use the following third-party services. Please review their privacy policies:"
+      ],
+      "additionalProperties": false
+    },
+
+    "profile": {
+      "type": "object",
+      "properties": {
+        "A verification code will be sent to your new email address. You must enter the code to complete the change.": {
+          "type": "string",
+          "description": "Profile: Email change process explanation"
+        },
+        "Dark": {
+          "type": "string",
+          "description": "Profile: Dark theme option"
+        },
+        "Are you sure you want to delete your account? This action cannot be undone. All your data will be permanently deleted.": {
+          "type": "string",
+          "description": "Profile: Account deletion confirmation dialog"
+        },
+        "Change Email Address": {
+          "type": "string",
+          "description": "Profile: Email change section header"
+        },
+        "Change Password": {
+          "type": "string",
+          "description": "Profile: Password change section header"
+        },
+        "Change Username": {
+          "type": "string",
+          "description": "Profile: Username change section header (when username exists)"
+        },
+        "Clear All Data": {
+          "type": "string",
+          "description": "Profile: Clear data section header"
+        },
+        "Clear Data": {
+          "type": "string",
+          "description": "Profile: Clear data button"
+        },
+        "Data & Privacy": {
+          "type": "string",
+          "description": "Profile: Data management section header"
+        },
+        "Delete Account": {
+          "type": "string",
+          "description": "Profile: Account deletion button"
+        },
+        "Email address updated successfully!": {
+          "type": "string",
+          "description": "Profile: Email change success message"
+        },
+        "Type {text} to confirm": {
+          "type": "string",
+          "description": "Profile: Prompt to type confirmation text (e.g., DELETE) for destructive actions"
+        },
+        "Download all your account data in JSON format": {
+          "type": "string",
+          "description": "Profile: Data export description"
+        },
+        "Enter username": {
+          "type": "string",
+          "description": "Profile: Username input placeholder"
+        },
+        "Enter your new email address": {
+          "type": "string",
+          "description": "Profile: New email placeholder"
+        },
+        "Export Data": {
+          "type": "string",
+          "description": "Profile: Data export button"
+        },
+        "Export Your Data": {
+          "type": "string",
+          "description": "Profile: Data export section header"
+        },
+        "Last Sign In": {
+          "type": "string",
+          "description": "Profile: Last login timestamp label"
+        },
+        "Light": {
+          "type": "string",
+          "description": "Profile: Light theme option"
+        },
+        "Member Since": {
+          "type": "string",
+          "description": "Profile: Account creation date label"
+        },
+        "New Email Address": {
+          "type": "string",
+          "description": "Profile: New email field label"
+        },
+        "Permanently delete your account and all associated data. This action cannot be undone.": {
+          "type": "string",
+          "description": "Profile: Account deletion warning text"
+        },
+        "Please enter a valid email address": {
+          "type": "string",
+          "description": "Profile: Email format validation error"
+        },
+        "Preferences": {
+          "type": "string",
+          "description": "Profile: Preferences section header"
+        },
+        "Profile": {
+          "type": "string",
+          "description": "Profile: Page title"
+        },
+        "Remove all stored preferences, notifications, and settings. Your account will remain active.": {
+          "type": "string",
+          "description": "Profile: Clear data description"
+        },
+        "Select timezone": {
+          "type": "string",
+          "description": "Profile: Timezone dropdown placeholder"
+        },
+        "Set Username": {
+          "type": "string",
+          "description": "Profile: Username section header (when no username)"
+        },
+        "Theme": {
+          "type": "string",
+          "description": "Profile: Theme preference label"
+        },
+        "Timezone": {
+          "type": "string",
+          "description": "Profile: Timezone setting label"
+        },
+        "Update Email": {
+          "type": "string",
+          "description": "Profile: Email change submit button"
+        },
+        "User ID": {
+          "type": "string",
+          "description": "Profile: User ID label"
+        },
+        "User Information": {
+          "type": "string",
+          "description": "Profile: User info section header"
+        },
+        "Username updated successfully!": {
+          "type": "string",
+          "description": "Profile: Username change success message"
+        },
+        "Verification email sent! Please check your new email address and enter the confirmation code.": {
+          "type": "string",
+          "description": "Profile: Email change confirmation message"
+        },
+        "Without a username, your profile is private": {
+          "type": "string",
+          "description": "Profile: Privacy note when no username set"
+        }
+      },
+      "required": [
+        "A verification code will be sent to your new email address. You must enter the code to complete the change.",
+        "Are you sure you want to delete your account? This action cannot be undone. All your data will be permanently deleted.",
+        "Change Email Address",
+        "Change Password",
+        "Change Username",
+        "Clear All Data",
+        "Clear Data",
+        "Dark",
+        "Data & Privacy",
+        "Delete Account",
+        "Email address updated successfully!",
+        "Type {text} to confirm",
+        "Download all your account data in JSON format",
+        "Enter username",
+        "Enter your new email address",
+        "Export Data",
+        "Export Your Data",
+        "Last Sign In",
+        "Light",
+        "Member Since",
+        "New Email Address",
+        "Permanently delete your account and all associated data. This action cannot be undone.",
+        "Please enter a valid email address",
+        "Preferences",
+        "Profile",
+        "Remove all stored preferences, notifications, and settings. Your account will remain active.",
+        "Select timezone",
+        "Set Username",
+        "Theme",
+        "Timezone",
+        "Update Email",
+        "User ID",
+        "User Information",
+        "Username updated successfully!",
+        "Verification email sent! Please check your new email address and enter the confirmation code.",
+        "Without a username, your profile is private"
+      ],
+      "additionalProperties": false
+    },
+
+    "time": {
+      "type": "object",
+      "properties": {
+        "days ago": {
+          "type": "string",
+          "description": "Relative time: Days ago (e.g., ’3 days ago’)"
+        },
+        "hours ago": {
+          "type": "string",
+          "description": "Relative time: Hours ago (e.g., ’2 hours ago’)"
+        },
+        "in days": {
+          "type": "string",
+          "description": "Relative time: Days from now (e.g., ’in 3 days’)"
+        },
+        "in hours": {
+          "type": "string",
+          "description": "Relative time: Hours from now (e.g., ’in 2 hours’)"
+        },
+        "in minutes": {
+          "type": "string",
+          "description": "Relative time: Minutes from now (e.g., ’in 5 minutes’)"
+        },
+        "in months": {
+          "type": "string",
+          "description": "Relative time: Months from now (e.g., ’in 3 months’)"
+        },
+        "in weeks": {
+          "type": "string",
+          "description": "Relative time: Weeks from now (e.g., ’in 2 weeks’)"
+        },
+        "in years": {
+          "type": "string",
+          "description": "Relative time: Years from now (e.g., ’in 2 years’)"
+        },
+        "Just now": {
+          "type": "string",
+          "description": "Relative time: Less than 1 minute ago"
+        },
+        "minutes ago": {
+          "type": "string",
+          "description": "Relative time: Minutes ago (e.g., ’5 minutes ago’)"
+        },
+        "Momentarily": {
+          "type": "string",
+          "description": "Relative time: Less than 1 minute from now"
+        },
+        "months ago": {
+          "type": "string",
+          "description": "Relative time: Months ago (e.g., ’3 months ago’)"
+        },
+        "weeks ago": {
+          "type": "string",
+          "description": "Relative time: Weeks ago (e.g., ’2 weeks ago’)"
+        },
+        "years ago": {
+          "type": "string",
+          "description": "Relative time: Years ago (e.g., ’2 years ago’)"
+        }
+      },
+      "required": [
+        "days ago",
+        "hours ago",
+        "in days",
+        "in hours",
+        "in minutes",
+        "in months",
+        "in weeks",
+        "in years",
+        "Just now",
+        "minutes ago",
+        "Momentarily",
+        "months ago",
+        "weeks ago",
+        "years ago"
+      ],
+      "additionalProperties": false
+    },
+
+    "timezone": {
+      "type": "object",
+      "properties": {
+        "UTC": {
+          "type": "string",
+          "description": "Timezone: UTC"
+        },
+        "America/New_York (Eastern)": {
+          "type": "string",
+          "description": "Timezone: US Eastern"
+        },
+        "America/Chicago (Central)": {
+          "type": "string",
+          "description": "Timezone: US Central"
+        },
+        "America/Denver (Mountain)": {
+          "type": "string",
+          "description": "Timezone: US Mountain"
+        },
+        "America/Los_Angeles (Pacific)": {
+          "type": "string",
+          "description": "Timezone: US Pacific"
+        },
+        "America/Anchorage (Alaska)": {
+          "type": "string",
+          "description": "Timezone: US Alaska"
+        },
+        "Pacific/Honolulu (Hawaii)": {
+          "type": "string",
+          "description": "Timezone: US Hawaii"
+        },
+        "Europe/London": {
+          "type": "string",
+          "description": "Timezone: London UK"
+        },
+        "Europe/Paris": {
+          "type": "string",
+          "description": "Timezone: Paris France"
+        },
+        "Europe/Berlin": {
+          "type": "string",
+          "description": "Timezone: Berlin Germany"
+        },
+        "Asia/Tokyo": {
+          "type": "string",
+          "description": "Timezone: Tokyo Japan"
+        },
+        "Asia/Shanghai": {
+          "type": "string",
+          "description": "Timezone: Shanghai China"
+        },
+        "Asia/Singapore": {
+          "type": "string",
+          "description": "Timezone: Singapore"
+        },
+        "Asia/Dubai": {
+          "type": "string",
+          "description": "Timezone: Dubai UAE"
+        },
+        "Australia/Sydney": {
+          "type": "string",
+          "description": "Timezone: Sydney Australia"
+        },
+        "Australia/Melbourne": {
+          "type": "string",
+          "description": "Timezone: Melbourne Australia"
+        },
+        "Pacific/Auckland": {
+          "type": "string",
+          "description": "Timezone: Auckland New Zealand"
+        }
+      },
+      "required": [
+        "UTC",
+        "America/New_York (Eastern)",
+        "America/Chicago (Central)",
+        "America/Denver (Mountain)",
+        "America/Los_Angeles (Pacific)",
+        "America/Anchorage (Alaska)",
+        "Pacific/Honolulu (Hawaii)",
+        "Europe/London",
+        "Europe/Paris",
+        "Europe/Berlin",
+        "Asia/Tokyo",
+        "Asia/Shanghai",
+        "Asia/Singapore",
+        "Asia/Dubai",
+        "Australia/Sydney",
+        "Australia/Melbourne",
+        "Pacific/Auckland"
+      ],
+      "additionalProperties": false
+    },
+
+    "update": {
+      "type": "object",
+      "properties": {
+        "Later": {
+          "type": "string",
+          "description": "Update dialog: Dismiss button"
+        },
+        "New Version Available": {
+          "type": "string",
+          "description": "Update dialog: Header title"
+        },
+        "This is a major update and requires restart": {
+          "type": "string",
+          "description": "Update dialog: Major update warning"
+        },
+        "This is a minor update and requires restart": {
+          "type": "string",
+          "description": "Update dialog: Minor update warning"
+        },
+        "This is a small change—you can update later if desired.": {
+          "type": "string",
+          "description": "Update dialog: Patch update info"
+        },
+        "Update Now": {
+          "type": "string",
+          "description": "Update dialog: Confirm button"
+        }
+      },
+      "required": [
+        "Later",
+        "New Version Available",
+        "This is a major update and requires restart",
+        "This is a minor update and requires restart",
+        "This is a small change—you can update later if desired.",
+        "Update Now"
+      ],
+      "additionalProperties": false
+    },
+
+    "validation": {
+      "type": "object",
+      "properties": {
+        "3–30 characters": {
+          "type": "string",
+          "description": "Validation: Username length requirement"
+        },
+        "8+ characters with 1 uppercase, 1 lowercase, 1 number, 1 symbol": {
+          "type": "string",
+          "description": "Validation: Standard password requirement"
+        },
+        "Avoid profanity or hate-speech": {
+          "type": "string",
+          "description": "Validation: Username content policy"
+        },
+        "Example: user@example.com": {
+          "type": "string",
+          "description": "Validation: Email format example"
+        },
+        "Most Unicode characters allowed (emojis, accents, etc.)": {
+          "type": "string",
+          "description": "Validation: Username character set info"
+        },
+        "OR 20+ characters (no other requirements)": {
+          "type": "string",
+          "description": "Validation: Long password alternative requirement"
+        },
+        "Valid email address format": {
+          "type": "string",
+          "description": "Validation: Email format requirement"
+        }
+      },
+      "required": [
+        "3–30 characters",
+        "8+ characters with 1 uppercase, 1 lowercase, 1 number, 1 symbol",
+        "Avoid profanity or hate-speech",
+        "Example: user@example.com",
+        "Most Unicode characters allowed (emojis, accents, etc.)",
+        "OR 20+ characters (no other requirements)",
+        "Valid email address format"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "Accept",
+    "Cancel",
+    "Decline",
+    "Email",
+    "No",
+    "OK",
+    "optional",
+    "Password",
+    "Permission",
+    "Platform",
+    "Save",
+    "Status",
+    "Supported",
+    "Username",
+    "Yes",
+    "a11y",
+    "auth",
+    "connectivity",
+    "error",
+    "feature",
+    "menu",
+    "migration",
+    "nav",
+    "notification",
+    "page",
+    "privacy",
+    "profile",
+    "time",
+    "timezone",
+    "update",
+    "validation"
+  ],
+  "additionalProperties": false
+}

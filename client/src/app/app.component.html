@@ -1,0 +1,62 @@
+<ng-container *transloco="let t">
+  <div class="main" appScrollIndicator>
+    <header>
+      <div class="breadcrumbs">
+        Momentum
+        @if(breadcrumb){ | {{ breadcrumb }}}
+      </div>
+      <div class="header-actions">
+        <app-menu-auth />
+        @if (showNotifications()) {
+          <app-notification-center />
+        }
+        @if(!connectivity.isOnline()){
+          @if(connectivity.showOffline()){
+            @if((window?.innerWidth ?? 0) >= SCREEN_SIZES.md) { {{ t('connectivity.You are currently offline') }} }
+            <i class="pi pi-exclamation-triangle"></i>
+          }
+          <i class="pi pi-wifi"></i>
+        } @else {
+          <i class="pi pi-wifi"></i>
+        }
+      </div>
+    </header>
+
+    <div class="content">
+      <router-outlet></router-outlet>
+    </div>
+  
+    <footer>
+      @if (showAppVersion()) {
+        <app-menu-change-log />
+      }
+      @if (showEnvironment()) {
+        <span class="footer-item" [pTooltip]="isXsScreen() ? t('menu.{environmentName} environment', { environmentName: t(isDevMode ? 'menu.Development' : 'menu.Production') }) : null" tooltipPosition="top" [showDelay]="tooltipShowDelay" [hideDelay]="tooltipHideDelay">
+          @if (isXsScreen()) {
+            <i class="pi" [class.pi-code]="isDevMode" [class.pi-globe]="!isDevMode"></i>
+          } @else if (isNarrowScreen()) {
+            {{ t(isDevMode ? 'menu.Development' : 'menu.Production') }}
+          } @else {
+            {{ t('menu.{environmentName} environment', { environmentName: t(isDevMode ? 'menu.Development' : 'menu.Production') }) }}
+          }
+        </span>
+      }
+      <span class="footer-item"><a routerLink="/privacy" class="privacy-link">{{ t(isNarrowScreen() ? 'privacy.Privacy' : 'privacy.Privacy Policy') }}</a></span>
+      @if (showLanguage()) {
+        <app-menu-language />
+      }
+    </footer>
+  </div>
+
+  <app-menu-feature></app-menu-feature>
+
+  <!-- Cookie Consent Banner -->
+  <app-cookie-banner />
+
+  <!-- Dialogs -->
+  <app-dialog-confirm />
+  <app-dialog-update />
+
+  <!-- Toast notifications -->
+  <p-toast />
+</ng-container>

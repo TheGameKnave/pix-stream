@@ -1,0 +1,11 @@
+<p-card *transloco="let t">
+  @if (error()) {
+    <p class="error">{{ t('page.Unable to load API documentation. Please check your connection and try again.') }}</p>
+  }
+  @else if (docs()) {
+    <markdown [data]="docs()"></markdown>
+  }
+  @else {
+    <p>{{ t('page.Loading API documentation…') }}</p>
+  }
+</p-card>
