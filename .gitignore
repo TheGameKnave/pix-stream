@@ -154,6 +154,12 @@ playwright-report/
 # Lighthouse CI
 .lighthouseci/
 
-# Dynamic screenshot cache
-.screenshots-cache/
-test.png
+# Photo storage (images, thumbnails, composed)
+storage/originals/*
+storage/thumbnails/*
+storage/composed/*
+storage/metadata/*
+!storage/**/.gitkeep
+
+# Admin password
+server/config/.password

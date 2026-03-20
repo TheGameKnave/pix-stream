@@ -1,78 +1,81 @@
 {
   "$schema": "../node_modules/@angular/service-worker/config/schema.json",
-  "index": "/index.csr.html",
+  "index": "/index.html",
   "assetGroups": [
     {
       "name": "app",
       "installMode": "prefetch",
+      "updateMode": "prefetch",
       "resources": {
         "files": [
           "/favicon.ico",
-          "/index.csr.html",
+          "/index.html",
           "/manifest.webmanifest",
           "/*.css",
-          "/*.js",
-          "/media/primeicons-*"
+          "/*.js"
         ]
       }
     },
     {
-      "name": "assets",
+      "name": "fonts",
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
         "files": [
-          "/assets/browserconfig.xml",
-          "/assets/docs/**",
-          "/assets/fonts/**",
-          "/assets/i18n/**",
-          "/assets/icons/*",
-          "/assets/styles/**",
-          "/media/**",
-          "/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|otf|ttf|woff|woff2|md)"
+          "/assets/fonts/**"
         ]
+      }
+    },
+    {
+      "name": "icons",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/assets/icons/**"
+        ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-manifest",
+      "urls": [
+        "/api/manifest*",
+        "/api/config*"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 5,
+        "maxAge": "1h",
+        "timeout": "5s"
+      }
+    },
+    {
+      "name": "thumbnails",
+      "urls": [
+        "/api/image/thumb/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 500,
+        "maxAge": "30d"
+      }
+    },
+    {
+      "name": "images",
+      "urls": [
+        "/api/image/full/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 100,
+        "maxAge": "30d"
       }
     }
   ],
   "navigationUrls": [
     "/**",
-    "!/**/*.md",
-    "!/**/assets/**"
-  ],
-  "dataGroups": [
-    {
-      "name": "api",
-      "urls": [
-        "/api/**",
-        "/gql/**",
-        "/socket.io/**"
-      ],
-      "cacheConfig": {
-        "strategy": "freshness",
-        "maxSize": 0,
-        "maxAge": "0s",
-        "timeout": "10s"
-      }
-    },
-    {
-      "name": "external-analytics",
-      "urls": [
-        "https://static.cloudflareinsights.com/**",
-        "https://cloudflareinsights.com/**",
-        "https://static.hotjar.com/**",
-        "https://script.hotjar.com/**",
-        "https://vars.hotjar.com/**",
-        "https://*.contentsquare.net/**",
-        "https://www.googletagmanager.com/**",
-        "https://www.google-analytics.com/**",
-        "https://challenges.cloudflare.com/**"
-      ],
-      "cacheConfig": {
-        "strategy": "freshness",
-        "maxSize": 1,
-        "maxAge": "1s",
-        "timeout": "10s"
-      }
-    }
+    "!/**/api/**"
   ]
 }

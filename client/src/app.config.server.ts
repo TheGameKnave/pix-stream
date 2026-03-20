@@ -4,10 +4,8 @@ import { serverProviders } from './main.config';
 
 const ssrProviders: ApplicationConfig = {
   providers: [
-    // Explicitly enable SSR mode (not SSG) so REQUEST token is available
-    // Profile route uses client-only rendering since it requires authentication
     provideServerRendering(withRoutes([
-      { path: 'profile', renderMode: RenderMode.Client },
+      { path: 'admin', renderMode: RenderMode.Client },
       { path: '**', renderMode: RenderMode.Server },
     ])),
   ],
@@ -15,5 +13,5 @@ const ssrProviders: ApplicationConfig = {
 
 export const serverConfig = mergeApplicationConfig(
   { providers: serverProviders },
-  ssrProviders
+  ssrProviders,
 );

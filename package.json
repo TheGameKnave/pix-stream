@@ -1,59 +1,23 @@
 {
-  "name": "angular-momentum",
-  "version": "21.2.19",
-  "siteUrl": "https://angularmomentum.app",
-  "repository": "https://github.com/TheGameKnave/angular-momentum",
+  "name": "photo-stream",
+  "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "24.11.1"
-  },
   "scripts": {
-    "client": "cd client && NODE_ENV=development npm run start -- --configuration development",
-    "client:prod": "cd client && NODE_ENV=production npm run start -- --configuration production",
-    "client:e2e": "cd client && NODE_ENV=development npm run start -- --configuration e2e",
-    "client:ssr": "cd client && node dist/angular-momentum/server/server.mjs",
-    "server": "cd server && NODE_ENV=development node-env-run --exec nodemon | pino-colada",
-    "server:prod": "cd server && NODE_ENV=production node-env-run --exec nodemon",
-    "heroku-postbuild": "cd client && npm install && npm run heroku-postbuild",
-    "start": "echo \"Run server and client, in parallel, in dev mode\" && run-p client server",
-    "start:ssr": "echo \"Run server and SSR client, in parallel\" && run-p client:ssr server",
-    "start:e2e": "run-p client:e2e server",
-    "prod": "run-p client:prod server:prod",
-    "sonar": "sonar-scanner -Dsonar.token=$(grep SONAR_TOKEN server/.env | cut -d '=' -f 2)",
-    "test": "./tests/test.sh",
-    "test:translation": "cd tests/translation && npx tsx translation-validation.ts",
-    "test:notification": "cd tests/translation && npx tsx notification-validation.ts",
-    "test:server": "cd server && npm test",
-    "test:client": "cd client && npm test",
-    "test:e2e": "node node_modules/@playwright/test/cli.js test --config=tests/e2e/playwright.config.ts",
-    "test:e2e:ui": "node node_modules/@playwright/test/cli.js test --config=tests/e2e/playwright.config.ts --ui",
-    "test:e2e:headed": "node node_modules/@playwright/test/cli.js test --config=tests/e2e/playwright.config.ts --headed",
-    "test:e2e:accept": "./tests/e2e/copy-snapshots.sh",
-    "deploy:dev": "./deploy.sh dev",
-    "deploy:staging": "./deploy.sh staging",
-    "bump-version": "node bump_version.js",
-    "deploy:production": "./deploy.sh production",
+    "dev": "npx concurrently \"npm run client\" \"npm run server\"",
+    "client": "cd client && ng serve --configuration development",
+    "server": "/opt/homebrew/bin/php -S localhost:8080 -t server/ server/router.php",
+    "build": "cd client && npm run build",
+    "build:prod": "cd client && npm run build -- --configuration production",
+    "test": "cd client && npm test",
     "prepare": "npx --yes is-ci || husky || true"
   },
   "workspaces": [
-    "./client",
-    "./server"
+    "./client"
   ],
-  "overrides": {
-    "@types/express-serve-static-core": "^5.1.0"
-  },
   "devDependencies": {
-    "@formatjs/icu-messageformat-parser": "^2.11.4",
-    "@jirutka/ajv-cli": "^6.0.0-beta.5",
-    "@lhci/cli": "^0.15.1",
-    "@playwright/test": "^1.57.0",
     "@types/compression": "^1.8.1",
-    "@types/express-serve-static-core": "^5.1.0",
-    "ajv": "^8.17.1",
+    "concurrently": "^9.1.2",
     "husky": "^9.1.7",
     "typescript": "~5.9.3"
-  },
-  "dependencies": {
-    "compression": "^1.8.1"
   }
 }

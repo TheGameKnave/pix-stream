@@ -7,41 +7,33 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 #[cfg(desktop)]
 use tauri::Manager;
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_deep_link::init());
+        .plugin(tauri_plugin_notification::init());
 
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            // App menu (Angular Momentum)
             let check_updates = MenuItem::with_id(app, "check_updates", "Check for Updates...", true, None::<&str>)?;
             let clear_cache = MenuItem::with_id(app, "clear_cache", "Clear Cache and Restart...", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
-            let hide = PredefinedMenuItem::hide(app, Some("Hide Angular Momentum"))?;
+            let hide = PredefinedMenuItem::hide(app, Some("Hide Photo Stream"))?;
             let hide_others = PredefinedMenuItem::hide_others(app, Some("Hide Others"))?;
             let show_all = PredefinedMenuItem::show_all(app, Some("Show All"))?;
             let separator2 = PredefinedMenuItem::separator(app)?;
-            let quit = PredefinedMenuItem::quit(app, Some("Quit Angular Momentum"))?;
+            let quit = PredefinedMenuItem::quit(app, Some("Quit Photo Stream"))?;
             let app_submenu = Submenu::with_items(
                 app,
-                "Angular Momentum",
+                "Photo Stream",
                 true,
                 &[&check_updates, &clear_cache, &separator, &hide, &hide_others, &show_all, &separator2, &quit],
             )?;
 
-            // Edit menu
             let undo = PredefinedMenuItem::undo(app, None)?;
             let redo = PredefinedMenuItem::redo(app, None)?;
             let separator3 = PredefinedMenuItem::separator(app)?;
@@ -56,7 +48,6 @@ pub fn run() {
                 &[&undo, &redo, &separator3, &cut, &copy, &paste, &select_all],
             )?;
 
-            // Window menu
             let minimize = PredefinedMenuItem::minimize(app, None)?;
             let fullscreen = PredefinedMenuItem::fullscreen(app, Some("Enter Full Screen"))?;
             let separator4 = PredefinedMenuItem::separator(app)?;
@@ -130,24 +121,21 @@ pub fn run() {
             } else if event.id().as_ref() == "clear_cache" {
                 let app_handle = app.clone();
                 let confirmed = app_handle.dialog()
-                    .message("This will clear all cached data and restart the app. You may need to log in again. Continue?")
+                    .message("This will clear all cached data and restart the app. Continue?")
                     .title("Clear Cache")
                     .buttons(MessageDialogButtons::OkCancel)
                     .blocking_show();
 
                 if confirmed {
-                    // Clear WebView data
                     if let Some(window) = app_handle.get_webview_window("main") {
                         let _ = window.clear_all_browsing_data();
                     }
-                    // Restart the app
                     app_handle.restart();
                 }
             }
         });
 
     builder
-        .invoke_handler(tauri::generate_handler![greet])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

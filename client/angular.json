@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "angular-momentum": {
+    "photo-stream": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -19,18 +19,13 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/angular-momentum",
+            "outputPath": "dist/photo-stream",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "server": "src/main.server.ts",
             "ssr": {
               "entry": "server.ts"
             },
-            "externalDependencies": [
-              "playwright",
-              "playwright-chromium",
-              "playwright-core"
-            ],
             "polyfills": [],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -67,66 +62,7 @@
               "outputHashing": "all",
               "serviceWorker": "ngsw-config.json"
             },
-            "staging": {
-              "assets": [
-                "src/favicon.ico",
-                "src/assets",
-                "src/manifest.webmanifest",
-                "src/robots.txt"
-              ],
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.stage.ts"
-                }
-              ],
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "2mb"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
-                }
-              ],
-              "outputHashing": "all",
-              "serviceWorker": "ngsw-config.json"
-            },
             "development": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true,
-              "namedChunks": true,
-              "assets": [
-                "src/favicon.ico",
-                "src/assets",
-                "src/manifest.webmanifest",
-                "src/robots.txt"
-              ]
-            },
-            "tauri-local": {
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.local.ts"
-                }
-              ],
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true,
-              "namedChunks": true,
-              "assets": [
-                "src/favicon.ico",
-                "src/assets",
-                "src/manifest.webmanifest",
-                "src/robots.txt"
-              ]
-            },
-            "e2e": {
-              "ssr": true,
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
@@ -145,33 +81,18 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "host": "0.0.0.0",
-            "proxyConfig": "src/proxy.conf.js",
-            "port": 4200
+            "port": 4200,
+            "proxyConfig": "src/proxy.conf.json"
           },
           "configurations": {
             "production": {
-              "buildTarget": "angular-momentum:build:production"
+              "buildTarget": "photo-stream:build:production"
             },
             "development": {
-              "buildTarget": "angular-momentum:build:development"
-            },
-            "tauri-local": {
-              "buildTarget": "angular-momentum:build:tauri-local"
-            },
-            "tauri-build": {
-              "buildTarget": "angular-momentum:build:tauri-build"
-            },
-            "e2e": {
-              "buildTarget": "angular-momentum:build:e2e"
+              "buildTarget": "photo-stream:build:development"
             }
           },
           "defaultConfiguration": "development"
-        },
-        "extract-i18n": {
-          "builder": "@angular/build:extract-i18n",
-          "options": {
-            "buildTarget": "angular-momentum:build"
-          }
         },
         "test": {
           "builder": "@angular/build:karma",
@@ -194,16 +115,6 @@
               "src/assets/styles/main.scss"
             ],
             "scripts": []
-          },
-          "configurations": {
-            "test": {
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.test.ts"
-                }
-              ]
-            }
           }
         },
         "lint": {
@@ -220,31 +131,5 @@
   },
   "cli": {
     "analytics": false
-  },
-  "schematics": {
-    "@schematics/angular:component": {
-      "type": "component"
-    },
-    "@schematics/angular:directive": {
-      "type": "directive"
-    },
-    "@schematics/angular:service": {
-      "type": "service"
-    },
-    "@schematics/angular:guard": {
-      "typeSeparator": "."
-    },
-    "@schematics/angular:interceptor": {
-      "typeSeparator": "."
-    },
-    "@schematics/angular:module": {
-      "typeSeparator": "."
-    },
-    "@schematics/angular:pipe": {
-      "typeSeparator": "."
-    },
-    "@schematics/angular:resolver": {
-      "typeSeparator": "."
-    }
   }
 }
