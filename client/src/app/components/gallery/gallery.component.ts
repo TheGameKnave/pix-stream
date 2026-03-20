@@ -14,7 +14,7 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import gsap from 'gsap';
-import { GalleryStateService, FloatingImage, ImageEntry } from '@app/services/gallery-state.service';
+import { GalleryStateService, FloatingImage, ImageEntry, ManifestResponse } from '@app/services/gallery-state.service';
 
 let _Observer: any = null;
 
@@ -37,7 +37,7 @@ function buildShadow(z: number): string {
   return `0 ${offsetY}px ${blur}px ${spread}px rgba(0,0,0,${opacity})`;
 }
 
-function makeCard(entry: ImageEntry, x: number, vh: number, row: number, cellH: number, targetArea: number): FloatingImage {
+function makeCard(entry: ImageEntry, x: number, row: number, cellH: number, targetArea: number): FloatingImage {
   const aspect = entry.width && entry.height ? entry.width / entry.height : 1;
   const w = Math.sqrt(targetArea * aspect);
   const h = w / aspect;
@@ -78,8 +78,10 @@ export class GalleryComponent {
   private baseSpeed = -0.5; // offset change per frame; negative = flow L→R
   private userSpeed = 0;
   private rafId = 0;
+  private pollTimer = 0;
   private observer: any = null;
   private entries: ImageEntry[] = [];
+  private entryIds = new Set<string>();
   private targetArea = 0;
   private vh = 0;
   private vw = 0;
@@ -101,12 +103,14 @@ export class GalleryComponent {
 
       if (this.state.cards && this.state.entries) {
         this.entries = this.state.entries;
+        this.entryIds = new Set(this.entries.map(e => e.id));
         this.offset = this.state.offset;
         this.cards.set(this.state.cards);
         this.initMetrics();
         this.loading.set(false);
         this.startRiver();
         this.setupObserver();
+        this.startManifestPoll();
       } else {
         this.fetchManifest();
       }
@@ -153,12 +157,15 @@ export class GalleryComponent {
 
   private fetchManifest(): void {
     this.http
-      .get<ImageEntry[]>('/api/manifest')
+      .get<ManifestResponse>('/api/manifest')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (entries) => {
+        next: (res) => {
+          const entries = res.images;
           this.entries = entries;
+          this.entryIds = new Set(entries.map(e => e.id));
           this.state.entries = entries;
+          this.state.manifestVersion = res.version;
           if (entries.length === 0) {
             this.loading.set(false);
             return;
@@ -168,6 +175,7 @@ export class GalleryComponent {
           this.loading.set(false);
           this.startRiver();
           this.setupObserver();
+          this.startManifestPoll();
         },
         error: () => this.loading.set(false),
       });
@@ -267,8 +275,15 @@ export class GalleryComponent {
   }
 
   private recycle(): void {
-    const currentCards = this.cards();
+    let currentCards = this.cards();
     let changed = false;
+
+    // Prune cards whose entries were removed from the manifest (e.g. after an update)
+    const staleCount = currentCards.filter(c => !this.entryIds.has(c.entry.id)).length;
+    if (staleCount > 0) {
+      currentCards = currentCards.filter(c => this.entryIds.has(c.entry.id));
+      changed = true;
+    }
 
     // Only exclude IDs of cards still on-screen (off-screen ones are about to be recycled)
     const usedIds = new Set<string>();
@@ -293,7 +308,7 @@ export class GalleryComponent {
       if (screenX > this.vw + RECYCLE_MARGIN) {
         const entry = this.pickEntry(usedIds);
         const row = this.pickRow();
-        const newCard = makeCard(entry, 0, this.vh, row, this.cellH, this.targetArea);
+        const newCard = makeCard(entry, 0, row, this.cellH, this.targetArea);
         newCard.x = fieldLeft - newCard.w - gap * (0.5 + Math.random());
         currentCards[i] = newCard;
         fieldLeft = Math.min(fieldLeft, newCard.x);
@@ -301,7 +316,7 @@ export class GalleryComponent {
       } else if (screenX + card.w < -RECYCLE_MARGIN) {
         const entry = this.pickEntry(usedIds);
         const row = this.pickRow();
-        const newCard = makeCard(entry, 0, this.vh, row, this.cellH, this.targetArea);
+        const newCard = makeCard(entry, 0, row, this.cellH, this.targetArea);
         newCard.x = fieldRight + gap * (0.5 + Math.random());
         currentCards[i] = newCard;
         fieldRight = Math.max(fieldRight, newCard.x + newCard.w);
@@ -313,6 +328,36 @@ export class GalleryComponent {
       this.cards.set([...currentCards]);
       this.persistState();
     }
+  }
+
+  /** Poll the manifest every 30s; on version change, swap entries and let recycle prune stale cards. */
+  private startManifestPoll(): void {
+    this.pollTimer = window.setInterval(() => {
+      this.http.get<ManifestResponse>('/api/manifest').subscribe({
+        next: (res) => {
+          if (res.version === this.state.manifestVersion) return;
+          this.state.manifestVersion = res.version;
+          this.entries = res.images;
+          this.entryIds = new Set(res.images.map(e => e.id));
+          this.state.entries = res.images;
+          this.bustImageCaches();
+        },
+      });
+    }, 30_000);
+    this.destroyRef.onDestroy(() => clearInterval(this.pollTimer));
+  }
+
+  /** Delete stale thumbnail/image entries from the service worker cache. */
+  private bustImageCaches(): void {
+    if (!('caches' in window)) return;
+    caches.keys().then(names => {
+      for (const name of names) {
+        // Angular ngsw data caches are named like "ngsw:...:data:dynamic:thumbnails:cache"
+        if (name.includes('thumbnails') || name.includes('images')) {
+          caches.delete(name);
+        }
+      }
+    });
   }
 
   private setupObserver(): void {

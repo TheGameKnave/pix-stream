@@ -4,34 +4,63 @@
  * Scans originals directory and reads metadata.
  */
 
+/** Supported original extensions (case-insensitive). */
+const SCAN_EXTENSIONS = [
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif', 'psd',
+];
+
 function scanImages(string $dir): array {
     $images = [];
-    $files = glob($dir . '/*.{jpg,jpeg,JPG,JPEG,gif,GIF}', GLOB_BRACE);
 
-    if (!$files) return $images;
+    // Glob doesn't handle case-insensitive matching well across all platforms,
+    // so scan directory and filter by extension.
+    $all = @scandir($dir);
+    if (!$all) return $images;
 
-    foreach ($files as $file) {
-        $filename = basename($file);
-        $id = pathinfo($filename, PATHINFO_FILENAME);
-        $info = @getimagesize($file);
-
+    foreach ($all as $filename) {
+        if ($filename[0] === '.') continue;
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        $isJpeg = in_array($ext, ['jpg', 'jpeg']);
-        $mime = $isJpeg ? 'image/jpeg' : 'image/gif';
+        if (!in_array($ext, SCAN_EXTENSIONS)) continue;
+
+        $file = $dir . '/' . $filename;
+        if (!is_file($file)) continue;
+
+        $id = pathinfo($filename, PATHINFO_FILENAME);
+        $isGif = $ext === 'gif';
+
+        // For formats GD can read, get dimensions directly
+        $info = @getimagesize($file);
+        $width = $info ? $info[0] : 0;
+        $height = $info ? $info[1] : 0;
+
+        // For PSD/TIFF that getimagesize may not support, try Imagick
+        if (($width <= 0 || $height <= 0) && extension_loaded('imagick')) {
+            try {
+                $im = new Imagick($file);
+                $width = $im->getImageWidth();
+                $height = $im->getImageHeight();
+                $im->clear();
+                $im->destroy();
+            } catch (Exception $e) {}
+        }
+
+        // Output type after processing: GIF stays GIF, everything else becomes PNG
+        $outType = $isGif ? 'image/gif' : 'image/png';
 
         $meta = loadMetadata($id);
-        $exifTags = $isJpeg ? readExifTags($file) : [];
+        $canReadExif = in_array($ext, ['jpg', 'jpeg', 'tiff', 'tif']);
+        $exifTags = $canReadExif ? readExifTags($file) : [];
 
         $images[] = [
             'id' => $id,
             'filename' => $filename,
             'path' => $file,
-            'type' => $mime,
-            'width' => $info ? $info[0] : 0,
-            'height' => $info ? $info[1] : 0,
+            'type' => $outType,
+            'width' => $width,
+            'height' => $height,
             'tags' => $meta['tags'] ?? $exifTags,
             'nsfw' => $meta['nsfw'] ?? false,
-            'copyright' => $meta['copyright'] ?? ($isJpeg ? readExifCopyright($file) : ''),
+            'copyright' => $meta['copyright'] ?? ($canReadExif ? readExifCopyright($file) : ''),
         ];
     }
 

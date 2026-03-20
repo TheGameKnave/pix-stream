@@ -13,6 +13,11 @@ export interface ImageEntry {
   copyright: string;
 }
 
+export interface ManifestResponse {
+  version: string;
+  images: ImageEntry[];
+}
+
 export interface FloatingImage {
   entry: ImageEntry;
   x: number;
@@ -34,4 +39,5 @@ export class GalleryStateService {
   cards: FloatingImage[] | null = null;
   entries: ImageEntry[] | null = null;
   offset = 0;
+  manifestVersion = '';
 }
