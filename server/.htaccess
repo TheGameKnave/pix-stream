@@ -1,0 +1,26 @@
+RewriteEngine On
+
+# API routing
+RewriteRule ^api/manifest$ api/manifest.php [L,QSA]
+RewriteRule ^api/config$ api/config.php [L,QSA]
+RewriteRule ^api/auth/(.*)$ api/auth.php/$1 [L,QSA]
+RewriteRule ^api/tags$ api/tags.php [L,QSA]
+RewriteRule ^api/tags/(.*)$ api/tags.php/$1 [L,QSA]
+RewriteRule ^api/upload$ api/upload.php [L,QSA]
+RewriteRule ^api/status$ api/status.php [L,QSA]
+
+# Serve images from storage (with .gif.jpg static fallback for thumbnails)
+RewriteCond %{DOCUMENT_ROOT}/../storage/thumbnails/$1 -f
+RewriteRule ^api/image/thumb/(.*)$ ../storage/thumbnails/$1 [L]
+RewriteCond %{DOCUMENT_ROOT}/../storage/thumbnails/$1.jpg -f
+RewriteRule ^api/image/thumb/(.*)$ ../storage/thumbnails/$1.jpg [L]
+RewriteRule ^api/image/full/(.*)$ ../storage/originals/$1 [L]
+
+# Block direct access to config files
+RewriteRule ^config/ - [F,L]
+RewriteRule ^lib/ - [F,L]
+RewriteRule \.password$ - [F,L]
+
+# PHP settings
+php_value upload_max_filesize 50M
+php_value post_max_size 55M

@@ -1,0 +1,10 @@
+{
+  "title": "Photo Stream",
+  "description": "A floating photo gallery",
+  "accentColor": "#01ddb1",
+  "paletteMode": "mono",
+  "bgColor": "#1a1a1a",
+  "fontDisplay": "Raleway",
+  "fontBody": "Raleway",
+  "nsfwBlurDefault": false
+}
