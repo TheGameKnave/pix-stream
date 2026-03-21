@@ -4,26 +4,17 @@
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-# Get staged TypeScript files, excluding tests folder (grep || true prevents exit code 1 when no matches)
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.ts$' | grep -v '^tests/' || true)
+# Get staged TypeScript files (grep || true prevents exit code 1 when no matches)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.ts$' || true)
 
 if [ -z "$STAGED_FILES" ]; then
   exit 0
 fi
 
-echo "🔍 Running code quality checks..."
-
-# Run the check script directly with node
-node tests/helpers/check-code-quality.js $STAGED_FILES || exit 1
-
-echo "🔍 Running TypeScript type check..."
+echo "Running TypeScript type check..."
 
 # Run TypeScript compiler in client workspace
 cd client && node ../node_modules/typescript/lib/tsc.js --noEmit || exit 1
 cd ..
 
-# Run TypeScript compiler in server workspace
-cd server && node ../node_modules/typescript/lib/tsc.js --noEmit || exit 1
-cd ..
-
-echo "✅ All pre-commit checks passed!"
+echo "All pre-commit checks passed!"

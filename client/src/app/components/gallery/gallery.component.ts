@@ -25,15 +25,14 @@ async function loadObserver(): Promise<void> {
   if (_Observer) gsap.registerPlugin(_Observer);
 }
 
-const MAX_ROTATION = 30;
-const RECYCLE_MARGIN = 400;
+const MAX_ROTATION = 15;
 
 /** Determine cross-axis lane count based on aspect ratio of the viewport. */
 function laneCount(vw: number, vh: number): number {
   const ratio = vw / vh;
-  if (ratio > 1.3) return 4;  // wide / landscape monitor
-  if (ratio > 0.8) return 5;  // roughly square
-  return 6;                    // tall / portrait
+  if (ratio > 1.3) return 5;  // wide / landscape monitor
+  if (ratio > 0.8) return 7;  // roughly square
+  return 9;                    // tall / portrait
 }
 
 function buildShadow(z: number): string {
@@ -48,7 +47,10 @@ function makeCard(entry: ImageEntry, x: number, row: number, cellH: number, targ
   const aspect = entry.width && entry.height ? entry.width / entry.height : 1;
   const w = Math.sqrt(targetArea * aspect);
   const h = w / aspect;
-  const y = row * cellH + (Math.random() - 0.5) * cellH * 0.5;
+  // Center in the cell, then jitter. Jitter is gaussian-ish (average of 2 randoms)
+  // to keep most cards near center while allowing occasional outliers.
+  const jitter = ((Math.random() + Math.random()) / 2 - 0.5) * cellH * 0.6;
+  const y = row * cellH + cellH * 0.5 - h * 0.5 + jitter;
   const rotation = (Math.random() - 0.5) * 2 * MAX_ROTATION;
   const z = Math.random();
   return { entry, x, y, w, h, rotation, z, zIndex: Math.round(z * 100), shadow: buildShadow(z) };
@@ -95,6 +97,8 @@ export class GalleryComponent {
   private rows = 2;
   private cellH = 0;
   private avgW = 0;
+  private colSpacing = 0;
+  private recycleMargin = 400;
   private rowDrought: number[] = [];
 
   // For distinguishing click from drag
@@ -132,9 +136,11 @@ export class GalleryComponent {
     this.rows = laneCount(this.vw, this.vh);
     this.cellH = this.vh / this.rows;
     // Size cards to ~80% of cell height so they fill rows nicely at any resolution
-    const avgH = this.cellH * 0.8;
+    const avgH = this.cellH * 1.1;
     this.avgW = avgH * 1.2;
     this.targetArea = avgH * this.avgW;
+    this.colSpacing = this.avgW * 1.4;
+    this.recycleMargin = this.avgW * 1.5;
     this.rowDrought = new Array(this.rows).fill(0);
   }
 
@@ -210,21 +216,15 @@ export class GalleryComponent {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    // How many cells the full-density grid would have
-    const bufferX = this.vw * 0.5;
-    const startX = -bufferX;
-    const endX = this.vw + bufferX;
-    const totalW = endX - startX;
-    const idealCols = Math.max(3, Math.ceil(totalW / (this.avgW * 1.1)));
+    // Fill ~1.5 screen-widths at the grid density, leaving the rest for recycling
+    const fillW = this.vw * 1.5;
+    const idealCols = Math.max(2, Math.round(fillW / this.colSpacing));
     const idealTotal = idealCols * this.rows;
-
-    // We need ~2x visible cards for smooth no-duplicate recycling
-    // (1x on screen + 1x in the off-screen buffer being recycled).
-    // Cap the card count so we never exceed half the available entries.
-    const maxCards = Math.max(this.rows, Math.floor(entries.length / 2));
-    const cardCount = Math.min(idealTotal, maxCards);
-    const cols = Math.max(1, Math.ceil(cardCount / this.rows));
-    const cellW = totalW / cols;
+    const maxCards = Math.min(idealTotal, Math.max(this.rows, entries.length - this.rows));
+    const cols = Math.max(1, Math.ceil(maxCards / this.rows));
+    const startX = -this.colSpacing * 0.5;
+    const cellW = this.colSpacing;
+    const cardCount = maxCards;
 
     const initialCards: FloatingImage[] = [];
     let idx = 0;
@@ -241,8 +241,8 @@ export class GalleryComponent {
 
         const cellCenterX = startX + col * cellW + cellW / 2;
         const cellCenterY = row * this.cellH + this.cellH / 2;
-        const jitterX = (Math.random() - 0.5) * (cellW - w * 0.3);
-        const jitterY = (Math.random() - 0.5) * (this.cellH - h * 0.3);
+        const jitterX = (Math.random() - 0.5) * (cellW - w * 0.5);
+        const jitterY = (Math.random() - 0.5) * (this.cellH - h * 0.5);
 
         const x = cellCenterX + jitterX - w / 2;
         const y = cellCenterY + jitterY - h / 2;
@@ -301,33 +301,32 @@ export class GalleryComponent {
     let fieldRight = -Infinity;
     for (const c of currentCards) {
       const sx = c.x - this.offset;
-      if (sx + c.w >= -RECYCLE_MARGIN && sx <= this.vw + RECYCLE_MARGIN) {
+      if (sx + c.w >= -this.recycleMargin && sx <= this.vw + this.recycleMargin) {
         usedIds.add(c.entry.id);
         if (c.x < fieldLeft) fieldLeft = c.x;
         if (c.x + c.w > fieldRight) fieldRight = c.x + c.w;
       }
     }
 
-    // Match initial grid density: gap ≈ avgW * 0.1 between card edges
-    const gap = this.avgW * 0.1;
-
+    // Recycle at per-card density: colSpacing / rows between each card placement
+    const cardSpacing = this.colSpacing / this.rows;
     for (let i = 0; i < currentCards.length; i++) {
       const card = currentCards[i];
       const screenX = card.x - this.offset;
 
-      if (screenX > this.vw + RECYCLE_MARGIN) {
+      if (screenX > this.vw + this.recycleMargin) {
         const entry = this.pickEntry(usedIds);
         const row = this.pickRow();
         const newCard = makeCard(entry, 0, row, this.cellH, this.targetArea);
-        newCard.x = fieldLeft - newCard.w - gap * (0.5 + Math.random());
+        newCard.x = fieldLeft - cardSpacing + (Math.random() - 0.5) * cardSpacing * 0.3;
         currentCards[i] = newCard;
         fieldLeft = Math.min(fieldLeft, newCard.x);
         changed = true;
-      } else if (screenX + card.w < -RECYCLE_MARGIN) {
+      } else if (screenX + card.w < -this.recycleMargin) {
         const entry = this.pickEntry(usedIds);
         const row = this.pickRow();
         const newCard = makeCard(entry, 0, row, this.cellH, this.targetArea);
-        newCard.x = fieldRight + gap * (0.5 + Math.random());
+        newCard.x = fieldRight + cardSpacing - newCard.w + (Math.random() - 0.5) * cardSpacing * 0.3;
         currentCards[i] = newCard;
         fieldRight = Math.max(fieldRight, newCard.x + newCard.w);
         changed = true;
