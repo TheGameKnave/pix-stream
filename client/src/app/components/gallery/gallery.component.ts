@@ -25,9 +25,16 @@ async function loadObserver(): Promise<void> {
   if (_Observer) gsap.registerPlugin(_Observer);
 }
 
-const IMG_AREA_FRACTION = 0.045;
 const MAX_ROTATION = 30;
 const RECYCLE_MARGIN = 400;
+
+/** Determine cross-axis lane count based on aspect ratio of the viewport. */
+function laneCount(vw: number, vh: number): number {
+  const ratio = vw / vh;
+  if (ratio > 1.3) return 4;  // wide / landscape monitor
+  if (ratio > 0.8) return 5;  // roughly square
+  return 6;                    // tall / portrait
+}
 
 function buildShadow(z: number): string {
   const offsetY = 2 + z * 10;
@@ -114,17 +121,20 @@ export class GalleryComponent {
       } else {
         this.fetchManifest();
       }
+
+      this.listenResize();
     });
   }
 
   private initMetrics(): void {
     this.vw = window.innerWidth;
     this.vh = window.innerHeight;
-    this.targetArea = this.vw * this.vh * IMG_AREA_FRACTION;
-    const avgH = Math.sqrt(this.targetArea / 1.2);
-    this.avgW = Math.sqrt(this.targetArea * 1.2);
-    this.rows = Math.max(2, Math.floor(this.vh / (avgH * 1.1)));
+    this.rows = laneCount(this.vw, this.vh);
     this.cellH = this.vh / this.rows;
+    // Size cards to ~80% of cell height so they fill rows nicely at any resolution
+    const avgH = this.cellH * 0.8;
+    this.avgW = avgH * 1.2;
+    this.targetArea = avgH * this.avgW;
     this.rowDrought = new Array(this.rows).fill(0);
   }
 
@@ -328,6 +338,19 @@ export class GalleryComponent {
       this.cards.set([...currentCards]);
       this.persistState();
     }
+  }
+
+  /** Reflow the grid when a resize crosses a lane-count threshold. */
+  private listenResize(): void {
+    const onResize = () => {
+      const newRows = laneCount(window.innerWidth, window.innerHeight);
+      if (newRows !== this.rows && this.entries.length > 0) {
+        this.initMetrics();
+        this.initCards(this.entries);
+      }
+    };
+    window.addEventListener('resize', onResize);
+    this.destroyRef.onDestroy(() => window.removeEventListener('resize', onResize));
   }
 
   /** Poll the manifest every 30s; on version change, swap entries and let recycle prune stale cards. */
