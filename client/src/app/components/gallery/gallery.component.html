@@ -18,11 +18,16 @@
           [style.box-shadow]="card.shadow"
           (pointerdown)="onPointerDown($event)"
           (pointermove)="onPointerMove()"
-          (pointerup)="onPointerUp($event, card)"
+          (pointerup)="onPointerUp($event, card, $index)"
         >
           <img [src]="card.entry.thumb" [alt]="card.entry.id" loading="lazy" />
         </div>
       }
     </div>
+    <div
+      class="lightbox-curtain"
+      [style.pointer-events]="lightboxOpen() ? 'auto' : 'none'"
+      (click)="closeLightbox()"
+    ></div>
   }
 </div>

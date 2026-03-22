@@ -37,4 +37,12 @@ export class SeoService {
       this.meta.updateTag({ property: 'og:type', content: config.type });
     }
   }
+
+  setKeywords(tags: string[]): void {
+    this.meta.updateTag({ name: 'keywords', content: tags.join(', ') });
+  }
+
+  clearKeywords(): void {
+    this.meta.removeTag('name="keywords"');
+  }
 }

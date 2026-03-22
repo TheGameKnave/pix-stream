@@ -7,7 +7,7 @@ export const routes: Route[] = [
   },
   {
     path: 'photo/:id',
-    loadComponent: () => import('./components/lightbox/lightbox.component').then(m => m.LightboxComponent),
+    loadComponent: () => import('./components/gallery/gallery.component').then(m => m.GalleryComponent),
   },
   {
     path: 'admin',
