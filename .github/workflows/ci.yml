@@ -30,7 +30,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: gd, exif, curl
+          extensions: gd, exif, curl, posix
 
       - name: Download PHPUnit
         run: curl -sSL https://phar.phpunit.de/phpunit-11.phar -o server/phpunit.phar
