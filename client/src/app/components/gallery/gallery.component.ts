@@ -49,7 +49,7 @@ export function makeCard(entry: ImageEntry, x: number, row: number, cellH: numbe
   const h = w / aspect;
   // Center in the cell, then jitter. Jitter is gaussian-ish (average of 2 randoms)
   // to keep most cards near center while allowing occasional outliers.
-  const jitter = ((Math.random() + Math.random()) / 2 - 0.5) * cellH * 0.6;
+  const jitter = ((Math.random() + Math.random()) / 2 - 0.5) * cellH * 0.35;
   const y = row * cellH + cellH * 0.5 - h * 0.5 + jitter;
   const rotation = (Math.random() - 0.5) * 2 * MAX_ROTATION;
   const z = Math.random();
