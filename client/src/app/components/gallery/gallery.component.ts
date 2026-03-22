@@ -28,6 +28,33 @@ async function loadObserver(): Promise<void> {
 
 const MAX_ROTATION = 15;
 
+/** Which column indices should be materialized for a given camera offset. */
+export function visibleColRange(
+  offset: number, vw: number, bufferMargin: number,
+  gridOrigin: number, colSpacing: number,
+): [number, number] {
+  const leftEdge = offset - bufferMargin;
+  const rightEdge = offset + vw + bufferMargin;
+  const minCol = Math.floor((leftEdge - gridOrigin) / colSpacing - 0.5);
+  const maxCol = Math.ceil((rightEdge - gridOrigin) / colSpacing + 0.5);
+  return [minCol, maxCol];
+}
+
+/** Collect entry IDs from cards within ±proximity columns of targetCol. */
+export function nearbyIds(
+  cards: FloatingImage[], targetCol: number,
+  gridOrigin: number, colSpacing: number, proximity: number,
+): Set<string> {
+  const ids = new Set<string>();
+  for (const c of cards) {
+    const cardCol = Math.round((c.x + c.w / 2 - gridOrigin) / colSpacing);
+    if (Math.abs(cardCol - targetCol) <= proximity) {
+      ids.add(c.entry.id);
+    }
+  }
+  return ids;
+}
+
 /** Determine cross-axis lane count based on aspect ratio of the viewport. */
 export function laneCount(vw: number, vh: number): number {
   const ratio = vw / vh;
@@ -206,25 +233,13 @@ export class GalleryComponent {
   }
 
   /** Which columns are needed for a given camera offset */
-  private visibleColRange(): [number, number] {
-    const leftEdge = this.offset - this.bufferMargin;
-    const rightEdge = this.offset + this.vw + this.bufferMargin;
-    const minCol = Math.floor((leftEdge - this.gridOrigin) / this.colSpacing - 0.5);
-    const maxCol = Math.ceil((rightEdge - this.gridOrigin) / this.colSpacing + 0.5);
-    return [minCol, maxCol];
+  private getVisibleColRange(): [number, number] {
+    return visibleColRange(this.offset, this.vw, this.bufferMargin, this.gridOrigin, this.colSpacing);
   }
 
   /** Build all cards for a single column */
   private buildColumn(col: number, allCards: FloatingImage[]): FloatingImage[] {
-    // Exclude IDs from nearby columns (within 2 columns) to prevent visible duplicates.
-    // Distant columns can reuse images since they're never on screen simultaneously.
-    const usedIds = new Set<string>();
-    for (const c of allCards) {
-      const cardCol = Math.round((c.x + c.w / 2 - this.gridOrigin) / this.colSpacing);
-      if (Math.abs(cardCol - col) <= 2) {
-        usedIds.add(c.entry.id);
-      }
-    }
+    const usedIds = nearbyIds(allCards, col, this.gridOrigin, this.colSpacing, 2);
 
     const cellW = this.colSpacing;
     const colCards: FloatingImage[] = [];
@@ -300,7 +315,7 @@ export class GalleryComponent {
 
   /** Add columns about to scroll into view, remove columns that scrolled out. */
   private ensureColumns(): void {
-    const [minCol, maxCol] = this.visibleColRange();
+    const [minCol, maxCol] = this.getVisibleColRange();
     let changed = false;
     let currentCards = this.cards();
 
