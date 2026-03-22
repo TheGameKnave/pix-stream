@@ -9,6 +9,8 @@
     "build": "cd client && npm run build",
     "build:prod": "cd client && npm run build -- --configuration production",
     "test": "cd client && npm test",
+    "test:php": "cd server && php phpunit.phar --testdox",
+    "test:all": "npm test && npm run test:php",
     "prepare": "npx --yes is-ci || husky || true"
   },
   "workspaces": [
