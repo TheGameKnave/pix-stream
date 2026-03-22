@@ -28,14 +28,14 @@ async function loadObserver(): Promise<void> {
 const MAX_ROTATION = 15;
 
 /** Determine cross-axis lane count based on aspect ratio of the viewport. */
-function laneCount(vw: number, vh: number): number {
+export function laneCount(vw: number, vh: number): number {
   const ratio = vw / vh;
   if (ratio > 1.3) return 5;  // wide / landscape monitor
   if (ratio > 0.8) return 7;  // roughly square
   return 9;                    // tall / portrait
 }
 
-function buildShadow(z: number): string {
+export function buildShadow(z: number): string {
   const offsetY = 2 + z * 10;
   const blur = 4 + z * 20;
   const spread = z * 4;
@@ -43,7 +43,7 @@ function buildShadow(z: number): string {
   return `0 ${offsetY}px ${blur}px ${spread}px rgba(0,0,0,${opacity})`;
 }
 
-function makeCard(entry: ImageEntry, x: number, row: number, cellH: number, targetArea: number): FloatingImage {
+export function makeCard(entry: ImageEntry, x: number, row: number, cellH: number, targetArea: number): FloatingImage {
   const aspect = entry.width && entry.height ? entry.width / entry.height : 1;
   const w = Math.sqrt(targetArea * aspect);
   const h = w / aspect;

@@ -24,5 +24,8 @@ jobs:
       - name: TypeScript type check
         run: cd client && npx tsc --noEmit
 
+      - name: Run tests
+        run: cd client && npm test
+
       - name: Build client
         run: cd client && npm run build

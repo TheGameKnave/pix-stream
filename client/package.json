@@ -6,7 +6,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "test": "NODE_ENV=development ng test --configuration test --browsers=ChromeHeadless --watch=false",
+    "test": "NODE_ENV=development ng test --browsers=ChromeHeadless --watch=false",
     "watch": "NODE_ENV=development ng test",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
