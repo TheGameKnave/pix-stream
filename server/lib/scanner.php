@@ -51,6 +51,11 @@ function scanImages(string $dir): array {
         $canReadExif = in_array($ext, ['jpg', 'jpeg', 'tiff', 'tif']);
         $exifTags = $canReadExif ? readExifTags($file) : [];
 
+        // Tags: prefer metadata JSON, fall back to IPTC keywords (excluding 'nsfw')
+        $tags = $meta['tags'] ?? array_values(array_filter($exifTags, fn($t) => strtolower($t) !== 'nsfw'));
+        // NSFW: metadata JSON takes precedence, then check IPTC keywords
+        $nsfw = $meta['nsfw'] ?? in_array('nsfw', array_map('strtolower', $exifTags));
+
         $images[] = [
             'id' => $id,
             'filename' => $filename,
@@ -58,8 +63,8 @@ function scanImages(string $dir): array {
             'type' => $outType,
             'width' => $width,
             'height' => $height,
-            'tags' => $meta['tags'] ?? $exifTags,
-            'nsfw' => $meta['nsfw'] ?? false,
+            'tags' => $tags,
+            'nsfw' => $nsfw,
             'copyright' => $meta['copyright'] ?? ($canReadExif ? readExifCopyright($file) : ''),
         ];
     }
@@ -98,22 +103,36 @@ function readExifCopyright(string $file): string {
     return $exif['Copyright'] ?? '';
 }
 
-function getAllTags(string $metadataDir): array {
+function getAllTags(string $metadataDir, string $originalsDir = ''): array {
     $tags = [];
-    $files = glob($metadataDir . '/*.json');
-    if (!$files) return $tags;
 
-    foreach ($files as $file) {
-        $meta = json_decode(file_get_contents($file), true);
-        if (isset($meta['tags']) && is_array($meta['tags'])) {
-            foreach ($meta['tags'] as $tag) {
-                if (!in_array($tag, $tags)) {
-                    $tags[] = $tag;
+    // Collect from metadata JSON files
+    $files = glob($metadataDir . '/*.json');
+    if ($files) {
+        foreach ($files as $file) {
+            $meta = json_decode(file_get_contents($file), true);
+            if (isset($meta['tags']) && is_array($meta['tags'])) {
+                foreach ($meta['tags'] as $tag) {
+                    $tags[$tag] = true;
                 }
             }
         }
     }
 
-    sort($tags);
-    return $tags;
+    // Collect from IPTC keywords in originals (for images without metadata JSON)
+    if ($originalsDir && is_dir($originalsDir)) {
+        $scanned = scanImages($originalsDir);
+        foreach ($scanned as $img) {
+            foreach ($img['tags'] as $tag) {
+                $tags[$tag] = true;
+            }
+        }
+    }
+
+    // Exclude 'nsfw' — it's a flag, not a filter category
+    unset($tags['nsfw']);
+
+    $result = array_keys($tags);
+    sort($result);
+    return $result;
 }

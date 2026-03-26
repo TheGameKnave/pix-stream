@@ -17,9 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../lib/scanner.php';
 
 $metadataDir = realpath(__DIR__ . '/../../storage/metadata');
+$originalsDir = realpath(__DIR__ . '/../../storage/originals');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $tags = getAllTags($metadataDir);
+    $tags = getAllTags($metadataDir, $originalsDir ?: '');
     echo json_encode($tags);
     exit;
 }
