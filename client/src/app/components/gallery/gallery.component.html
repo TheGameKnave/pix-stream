@@ -1,14 +1,15 @@
-<div class="gallery-canvas" #canvas>
+<div class="gallery-canvas" [class.lightbox-active]="lightboxOpen()" #canvas>
   @if (loading()) {
     <div class="gallery-loading">Loading...</div>
   } @else if (cards().length === 0) {
-    <div class="gallery-empty">No images yet. Add photos to get started.</div>
+    <div class="gallery-empty">No images found.</div>
   } @else {
     <div class="river-inner">
       @for (card of cards(); track $index) {
         <div
           class="river-card"
-          [class.nsfw-blur]="card.entry.nsfw"
+          [class.nsfw-blur]="card.entry.nsfw && siteConfig.nsfwBlur()"
+          [class.exiting]="card.exiting"
           [style.left.px]="card.x"
           [style.top.px]="card.y"
           [style.width.px]="card.w"

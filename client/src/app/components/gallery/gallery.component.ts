@@ -4,6 +4,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  effect,
   inject,
   PLATFORM_ID,
   signal,
@@ -13,6 +14,7 @@ import { isPlatformBrowser, Location } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
+import { SiteConfigService } from '@app/services/site-config.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import gsap from 'gsap';
 import { GalleryStateService, FloatingImage, ImageEntry, ManifestResponse } from '@app/services/gallery-state.service';
@@ -35,8 +37,8 @@ export function visibleColRange(
 ): [number, number] {
   const leftEdge = offset - bufferMargin;
   const rightEdge = offset + vw + bufferMargin;
-  const minCol = Math.floor((leftEdge - gridOrigin) / colSpacing - 0.5);
-  const maxCol = Math.ceil((rightEdge - gridOrigin) / colSpacing + 0.5);
+  const minCol = Math.floor((leftEdge - gridOrigin) / colSpacing);
+  const maxCol = Math.ceil((rightEdge - gridOrigin) / colSpacing);
   return [minCol, maxCol];
 }
 
@@ -99,6 +101,7 @@ export class GalleryComponent {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly state = inject(GalleryStateService);
+  readonly siteConfig = inject(SiteConfigService);
 
   readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
   readonly cards = signal<FloatingImage[]>([]);
@@ -130,8 +133,10 @@ export class GalleryComponent {
   private rafId = 0;
   private pollTimer = 0;
   private observer: any = null;
+  private allEntries: ImageEntry[] = [];
   private entries: ImageEntry[] = [];
   private entryIds = new Set<string>();
+  private lastActiveTags: string[] | undefined = undefined; // track to detect changes
   private targetArea = 0;
   private vh = 0;
   private vw = 0;
@@ -139,6 +144,8 @@ export class GalleryComponent {
   private cellH = 0;
   private avgW = 0;
   private colSpacing = 0;
+  private fillRatio = 1; // fraction of row-slots per column that get a card (0..1]
+  private hasStaleCards = false;
   private bufferMargin = 400; // how far off-screen to pre-build columns
   // Column grid: tracks which column indices are currently materialized
   // Each column's cards are stored contiguously: column col → cards at indices [col*rows .. col*rows+rows-1]
@@ -153,11 +160,35 @@ export class GalleryComponent {
   constructor() {
     if (!this.isBrowser) return;
 
+    // Set active tags from route param (supports + delimited multi-tag slugs)
+    const tagsParam = this.route.snapshot.paramMap.get('tags');
+    if (tagsParam && tagsParam !== 'about') {
+      const slugs = tagsParam.split('+').map(t => decodeURIComponent(t));
+      this.siteConfig.setActiveFromSlugs(slugs);
+      // Angular encodes + as %2B in the URL — fix it
+      this.location.replaceState('/' + slugs.join('+'));
+    }
+
+    // Rebuild river when active tags change
+    effect(() => {
+      const tags = this.siteConfig.activeTags();
+      if (this.lastActiveTags === undefined) {
+        this.lastActiveTags = tags;
+        return; // skip initial
+      }
+      if (tags.join('+') === this.lastActiveTags.join('+')) return;
+      this.lastActiveTags = tags;
+      if (this.allEntries.length > 0) {
+        this.applyFilter();
+      }
+    });
+
     afterNextRender(async () => {
       await loadObserver();
 
       if (this.state.cards && this.state.entries) {
-        this.entries = this.state.entries;
+        this.allEntries = this.state.entries;
+        this.entries = this.filterEntries(this.allEntries);
         this.entryIds = new Set(this.entries.map(e => e.id));
         this.offset = this.state.offset;
         this.cards.set(this.state.cards);
@@ -176,9 +207,24 @@ export class GalleryComponent {
     });
   }
 
+  private filterEntries(entries: ImageEntry[]): ImageEntry[] {
+    const tags = this.siteConfig.activeTags();
+    if (tags.length === 0) return entries;
+    return entries.filter(e => tags.some(t => e.tags.includes(t)));
+  }
+
+  private applyFilter(): void {
+    this.entries = this.filterEntries(this.allEntries);
+    this.entryIds = new Set(this.entries.map(e => e.id));
+    this.siteConfig.hasNsfw.set(this.entries.some(e => e.nsfw));
+    this.recalcFillRatio();
+    this.hasStaleCards = true;
+  }
+
   private initMetrics(): void {
-    this.vw = window.innerWidth;
-    this.vh = window.innerHeight;
+    const el = this.canvas()?.nativeElement;
+    this.vw = el?.clientWidth ?? window.innerWidth;
+    this.vh = el?.clientHeight ?? window.innerHeight;
     this.rows = laneCount(this.vw, this.vh);
     this.cellH = this.vh / this.rows;
     // Size cards to ~80% of cell height so they fill rows nicely at any resolution
@@ -186,7 +232,7 @@ export class GalleryComponent {
     this.avgW = avgH * 1.2;
     this.targetArea = avgH * this.avgW;
     this.colSpacing = this.avgW * 1.4;
-    this.bufferMargin = this.avgW * 1.5;
+    this.bufferMargin = this.colSpacing * 0.5;
   }
 
 
@@ -196,10 +242,12 @@ export class GalleryComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          const entries = res.images;
+          this.allEntries = res.images;
+          this.state.entries = res.images;
+          this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
+          const entries = this.filterEntries(res.images);
           this.entries = entries;
           this.entryIds = new Set(entries.map(e => e.id));
-          this.state.entries = entries;
           this.state.manifestVersion = res.version;
           if (entries.length === 0) {
             this.loading.set(false);
@@ -237,17 +285,23 @@ export class GalleryComponent {
     return visibleColRange(this.offset, this.vw, this.bufferMargin, this.gridOrigin, this.colSpacing);
   }
 
-  /** Build all cards for a single column */
+  /** Build all cards for a single column, skipping slots per fillRatio. */
   private buildColumn(col: number, allCards: FloatingImage[]): FloatingImage[] {
     const usedIds = nearbyIds(allCards, col, this.gridOrigin, this.colSpacing, 2);
 
-    const cellW = this.colSpacing;
     const colCards: FloatingImage[] = [];
     for (let row = 0; row < this.rows; row++) {
+      if (Math.random() > this.fillRatio) continue;
       const entry = this.pickEntry(usedIds);
-      colCards.push(this.makeCardInCell(entry, this.colCenterX(col), row, cellW));
+      colCards.push(this.makeCardInCell(entry, this.colCenterX(col), row, this.colSpacing));
     }
     return colCards;
+  }
+
+  /** What fraction of row-slots should be filled, given the entry pool size? */
+  private recalcFillRatio(): void {
+    const slotsPerScreen = Math.ceil(this.vw / this.colSpacing) * this.rows;
+    this.fillRatio = Math.min(1, (this.entries.length * 0.6) / slotsPerScreen);
   }
 
   private initCards(entries: ImageEntry[]): void {
@@ -255,13 +309,8 @@ export class GalleryComponent {
     this.materializedCols.clear();
     this.gridOrigin = 0;
 
-    // If we don't have enough images to fill at the default colSpacing,
-    // widen the spacing so cards distribute evenly.
-    const fillW = this.vw * 2;
-    const cardCount = Math.min(entries.length, Math.max(this.rows, Math.round(fillW / this.colSpacing) * this.rows));
-    const cols = Math.max(1, Math.ceil(cardCount / this.rows));
-    const cellW = Math.max(this.colSpacing, fillW / cols);
-    this.colSpacing = cellW;
+    this.recalcFillRatio();
+    const cols = Math.max(1, Math.round((this.vw * 2) / this.colSpacing));
 
     const shuffled = [...entries];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -275,10 +324,10 @@ export class GalleryComponent {
     for (let col = 0; col < cols; col++) {
       this.materializedCols.add(col);
       for (let row = 0; row < this.rows; row++) {
-        if (idx >= cardCount) break;
+        if (Math.random() > this.fillRatio) continue;
         const entry = shuffled[idx % shuffled.length];
         idx++;
-        initialCards.push(this.makeCardInCell(entry, this.colCenterX(col), row, cellW));
+        initialCards.push(this.makeCardInCell(entry, this.colCenterX(col), row, this.colSpacing));
       }
     }
 
@@ -319,11 +368,17 @@ export class GalleryComponent {
     let changed = false;
     let currentCards = this.cards();
 
-    // Prune cards whose entries were removed from the manifest
-    const staleCount = currentCards.filter(c => !this.entryIds.has(c.entry.id)).length;
-    if (staleCount > 0) {
-      currentCards = currentCards.filter(c => this.entryIds.has(c.entry.id));
+    // Mark stale cards as exiting (animate out), then remove after transition.
+    // Guard with a flag so this only fires once per filter change, not every frame.
+    if (this.hasStaleCards) {
+      this.hasStaleCards = false;
+      currentCards = currentCards.map(c =>
+        !this.entryIds.has(c.entry.id) ? { ...c, exiting: true } : c
+      );
       changed = true;
+      setTimeout(() => {
+        this.cards.update(cards => cards.filter(c => !c.exiting));
+      }, 450);
     }
 
     // Add new columns that are now in range
@@ -357,6 +412,8 @@ export class GalleryComponent {
     }
   }
 
+  private prevJitterX = 0;
+
   /** Create a card positioned within a grid cell — same logic as initCards. */
   private makeCardInCell(entry: ImageEntry, cellCenterX: number, row: number, cellW: number): FloatingImage {
     const aspect = entry.width && entry.height ? entry.width / entry.height : 1;
@@ -364,7 +421,14 @@ export class GalleryComponent {
     const h = w / aspect;
 
     const cellCenterY = row * this.cellH + this.cellH / 2;
-    const jitterX = (Math.random() - 0.5) * (cellW - w * 0.5);
+    const rangeX = cellW - w * 0.5;
+    let jitterX = (Math.random() - 0.5) * rangeX;
+    // If this card's X jitter is too close to the previous row's, re-roll once
+    // to avoid accidental vertical alignment.
+    if (Math.abs(jitterX - this.prevJitterX) < rangeX * 0.2) {
+      jitterX = (Math.random() - 0.5) * rangeX;
+    }
+    this.prevJitterX = jitterX;
     const jitterY = (Math.random() - 0.5) * (this.cellH - h * 0.5);
 
     const x = cellCenterX + jitterX - w / 2;
@@ -383,7 +447,8 @@ export class GalleryComponent {
         this.resizeLightbox();
       }
 
-      const newRows = laneCount(window.innerWidth, window.innerHeight);
+      const el = this.canvas()?.nativeElement;
+      const newRows = laneCount(el?.clientWidth ?? window.innerWidth, el?.clientHeight ?? window.innerHeight);
       if (newRows !== this.rows && this.entries.length > 0) {
         this.initMetrics();
         this.initCards(this.entries);
@@ -400,9 +465,12 @@ export class GalleryComponent {
         next: (res) => {
           if (res.version === this.state.manifestVersion) return;
           this.state.manifestVersion = res.version;
-          this.entries = res.images;
-          this.entryIds = new Set(res.images.map(e => e.id));
+          this.allEntries = res.images;
           this.state.entries = res.images;
+          this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
+          this.entries = this.filterEntries(res.images);
+          this.entryIds = new Set(this.entries.map(e => e.id));
+          this.hasStaleCards = true;
           this.bustImageCaches();
         },
       });

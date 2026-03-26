@@ -28,6 +28,7 @@ export interface FloatingImage {
   z: number;
   zIndex: number;
   shadow: string;
+  exiting?: boolean;
 }
 
 /**
