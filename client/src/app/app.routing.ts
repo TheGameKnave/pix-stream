@@ -10,8 +10,17 @@ export const routes: Route[] = [
     loadComponent: () => import('./components/gallery/gallery.component').then(m => m.GalleryComponent),
   },
   {
+    path: 'kiosk',
+    loadComponent: () => import('./components/gallery/gallery.component').then(m => m.GalleryComponent),
+  },
+  {
     path: 'admin',
     loadComponent: () => import('./components/admin/admin.component').then(m => m.AdminComponent),
+  },
+  {
+    // Top-level tag filter: /portrait, /portrait+fashion, etc.
+    path: ':tags',
+    loadComponent: () => import('./components/gallery/gallery.component').then(m => m.GalleryComponent),
   },
   {
     path: '**',

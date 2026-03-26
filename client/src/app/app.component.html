@@ -1,1 +1,88 @@
+@if (showHeader()) {
+<header class="app-header" #headerEl>
+  <a class="logo" (click)="clearFilter()">
+    <span class="logo-title">{{ siteConfig.config()?.title || 'Photo Stream' }}</span>
+    @if (siteConfig.config()?.description) {
+      <span class="logo-subtitle">{{ siteConfig.config()?.description }}</span>
+    }
+  </a>
+
+  @if (siteConfig.tags().length > 0 && siteConfig.tags().length <= 5) {
+    <nav class="tag-nav">
+      @for (tag of siteConfig.tags(); track tag) {
+        <button
+          class="tag-filter"
+          [class.active]="siteConfig.activeTags().includes(tag)"
+          (click)="selectTag(tag)"
+        >{{ tag }}</button>
+      }
+    </nav>
+  }
+  @if (siteConfig.tags().length > 5) {
+    <div class="tag-dropdown" [class.open]="tagDropdownOpen()">
+      <button class="tag-dropdown-toggle" (click)="toggleDropdown()">
+        @if (siteConfig.activeTags().length) {
+          <span class="tag-chips">
+            @for (tag of siteConfig.activeTags(); track tag) {
+              <span class="tag-chip" (click)="selectTag(tag); $event.stopPropagation()">
+                {{ tag }}
+                <span class="tag-chip-x">&times;</span>
+              </span>
+            }
+          </span>
+        } @else {
+          <span class="tag-dropdown-placeholder">Filter by tag...</span>
+        }
+        <svg class="tag-dropdown-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      @if (tagDropdownOpen()) {
+        <div class="tag-dropdown-menu">
+          @for (tag of siteConfig.tags(); track tag) {
+            <button
+              class="tag-dropdown-item"
+              [class.active]="siteConfig.activeTags().includes(tag)"
+              (click)="selectTag(tag)"
+            >
+              <span class="tag-dropdown-check">@if (siteConfig.activeTags().includes(tag)) { ✓ }</span>
+              {{ tag }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <div class="actions">
+    @if (siteConfig.hasNsfw()) {
+      <label class="nsfw-toggle">
+        <span class="nsfw-label">Work-Safe Mode:</span>
+        <button
+          class="nsfw-btn"
+          [class.active]="siteConfig.nsfwBlur()"
+          (click)="siteConfig.toggleNsfw()"
+        >{{ siteConfig.nsfwBlur() ? 'On' : 'Off' }}</button>
+      </label>
+    }
+    <button class="info-btn" (click)="openAbout()" title="About">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+    </button>
+  </div>
+</header>
+}
+@if (showInfo()) {
+  <div class="info-overlay" (click)="closeAbout()">
+    <div class="info-panel" (click)="$event.stopPropagation()">
+      <button class="info-close" (click)="closeAbout()">&times;</button>
+      <h2>{{ siteConfig.config()?.title || 'Photo Stream' }}</h2>
+      @if (siteConfig.config()?.description) {
+        <p class="info-desc">{{ siteConfig.config()?.description }}</p>
+      }
+      <p class="info-credits">
+        Built with <a href="https://github.com/your/photo-stream" target="_blank" rel="noopener">Photo Stream</a>
+      </p>
+    </div>
+  </div>
+}
 <router-outlet></router-outlet>

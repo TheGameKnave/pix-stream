@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, isDevMode } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { afterNextRender, ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, inject, isDevMode, PLATFORM_ID, signal, viewChild } from '@angular/core';
+import { isPlatformBrowser, Location } from '@angular/common';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { UpdateService } from '@app/services/update.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
+import { SiteConfigService, slugify } from '@app/services/site-config.service';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -13,4 +16,89 @@ export class AppComponent {
   readonly updateService = inject(UpdateService);
   protected readonly connectivity = inject(ConnectivityService);
   protected readonly isDevMode = isDevMode();
+  protected readonly siteConfig = inject(SiteConfigService);
+  protected readonly showHeader = signal(true);
+  protected readonly showInfo = signal(false);
+  protected readonly tagDropdownOpen = signal(false);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly headerRef = viewChild<ElementRef<HTMLElement>>('headerEl');
+  private headerRo?: ResizeObserver;
+  private urlBeforeAbout = '/';
+
+  constructor() {
+    this.siteConfig.load();
+
+    const updateFromUrl = (url: string) => {
+      this.showHeader.set(!url.startsWith('/kiosk'));
+      this.showInfo.set(url === '/about');
+    };
+    updateFromUrl(this.router.url);
+
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e) => {
+      updateFromUrl(e.url);
+    });
+
+    afterNextRender(() => {
+      const onDocClick = (e: MouseEvent) => {
+        if (!this.tagDropdownOpen()) return;
+        const t = e.target as HTMLElement;
+        if (t.closest('.tag-dropdown-menu') || t.closest('.tag-dropdown-toggle')) return;
+        this.tagDropdownOpen.set(false);
+      };
+      document.addEventListener('click', onDocClick, true);
+      this.destroyRef.onDestroy(() => document.removeEventListener('click', onDocClick, true));
+    });
+
+    if (this.isBrowser) {
+      effect(() => {
+        const ref = this.headerRef();
+        this.headerRo?.disconnect();
+        if (ref) {
+          const el = ref.nativeElement;
+          const update = () => document.documentElement.style.setProperty('--header-height', el.offsetHeight + 'px');
+          this.headerRo = new ResizeObserver(update);
+          this.headerRo.observe(el);
+          update();
+        } else {
+          document.documentElement.style.setProperty('--header-height', '0px');
+        }
+      });
+    }
+  }
+
+  toggleDropdown(): void {
+    this.tagDropdownOpen.update(v => !v);
+  }
+
+  selectTag(tag: string): void {
+    const current = this.siteConfig.activeTags();
+    if (current.includes(tag)) {
+      const next = current.filter(t => t !== tag);
+      this.siteConfig.activeTags.set(next);
+      this.location.replaceState(next.length ? '/' + next.map(slugify).join('+') : '/');
+    } else {
+      const next = [...current, tag];
+      this.siteConfig.activeTags.set(next);
+      this.location.replaceState('/' + next.map(slugify).join('+'));
+    }
+  }
+
+  clearFilter(): void {
+    this.siteConfig.activeTags.set([]);
+    this.location.replaceState('/');
+  }
+
+  openAbout(): void {
+    this.urlBeforeAbout = this.router.url;
+    this.location.replaceState('/about');
+    this.showInfo.set(true);
+  }
+
+  closeAbout(): void {
+    this.location.replaceState(this.urlBeforeAbout);
+    this.showInfo.set(false);
+  }
 }

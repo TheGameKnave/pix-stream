@@ -24,6 +24,9 @@
   // Typography
   --font-display: 'Raleway', sans-serif;
   --font-body: 'Raleway', sans-serif;
+
+  // Layout
+  --header-height: 0px;
 }
 
 // =============================================================================
@@ -93,17 +96,61 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding: 0.75rem 1rem;
   background: var(--color-bg-overlay);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+
+  @media (max-width: 640px) {
+    .tag-nav {
+      order: 10;
+      flex-basis: 100%;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+
+    .tag-dropdown {
+      order: 10;
+      flex-basis: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+  }
 }
 
 .app-header .logo {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.app-header .logo-title {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
+  font-weight: 300;
+  font-size: 1.4rem;
   color: var(--color-text);
+  letter-spacing: 0.02em;
+}
+
+.app-header .logo-subtitle {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.app-header .tag-nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .app-header .actions {
@@ -112,12 +159,111 @@ button {
   align-items: center;
 }
 
-.gallery-canvas {
+.nsfw-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.nsfw-btn {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: all 0.2s ease;
+
+  &.active {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: rgba(1, 221, 177, 0.1);
+  }
+}
+
+.info-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: var(--color-text);
+  }
+}
+
+.info-overlay {
   position: fixed;
   inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-panel {
+  position: relative;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .info-desc {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .info-credits {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+  }
+}
+
+.info-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-size: 1.5rem;
+  color: var(--color-text-muted);
+  line-height: 1;
+
+  &:hover {
+    color: var(--color-text);
+  }
+}
+
+.gallery-canvas {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow: hidden;
   touch-action: none;
   user-select: none;
+
+  &.lightbox-active {
+    z-index: 200;
+  }
 }
 
 .gallery-loading,
@@ -141,6 +287,11 @@ button {
   position: absolute;
   cursor: pointer;
   will-change: transform;
+  &.exiting {
+    transition: opacity 0.4s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
 
   img {
     display: block;
@@ -158,7 +309,7 @@ button {
 .lightbox-curtain {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: 200;
   background: rgba(0, 0, 0, 0.85);
   opacity: 0;
   cursor: pointer;
@@ -183,6 +334,117 @@ button {
     color: var(--color-accent);
     background: rgba(1, 221, 177, 0.1);
   }
+}
+
+// =============================================================================
+// Tag dropdown (>5 tags)
+// =============================================================================
+.tag-dropdown {
+  position: relative;
+}
+
+.tag-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  min-width: 160px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-text-muted);
+  }
+}
+
+.tag-dropdown-placeholder {
+  flex: 1;
+  text-align: left;
+}
+
+.tag-dropdown-caret {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+
+  .tag-dropdown.open & {
+    transform: rotate(180deg);
+  }
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(1, 221, 177, 0.15);
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(1, 221, 177, 0.25);
+  }
+}
+
+.tag-chip-x {
+  font-size: 0.85rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.tag-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.25rem 0;
+  z-index: 150;
+}
+
+.tag-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-align: left;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &.active {
+    color: var(--color-accent);
+  }
+}
+
+.tag-dropdown-check {
+  width: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
 }
 
 // =============================================================================
