@@ -466,7 +466,9 @@ export class GalleryComponent {
     const x = cellCenterX + jitterX - w / 2;
     const y = cellCenterY + jitterY - h / 2;
     const rotation = (Math.random() - 0.5) * 2 * MAX_ROTATION;
-    const z = Math.random();
+    // Bias z-index toward higher values for cards nearer the top of the screen
+    const topBias = 1 - (row / Math.max(1, this.rows - 1)); // 1 at top, 0 at bottom
+    const z = Math.min(1, Math.max(0, topBias * 0.6 + Math.random() * 0.4));
 
     return { entry, x, y, w, h, rotation, z, zIndex: Math.round(z * 100), shadow: buildShadow(z) };
   }
