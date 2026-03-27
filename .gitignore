@@ -154,11 +154,10 @@ playwright-report/
 # Lighthouse CI
 .lighthouseci/
 
-# Photo storage (images, thumbnails, composed)
+# Photo storage (originals, processed, thumbnails)
 storage/originals/*
+storage/processed/*
 storage/thumbnails/*
-storage/composed/*
-storage/metadata/*
 !storage/**/.gitkeep
 
 # Admin password
