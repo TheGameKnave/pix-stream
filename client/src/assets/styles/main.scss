@@ -184,7 +184,7 @@ button {
   }
 }
 
-.info-btn {
+.header-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -286,9 +286,16 @@ button {
 .river-card {
   position: absolute;
   cursor: pointer;
-  will-change: transform;
+  will-change: transform, scale;
+  scale: 1;
+  transition: scale 0.2s ease, opacity 0.4s ease;
+
+  &:hover {
+    scale: 1.08;
+    transition: scale 0.2s ease 0.4s, opacity 0.4s ease;
+  }
+
   &.exiting {
-    transition: opacity 0.4s ease;
     opacity: 0;
     pointer-events: none;
   }
@@ -313,6 +320,108 @@ button {
   background: rgba(0, 0, 0, 0.85);
   opacity: 0;
   cursor: pointer;
+}
+
+// =============================================================================
+// Lightbox controls (watermark style — shadows + highlights only)
+// =============================================================================
+.lightbox-controls {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+
+  &.visible {
+    opacity: 1;
+  }
+
+  // Always visible on touch devices
+  @media (hover: none) {
+    opacity: 1;
+  }
+}
+
+.lb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(36px, 8vmin, 60px);
+  height: clamp(36px, 8vmin, 60px);
+  border-radius: 50%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+  transition: color 0.2s ease;
+
+  svg {
+    width: clamp(20px, 4.5vmin, 33px);
+    height: clamp(20px, 4.5vmin, 33px);
+  }
+
+  &:hover {
+    color: rgba(255, 255, 255, 1);
+  }
+}
+
+.lb-chevron {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(48px, 14vmin, 96px);
+  height: clamp(48px, 14vmin, 96px);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 3px 8px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 6px 16px rgba(0, 0, 0, 0.4));
+  transition: color 0.2s ease;
+
+  svg {
+    width: clamp(36px, 10vmin, 72px);
+    height: clamp(36px, 10vmin, 72px);
+  }
+
+  &:hover {
+    color: rgba(255, 255, 255, 1);
+  }
+}
+
+.lb-chevron-left {
+  left: 12px;
+}
+
+.lb-chevron-right {
+  right: 12px;
+}
+
+// =============================================================================
+// QR code dialog
+// =============================================================================
+.qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-panel {
+  position: relative;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
 }
 
 // =============================================================================
@@ -453,7 +562,7 @@ button {
 .nsfw-prompt-overlay {
   position: fixed;
   inset: 0;
-  z-index: 250;
+  z-index: 1050;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;

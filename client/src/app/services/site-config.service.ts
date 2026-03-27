@@ -27,6 +27,7 @@ export class SiteConfigService {
   readonly activeTags = signal<string[]>([]);
   readonly nsfwBlur = signal(this.loadNsfwPref());
   readonly hasNsfw = signal(false);
+  readonly aboutOpen = signal(false);
   private pendingSlugs: string[] = [];
 
   load(): void {

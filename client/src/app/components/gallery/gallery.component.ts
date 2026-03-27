@@ -11,13 +11,14 @@ import {
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser, Location } from '@angular/common';
-import { Router, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
 import { SiteConfigService } from '@app/services/site-config.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import gsap from 'gsap';
+import QRCode from 'qrcode';
 import { GalleryStateService, FloatingImage, ImageEntry, ManifestResponse } from '@app/services/gallery-state.service';
 
 let _Observer: any = null;
@@ -94,7 +95,6 @@ export function makeCard(entry: ImageEntry, x: number, row: number, cellH: numbe
 })
 export class GalleryComponent {
   private readonly http = inject(HttpClient);
-  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly seo = inject(SeoService);
@@ -111,8 +111,6 @@ export class GalleryComponent {
 
   // NSFW prompt state
   readonly nsfwPromptOpen = signal(false);
-  private nsfwPromptImage: FloatingImage | null = null;
-  private nsfwPromptIndex = -1;
 
   // Lightbox state
   readonly lightboxOpen = signal(false);
@@ -120,6 +118,9 @@ export class GalleryComponent {
   private riverPaused = false;
   private lightboxEl: HTMLElement | null = null;
   private lightboxSourceCard: HTMLElement | null = null;
+  private lightboxControls: HTMLElement | null = null;
+  private qrOverlay: HTMLElement | null = null;
+  private displacedCards: { el: HTMLElement; dx: number; dy: number }[] = [];
   private lightboxOrder: { card: FloatingImage; cardIndex: number }[] = [];
   private lightboxOrderIdx = -1;
   private lightboxNavigating = false;
@@ -175,6 +176,16 @@ export class GalleryComponent {
       // Angular encodes + as %2B in the URL — fix it
       this.location.replaceState('/' + slugs.join('+'));
     }
+
+    // Pause river when about panel is open
+    effect(() => {
+      const open = this.siteConfig.aboutOpen();
+      if (open) {
+        this.pauseRiver();
+      } else if (this.riverPaused && !this.lightboxOpen() && !this.nsfwPromptOpen()) {
+        this.resumeRiver();
+      }
+    });
 
     // When work-safe is turned off, prefetch all unblurred NSFW thumbs so they're
     // cached by the service worker before the user goes offline.
@@ -549,11 +560,7 @@ export class GalleryComponent {
     const dy = Math.abs(event.clientY - this.pointerDownY);
     // Only open lightbox if pointer barely moved (click, not drag)
     if (dx < 20 && dy < 20) {
-      if (image.entry.nsfw && this.siteConfig.nsfwBlur() && image.entry.thumbBlur) {
-        this.showNsfwPrompt(image, index);
-      } else {
-        this.openLightbox(image, index);
-      }
+      this.openLightbox(image, index);
     }
   }
 
@@ -562,27 +569,36 @@ export class GalleryComponent {
     this.state.offset = this.offset;
   }
 
-  private showNsfwPrompt(image: FloatingImage, index: number): void {
-    this.nsfwPromptImage = image;
-    this.nsfwPromptIndex = index;
-    this.nsfwPromptOpen.set(true);
+  private pauseRiver(): void {
+    if (this.riverPaused) return;
+    this.riverPaused = true;
+    cancelAnimationFrame(this.rafId);
+    this.observer?.disable();
   }
 
   dismissNsfwPrompt(): void {
     this.nsfwPromptOpen.set(false);
-    this.nsfwPromptImage = null;
-    this.nsfwPromptIndex = -1;
   }
 
   disableNsfwAndOpen(): void {
-    const image = this.nsfwPromptImage;
-    const index = this.nsfwPromptIndex;
     this.nsfwPromptOpen.set(false);
-    this.nsfwPromptImage = null;
-    this.nsfwPromptIndex = -1;
     this.siteConfig.toggleNsfw();
-    if (image && index >= 0) {
-      this.openLightbox(image, index);
+    // Swap the lightbox image to the unblurred version
+    if (this.lightboxEl) {
+      const img = this.lightboxEl.querySelector('img') as HTMLImageElement;
+      const image = this.lightboxImage();
+      if (img && image) {
+        img.src = image.entry.thumb;
+        // Load full image
+        const fullImg = new Image();
+        fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
+        fullImg.src = image.entry.full;
+        // Add controls now that the image is viewable
+        const el = this.canvas()?.nativeElement;
+        if (el && !this.lightboxControls) {
+          this.addLightboxControls(el, image);
+        }
+      }
     }
   }
 
@@ -592,10 +608,7 @@ export class GalleryComponent {
     this.lightboxImage.set(image);
     this.lightboxOpen.set(true);
 
-    // Pause river and disable Observer so it doesn't steal touch events
-    this.riverPaused = true;
-    cancelAnimationFrame(this.rafId);
-    this.observer?.disable();
+    this.pauseRiver();
 
     // Build navigation order: all cards sorted by x position (left to right)
     const currentCards = this.cards();
@@ -617,6 +630,11 @@ export class GalleryComponent {
     }
 
     this.animateOpen(image, cardIndex);
+
+    // Show NSFW prompt over the blurred lightbox
+    if (image.entry.nsfw && this.siteConfig.nsfwBlur() && image.entry.thumbBlur) {
+      this.nsfwPromptOpen.set(true);
+    }
   }
 
   private animateOpen(image: FloatingImage, cardIndex: number): void {
@@ -631,6 +649,9 @@ export class GalleryComponent {
       cardEl.style.visibility = 'hidden';
       this.lightboxSourceCard = cardEl;
     }
+
+    // Push nearby cards away from the opened card
+    this.displaceNeighbors(el, cardIndex, rect);
 
     const lbVw = window.innerWidth;
     const lbVh = window.innerHeight;
@@ -691,7 +712,7 @@ export class GalleryComponent {
       gsap.to(curtain, { opacity: 1, duration: 0.4, ease: 'power2.out' });
     }
 
-    // Animate overlay to center
+    // Animate overlay to center, then add controls
     gsap.to(overlay, {
       left: (lbVw - targetW) / 2,
       top: (lbVh - targetH) / 2,
@@ -702,7 +723,191 @@ export class GalleryComponent {
       borderRadius: '0px',
       duration: 0.5,
       ease: 'power2.out',
+      onComplete: () => {
+        if (!isBlurred) this.addLightboxControls(el, image);
+      },
     });
+  }
+
+  private addLightboxControls(canvas: HTMLElement, image: FloatingImage): void {
+    // Position controls over the lightbox image
+    const lb = this.lightboxEl;
+    if (!lb) return;
+    const lbRect = lb.getBoundingClientRect();
+
+    const controls = document.createElement('div');
+    controls.className = 'lightbox-controls';
+    controls.style.cssText = `
+      position:fixed; z-index:1001; pointer-events:auto;
+      left:${lbRect.left}px; top:${lbRect.top}px;
+      width:${lbRect.width}px; height:${lbRect.height}px;
+    `;
+    // Pass clicks through to the lightbox (close) unless hitting a button
+    controls.addEventListener('click', () => this.closeLightbox());
+
+    // Top-right actions (download + share + qr)
+    const actions = document.createElement('div');
+    actions.className = 'lb-actions';
+    actions.style.cssText = `
+      position:absolute; top:10px; right:10px;
+      display:flex; gap:10px;
+    `;
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'lb-btn';
+    dlBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+    dlBtn.title = 'Download';
+    dlBtn.addEventListener('click', (e) => { e.stopPropagation(); this.downloadImage(image); });
+
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'lb-btn';
+    shareBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
+    shareBtn.title = 'Share';
+    shareBtn.dataset['role'] = 'share';
+    shareBtn.addEventListener('click', (e) => { e.stopPropagation(); this.shareImage(image); });
+
+    const qrBtn = document.createElement('button');
+    qrBtn.className = 'lb-btn';
+    qrBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="17"/><line x1="14" y1="21" x2="17" y2="21"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>`;
+    qrBtn.title = 'QR Code';
+    qrBtn.addEventListener('click', (e) => { e.stopPropagation(); this.showQrCode(image); });
+
+    actions.appendChild(dlBtn);
+    actions.appendChild(shareBtn);
+    actions.appendChild(qrBtn);
+    controls.appendChild(actions);
+
+    // Left chevron
+    const hasLeft = this.lightboxOrderIdx > 0;
+    const hasRight = this.lightboxOrderIdx < this.lightboxOrder.length - 1;
+
+    if (hasLeft) {
+      const left = document.createElement('button');
+      left.className = 'lb-chevron lb-chevron-left';
+      left.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
+      left.addEventListener('click', (e) => { e.stopPropagation(); this.navigateLightbox(-1); });
+      controls.appendChild(left);
+    }
+
+    if (hasRight) {
+      const right = document.createElement('button');
+      right.className = 'lb-chevron lb-chevron-right';
+      right.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
+      right.addEventListener('click', (e) => { e.stopPropagation(); this.navigateLightbox(1); });
+      controls.appendChild(right);
+    }
+
+    canvas.appendChild(controls);
+    this.lightboxControls = controls;
+
+    // Fade in all buttons on hover, fade out on leave
+    controls.addEventListener('mouseenter', () => controls.classList.add('visible'));
+    controls.addEventListener('mouseleave', () => controls.classList.remove('visible'));
+  }
+
+  private downloadImage(image: FloatingImage): void {
+    const a = document.createElement('a');
+    a.href = image.entry.full;
+    a.download = image.entry.filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  private async shareImage(image: FloatingImage): Promise<void> {
+    const url = window.location.origin + '/photo/' + encodeURIComponent(image.entry.id);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: image.entry.id, url });
+        return;
+      } catch { /* user cancelled or not supported */ }
+    }
+    // Fallback: copy link to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      // Brief visual feedback on the share button
+      const btn = this.lightboxControls?.querySelector('[data-role="share"]') as HTMLElement;
+      if (btn) {
+        const orig = btn.innerHTML;
+        btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+        setTimeout(() => { btn.innerHTML = orig; }, 1500);
+      }
+    } catch { /* clipboard failed */ }
+  }
+
+  private async showQrCode(image: FloatingImage): Promise<void> {
+    const url = window.location.origin + '/photo/' + encodeURIComponent(image.entry.id);
+    const el = this.canvas()?.nativeElement;
+    if (!el) return;
+
+    const dataUrl = await QRCode.toDataURL(url, { width: 256, margin: 2, color: { dark: '#000', light: '#fff' } });
+
+    const overlay = document.createElement('div');
+    overlay.className = 'qr-overlay';
+    overlay.addEventListener('click', () => { overlay.remove(); this.qrOverlay = null; });
+
+    const panel = document.createElement('div');
+    panel.className = 'qr-panel';
+
+    const qrImg = document.createElement('img');
+    qrImg.src = dataUrl;
+    qrImg.alt = 'QR Code';
+    qrImg.style.cssText = 'display:block; width:200px; height:200px; border-radius:4px;';
+
+    const label = document.createElement('p');
+    label.textContent = 'Scan to view this photo';
+    label.style.cssText = 'margin-top:0.75rem; color:var(--color-text-muted); font-size:0.8rem; text-align:center;';
+
+    panel.appendChild(qrImg);
+    panel.appendChild(label);
+    overlay.appendChild(panel);
+    el.appendChild(overlay);
+    this.qrOverlay = overlay;
+  }
+
+  private displaceNeighbors(canvas: HTMLElement, cardIndex: number, sourceRect?: DOMRect): void {
+    if (!sourceRect) return;
+    const cardEls = canvas.querySelectorAll('.river-inner .river-card');
+    const cx = sourceRect.left + sourceRect.width / 2;
+    const cy = sourceRect.top + sourceRect.height / 2;
+    const radius = Math.max(sourceRect.width, sourceRect.height) * 2.5;
+    this.displacedCards = [];
+
+    cardEls.forEach((el, i) => {
+      if (i === cardIndex) return;
+      const r = (el as HTMLElement).getBoundingClientRect();
+      const ex = r.left + r.width / 2;
+      const ey = r.top + r.height / 2;
+      const dist = Math.hypot(ex - cx, ey - cy);
+      if (dist > radius || dist < 1) return;
+
+      const strength = 1 - dist / radius;
+      const angle = Math.atan2(ey - cy, ex - cx);
+      const push = strength * 60;
+      const dx = Math.cos(angle) * push;
+      const dy = Math.sin(angle) * push;
+
+      this.displacedCards.push({ el: el as HTMLElement, dx, dy });
+      gsap.to(el, {
+        x: `+=${dx}`,
+        y: `+=${dy}`,
+        duration: 0.4,
+        ease: 'power2.out',
+      });
+    });
+  }
+
+  private restoreNeighbors(): void {
+    for (const { el, dx, dy } of this.displacedCards) {
+      gsap.to(el, {
+        x: `-=${dx}`,
+        y: `-=${dy}`,
+        duration: 0.35,
+        ease: 'power2.inOut',
+      });
+    }
+    this.displacedCards = [];
   }
 
   navigateLightbox(dir: -1 | 1): void {
@@ -715,10 +920,9 @@ export class GalleryComponent {
     const next = this.lightboxOrder[nextIdx];
     this.lightboxNavigating = true;
 
-    // Close current (animate back to card), then open next
+    // Close current, then open next (NSFW prompt shown automatically if needed)
     this.closeLightbox(() => {
       this.openLightbox(next.card, next.cardIndex);
-      // Keep navigating flag up until stray click events have flushed
       setTimeout(() => { this.lightboxNavigating = false; }, 300);
     });
   }
@@ -727,6 +931,7 @@ export class GalleryComponent {
     // Block external close calls while navigating between images
     if (!onDone && this.lightboxNavigating) return;
     if (!this.lightboxOpen()) return;
+    this.nsfwPromptOpen.set(false);
 
     const image = this.lightboxImage();
     if (!image) return;
@@ -742,6 +947,11 @@ export class GalleryComponent {
       this.seo.clearKeywords();
     }
 
+    // Immediately fade out controls
+    if (this.lightboxControls) {
+      this.lightboxControls.classList.remove('visible');
+    }
+
     // Fade out curtain (skip if navigating — curtain stays visible)
     if (!willReopen) {
       const curtain = el?.querySelector('.lightbox-curtain') as HTMLElement;
@@ -750,12 +960,15 @@ export class GalleryComponent {
       }
     }
 
+    this.restoreNeighbors();
+
     const finish = () => {
       if (this.lightboxSourceCard) {
         this.lightboxSourceCard.style.visibility = '';
         this.lightboxSourceCard = null;
       }
       if (overlay) { overlay.remove(); }
+      if (this.lightboxControls) { this.lightboxControls.remove(); this.lightboxControls = null; }
       this.lightboxEl = null;
       this.lightboxOpen.set(false);
       this.lightboxImage.set(null);
@@ -812,12 +1025,17 @@ export class GalleryComponent {
       targetH = targetW / aspect;
     }
 
-    gsap.set(overlay, {
-      left: (vw - targetW) / 2,
-      top: (vh - targetH) / 2,
-      width: targetW,
-      height: targetH,
-    });
+    const l = (vw - targetW) / 2;
+    const t = (vh - targetH) / 2;
+    gsap.set(overlay, { left: l, top: t, width: targetW, height: targetH });
+
+    // Reposition controls to match
+    if (this.lightboxControls) {
+      this.lightboxControls.style.left = l + 'px';
+      this.lightboxControls.style.top = t + 'px';
+      this.lightboxControls.style.width = targetW + 'px';
+      this.lightboxControls.style.height = targetH + 'px';
+    }
   }
 
   private resumeRiver(): void {
@@ -878,9 +1096,23 @@ export class GalleryComponent {
 
   private listenKeyboard(): void {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (this.qrOverlay) {
+          this.qrOverlay.remove();
+          this.qrOverlay = null;
+          return;
+        }
+        if (this.nsfwPromptOpen()) {
+          this.dismissNsfwPrompt();
+          return;
+        }
+        if (this.lightboxOpen()) {
+          this.closeLightbox();
+        }
+        return;
+      }
       if (!this.lightboxOpen()) return;
-      if (e.key === 'Escape') this.closeLightbox();
-      else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.navigateLightbox(1);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.navigateLightbox(1);
       else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.navigateLightbox(-1);
     };
     window.addEventListener('keydown', onKey);
