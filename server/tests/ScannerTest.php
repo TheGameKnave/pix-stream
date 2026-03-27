@@ -5,16 +5,13 @@ use PHPUnit\Framework\TestCase;
 class ScannerTest extends TestCase
 {
     private string $originals;
-    private string $metadata;
 
     protected function setUp(): void
     {
         $this->originals = TEST_ORIGINALS;
-        $this->metadata = TEST_METADATA;
 
         // Clean directories
         array_map('unlink', glob($this->originals . '/*'));
-        array_map('unlink', glob($this->metadata . '/*'));
     }
 
     private function createTestJpeg(string $name, int $w = 100, int $h = 80): string
@@ -43,7 +40,7 @@ class ScannerTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertEquals('photo1', $results[0]['id']);
         $this->assertEquals('photo1.jpg', $results[0]['filename']);
-        $this->assertEquals('image/png', $results[0]['type']); // non-gif → png
+        $this->assertEquals('image/jpeg', $results[0]['type']); // JPG stays JPG
         $this->assertEquals(100, $results[0]['width']);
         $this->assertEquals(80, $results[0]['height']);
     }
@@ -81,7 +78,7 @@ class ScannerTest extends TestCase
         $this->assertCount(0, $results);
     }
 
-    public function testScanImagesIncludesDefaultMetadata(): void
+    public function testScanImagesIncludesDefaultFields(): void
     {
         $this->createTestJpeg('test.jpg');
         $results = scanImages($this->originals);
@@ -91,34 +88,15 @@ class ScannerTest extends TestCase
         $this->assertIsString($results[0]['copyright']);
     }
 
-    public function testLoadMetadataReturnsEmptyForMissingFile(): void
+    public function testGetAllTagsReturnsEmptyForNoImages(): void
     {
-        $result = loadMetadata('nonexistent-image-id');
-        $this->assertIsArray($result);
-        $this->assertEmpty($result);
-    }
-
-    public function testGetAllTagsCollectsUniqueSortedTags(): void
-    {
-        file_put_contents($this->metadata . '/img1.json', json_encode(['tags' => ['portrait', 'nature']]));
-        file_put_contents($this->metadata . '/img2.json', json_encode(['tags' => ['nature', 'urban']]));
-
-        $tags = getAllTags($this->metadata);
-        $this->assertEquals(['nature', 'portrait', 'urban'], $tags);
-    }
-
-    public function testGetAllTagsReturnsEmptyForNoMetadata(): void
-    {
-        $tags = getAllTags($this->metadata);
+        $tags = getAllTags($this->originals);
         $this->assertEmpty($tags);
     }
 
-    public function testGetAllTagsSkipsInvalidJson(): void
+    public function testGetAllTagsReturnsEmptyForMissingDir(): void
     {
-        file_put_contents($this->metadata . '/bad.json', 'not json{{{');
-        file_put_contents($this->metadata . '/good.json', json_encode(['tags' => ['valid']]));
-
-        $tags = getAllTags($this->metadata);
-        $this->assertEquals(['valid'], $tags);
+        $tags = getAllTags('/nonexistent/path/xyz');
+        $this->assertEmpty($tags);
     }
 }

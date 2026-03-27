@@ -1,7 +1,7 @@
 <?php
 /**
  * Filesystem image scanner.
- * Scans originals directory and reads metadata.
+ * Scans originals directory and reads EXIF/IPTC data.
  */
 
 /** Supported original extensions (case-insensitive). */
@@ -44,17 +44,15 @@ function scanImages(string $dir): array {
             } catch (Exception $e) {}
         }
 
-        // Output type after processing: GIF stays GIF, everything else becomes PNG
-        $outType = $isGif ? 'image/gif' : 'image/png';
+        // Output type after processing: JPG → JPG, GIF → GIF, everything else → PNG
+        $isJpeg = in_array($ext, ['jpg', 'jpeg']);
+        $outType = $isGif ? 'image/gif' : ($isJpeg ? 'image/jpeg' : 'image/png');
 
-        $meta = loadMetadata($id);
         $canReadExif = in_array($ext, ['jpg', 'jpeg', 'tiff', 'tif']);
         $exifTags = $canReadExif ? readExifTags($file) : [];
 
-        // Tags: prefer metadata JSON, fall back to IPTC keywords (excluding 'nsfw')
-        $tags = $meta['tags'] ?? array_values(array_filter($exifTags, fn($t) => strtolower($t) !== 'nsfw'));
-        // NSFW: metadata JSON takes precedence, then check IPTC keywords
-        $nsfw = $meta['nsfw'] ?? in_array('nsfw', array_map('strtolower', $exifTags));
+        $tags = array_values(array_filter($exifTags, fn($t) => strtolower($t) !== 'nsfw'));
+        $nsfw = in_array('nsfw', array_map('strtolower', $exifTags));
 
         $images[] = [
             'id' => $id,
@@ -65,20 +63,11 @@ function scanImages(string $dir): array {
             'height' => $height,
             'tags' => $tags,
             'nsfw' => $nsfw,
-            'copyright' => $meta['copyright'] ?? ($canReadExif ? readExifCopyright($file) : ''),
+            'copyright' => $canReadExif ? readExifCopyright($file) : '',
         ];
     }
 
     return $images;
-}
-
-function loadMetadata(string $imageId): array {
-    $metaFile = realpath(__DIR__ . '/../../storage/metadata') . '/' . $imageId . '.json';
-    if (file_exists($metaFile)) {
-        $data = json_decode(file_get_contents($metaFile), true);
-        return is_array($data) ? $data : [];
-    }
-    return [];
 }
 
 function readExifTags(string $file): array {
@@ -103,23 +92,9 @@ function readExifCopyright(string $file): string {
     return $exif['Copyright'] ?? '';
 }
 
-function getAllTags(string $metadataDir, string $originalsDir = ''): array {
+function getAllTags(string $originalsDir): array {
     $tags = [];
 
-    // Collect from metadata JSON files
-    $files = glob($metadataDir . '/*.json');
-    if ($files) {
-        foreach ($files as $file) {
-            $meta = json_decode(file_get_contents($file), true);
-            if (isset($meta['tags']) && is_array($meta['tags'])) {
-                foreach ($meta['tags'] as $tag) {
-                    $tags[$tag] = true;
-                }
-            }
-        }
-    }
-
-    // Collect from IPTC keywords in originals (for images without metadata JSON)
     if ($originalsDir && is_dir($originalsDir)) {
         $scanned = scanImages($originalsDir);
         foreach ($scanned as $img) {
@@ -128,9 +103,6 @@ function getAllTags(string $metadataDir, string $originalsDir = ''): array {
             }
         }
     }
-
-    // Exclude 'nsfw' — it's a flag, not a filter category
-    unset($tags['nsfw']);
 
     $result = array_keys($tags);
     sort($result);
