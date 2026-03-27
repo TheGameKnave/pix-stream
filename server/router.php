@@ -30,13 +30,6 @@ if (preg_match('#^/api/auth/(.+)$#', $uri, $matches)) {
     return true;
 }
 
-// Tag routes with image ID: /api/tags/some-image
-if (preg_match('#^/api/tags/(.+)$#', $uri, $matches)) {
-    $_SERVER['PATH_INFO'] = '/' . $matches[1];
-    require __DIR__ . '/api/tags.php';
-    return true;
-}
-
 // Serve images from storage
 function serveImage(string $filePath): bool {
     $file = realpath($filePath);
@@ -44,6 +37,8 @@ function serveImage(string $filePath): bool {
         $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
         $mime = match ($ext) {
             'gif' => 'image/gif',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
             default => 'image/jpeg',
         };
         header('Content-Type: ' . $mime);
@@ -66,8 +61,11 @@ if (preg_match('#^/api/image/thumb/(.+)$#', $uri, $matches)) {
 
 if (preg_match('#^/api/image/full/(.+)$#', $uri, $matches)) {
     $name = basename(urldecode($matches[1]));
-    if (!serveImage(__DIR__ . '/../storage/originals/' . $name)) {
-        http_response_code(404);
+    if (!serveImage(__DIR__ . '/../storage/processed/' . $name)) {
+        // Fall back to originals if processed version doesn't exist yet
+        if (!serveImage(__DIR__ . '/../storage/originals/' . $name)) {
+            http_response_code(404);
+        }
     }
     return true;
 }

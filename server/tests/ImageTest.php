@@ -83,7 +83,7 @@ class ImageTest extends TestCase
         $this->assertEquals(IMAGETYPE_PNG, $info[2]);
     }
 
-    public function testGenerateThumbnailCreatesResizedPng(): void
+    public function testGenerateThumbnailCreatesResizedImage(): void
     {
         $source = $this->createTestJpeg(1200, 900);
         $destBase = $this->thumbnails . '/thumb_test';
@@ -92,7 +92,7 @@ class ImageTest extends TestCase
 
         $this->assertNotFalse($result);
         $this->assertFileExists($result);
-        $this->assertStringEndsWith('.png', $result);
+        $this->assertStringEndsWith('.jpg', $result); // JPG stays JPG
 
         $info = getimagesize($result);
         // Should be within 600x600 bounds
