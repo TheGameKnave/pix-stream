@@ -1,4 +1,4 @@
-import { afterNextRender, ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, inject, isDevMode, PLATFORM_ID, signal, viewChild } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, isDevMode, PLATFORM_ID, signal, viewChild } from '@angular/core';
 import { isPlatformBrowser, Location } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { UpdateService } from '@app/services/update.service';
@@ -6,12 +6,13 @@ import { ConnectivityService } from '@app/services/connectivity.service';
 import { SiteConfigService, slugify } from '@app/services/site-config.service';
 import { filter } from 'rxjs';
 import QRCode from 'qrcode';
+import { MarkdownComponent } from 'ngx-markdown';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterModule],
+  imports: [RouterModule, MarkdownComponent],
 })
 export class AppComponent {
   readonly updateService = inject(UpdateService);
@@ -21,6 +22,23 @@ export class AppComponent {
   protected readonly showHeader = signal(true);
   protected readonly showInfo = this.siteConfig.aboutOpen;
   protected readonly tagDropdownOpen = signal(false);
+  protected readonly instructionsMd = computed(() => {
+    const tagCount = this.siteConfig.tags().length;
+    const lines = [
+      '### How to use',
+      '',
+      '- **Scroll or swipe** to explore the stream',
+      '- **Click a photo** to view it full size',
+      '- **Arrow keys or swipe** to navigate between photos',
+      '- **Esc** to close',
+    ];
+    if (tagCount > 5) {
+      lines.push('- Use the **filter** to browse by tag');
+    } else if (tagCount > 0) {
+      lines.push('- Use the **tags** in the header to browse');
+    }
+    return lines.join('\n');
+  });
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
@@ -40,6 +58,13 @@ export class AppComponent {
 
     this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e) => {
       updateFromUrl(e.url);
+    });
+
+    // Auto-open about dialog when admin setup is needed (skip on admin route)
+    effect(() => {
+      if (this.siteConfig.adminSetupRequired() && !this.router.url.startsWith('/admin')) {
+        this.openAbout();
+      }
     });
 
     afterNextRender(() => {
@@ -87,20 +112,22 @@ export class AppComponent {
     }
   }
 
-  clearFilter(): void {
+  goHome(): void {
     this.siteConfig.activeTags.set([]);
-    this.location.replaceState('/');
+    this.router.navigateByUrl('/');
   }
 
   openAbout(): void {
+    if (this.showInfo()) return;
     this.urlBeforeAbout = this.router.url;
     this.location.replaceState('/about');
     this.showInfo.set(true);
   }
 
   closeAbout(): void {
-    this.location.replaceState(this.urlBeforeAbout);
+    const restoreTo = this.urlBeforeAbout || '/';
     this.showInfo.set(false);
+    this.location.replaceState(restoreTo);
   }
 
   async shareSite(): Promise<void> {

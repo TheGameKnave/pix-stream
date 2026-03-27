@@ -1,6 +1,6 @@
 @if (showHeader()) {
 <header class="app-header" #headerEl>
-  <a class="logo" (click)="clearFilter()">
+  <a class="logo" (click)="goHome()">
     <span class="logo-title">{{ siteConfig.config()?.title || 'Photo Stream' }}</span>
     @if (siteConfig.config()?.description) {
       <span class="logo-subtitle">{{ siteConfig.config()?.description }}</span>
@@ -85,8 +85,17 @@
       @if (siteConfig.config()?.description) {
         <p class="info-desc">{{ siteConfig.config()?.description }}</p>
       }
+      @if (siteConfig.adminSetupRequired()) {
+        <div class="info-admin-setup">
+          <h3><a href="/admin" (click)="closeAbout()">Set up admin panel</a></h3>
+          <p>Complete the admin setup to configure your gallery.</p>
+        </div>
+      }
+      <div class="info-instructions">
+        <markdown [data]="instructionsMd()"></markdown>
+      </div>
       <p class="info-credits">
-        Built with <a href="https://github.com/your/photo-stream" target="_blank" rel="noopener">Photo Stream</a>
+        Built with <a href="https://github.com/TheGameKnave/photo-stream" target="_blank" rel="noopener">Photo Stream</a>
       </p>
     </div>
   </div>

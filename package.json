@@ -24,6 +24,8 @@
     "typescript": "~5.9.3"
   },
   "dependencies": {
+    "marked": "^17.0.5",
+    "ngx-markdown": "^21.1.0",
     "qrcode": "^1.5.4"
   }
 }

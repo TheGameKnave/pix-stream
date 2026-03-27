@@ -28,6 +28,7 @@ export class SiteConfigService {
   readonly nsfwBlur = signal(this.loadNsfwPref());
   readonly hasNsfw = signal(false);
   readonly aboutOpen = signal(false);
+  readonly adminSetupRequired = signal(false);
   private pendingSlugs: string[] = [];
 
   load(): void {
@@ -48,6 +49,10 @@ export class SiteConfigService {
           this.pendingSlugs = [];
         }
       },
+    });
+
+    this.http.get<{ setupRequired: boolean }>('/api/auth/status').subscribe({
+      next: (res) => this.adminSetupRequired.set(res.setupRequired),
     });
   }
 
