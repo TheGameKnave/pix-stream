@@ -8,8 +8,8 @@
       @for (card of cards(); track $index) {
         <div
           class="river-card"
-          [class.nsfw-blur]="card.entry.nsfw && siteConfig.nsfwBlur()"
           [class.exiting]="card.exiting"
+          [hidden]="card.entry.nsfw && !siteConfig.nsfwBlur() && !connectivity.isOnline()"
           [style.left.px]="card.x"
           [style.top.px]="card.y"
           [style.width.px]="card.w"
@@ -21,7 +21,7 @@
           (pointermove)="onPointerMove()"
           (pointerup)="onPointerUp($event, card, $index)"
         >
-          <img [src]="card.entry.thumb" [alt]="card.entry.id" loading="lazy" />
+          <img [src]="card.entry.nsfw && siteConfig.nsfwBlur() && card.entry.thumbBlur ? card.entry.thumbBlur : card.entry.thumb" [alt]="card.entry.id" loading="lazy" />
         </div>
       }
     </div>
@@ -30,5 +30,16 @@
       [style.pointer-events]="lightboxOpen() ? 'auto' : 'none'"
       (click)="closeLightbox()"
     ></div>
+  }
+  @if (nsfwPromptOpen()) {
+    <div class="nsfw-prompt-overlay" (click)="dismissNsfwPrompt()">
+      <div class="nsfw-prompt" (click)="$event.stopPropagation()">
+        <p>This image is marked NSFW.</p>
+        <div class="nsfw-prompt-actions">
+          <button class="nsfw-prompt-btn primary" (click)="disableNsfwAndOpen()">Disable Work-Safe &amp; View</button>
+          <button class="nsfw-prompt-btn" (click)="dismissNsfwPrompt()">Cancel</button>
+        </div>
+      </div>
+    </div>
   }
 </div>

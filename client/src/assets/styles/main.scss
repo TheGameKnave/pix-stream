@@ -448,14 +448,62 @@ button {
 }
 
 // =============================================================================
-// NSFW blur
+// NSFW prompt dialog
 // =============================================================================
-.nsfw-blur {
-  filter: blur(20px);
-  transition: filter 0.3s ease;
+.nsfw-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nsfw-prompt {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem 2rem;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+
+  p {
+    color: var(--color-text);
+    font-size: 0.95rem;
+    margin-bottom: 1.25rem;
+  }
+}
+
+.nsfw-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nsfw-prompt-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: all 0.2s ease;
+  cursor: pointer;
 
   &:hover {
-    filter: blur(10px);
+    border-color: var(--color-text-muted);
+    color: var(--color-text);
+  }
+
+  &.primary {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: rgba(1, 221, 177, 0.1);
+
+    &:hover {
+      background: rgba(1, 221, 177, 0.2);
+    }
   }
 }
 

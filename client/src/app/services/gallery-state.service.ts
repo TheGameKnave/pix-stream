@@ -5,6 +5,7 @@ export interface ImageEntry {
   filename: string;
   type: string;
   thumb: string;
+  thumbBlur?: string;
   full: string;
   tags: string[];
   width: number;

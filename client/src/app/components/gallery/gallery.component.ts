@@ -15,6 +15,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
 import { SiteConfigService } from '@app/services/site-config.service';
+import { ConnectivityService } from '@app/services/connectivity.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import gsap from 'gsap';
 import { GalleryStateService, FloatingImage, ImageEntry, ManifestResponse } from '@app/services/gallery-state.service';
@@ -102,10 +103,16 @@ export class GalleryComponent {
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly state = inject(GalleryStateService);
   readonly siteConfig = inject(SiteConfigService);
+  readonly connectivity = inject(ConnectivityService);
 
   readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
   readonly cards = signal<FloatingImage[]>([]);
   readonly loading = signal(true);
+
+  // NSFW prompt state
+  readonly nsfwPromptOpen = signal(false);
+  private nsfwPromptImage: FloatingImage | null = null;
+  private nsfwPromptIndex = -1;
 
   // Lightbox state
   readonly lightboxOpen = signal(false);
@@ -168,6 +175,20 @@ export class GalleryComponent {
       // Angular encodes + as %2B in the URL — fix it
       this.location.replaceState('/' + slugs.join('+'));
     }
+
+    // When work-safe is turned off, prefetch all unblurred NSFW thumbs so they're
+    // cached by the service worker before the user goes offline.
+    effect(() => {
+      const blurOn = this.siteConfig.nsfwBlur();
+      if (!blurOn && this.allEntries.length > 0) {
+        for (const entry of this.allEntries) {
+          if (entry.nsfw && entry.thumbBlur) {
+            new Image().src = entry.thumb;
+            new Image().src = entry.full;
+          }
+        }
+      }
+    });
 
     // Rebuild river when active tags change
     effect(() => {
@@ -528,13 +549,41 @@ export class GalleryComponent {
     const dy = Math.abs(event.clientY - this.pointerDownY);
     // Only open lightbox if pointer barely moved (click, not drag)
     if (dx < 20 && dy < 20) {
-      this.openLightbox(image, index);
+      if (image.entry.nsfw && this.siteConfig.nsfwBlur() && image.entry.thumbBlur) {
+        this.showNsfwPrompt(image, index);
+      } else {
+        this.openLightbox(image, index);
+      }
     }
   }
 
   private persistState(): void {
     this.state.cards = this.cards();
     this.state.offset = this.offset;
+  }
+
+  private showNsfwPrompt(image: FloatingImage, index: number): void {
+    this.nsfwPromptImage = image;
+    this.nsfwPromptIndex = index;
+    this.nsfwPromptOpen.set(true);
+  }
+
+  dismissNsfwPrompt(): void {
+    this.nsfwPromptOpen.set(false);
+    this.nsfwPromptImage = null;
+    this.nsfwPromptIndex = -1;
+  }
+
+  disableNsfwAndOpen(): void {
+    const image = this.nsfwPromptImage;
+    const index = this.nsfwPromptIndex;
+    this.nsfwPromptOpen.set(false);
+    this.nsfwPromptImage = null;
+    this.nsfwPromptIndex = -1;
+    this.siteConfig.toggleNsfw();
+    if (image && index >= 0) {
+      this.openLightbox(image, index);
+    }
   }
 
   openLightbox(image: FloatingImage, cardIndex: number): void {
@@ -602,8 +651,9 @@ export class GalleryComponent {
       transform:rotate(${image.rotation}deg);
       box-shadow:${image.shadow};
     `;
+    const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
     const img = document.createElement('img');
-    img.src = image.entry.thumb;
+    img.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb;
     img.draggable = false;
     img.style.cssText = 'display:block; width:100%; height:100%; object-fit:cover; pointer-events:none;';
     overlay.appendChild(img);
@@ -612,10 +662,12 @@ export class GalleryComponent {
     el.appendChild(overlay);
     this.lightboxEl = overlay;
 
-    // Preload full image and swap when ready
-    const fullImg = new Image();
-    fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
-    fullImg.src = image.entry.full;
+    // Preload full image and swap when ready (skip for blurred NSFW — don't download unblurred content)
+    if (!isBlurred) {
+      const fullImg = new Image();
+      fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
+      fullImg.src = image.entry.full;
+    }
 
     // Calculate target: fill viewport, maintain aspect ratio
     const pad = 16;
@@ -714,7 +766,8 @@ export class GalleryComponent {
     if (overlay) {
       // Swap back to thumbnail for the shrink animation
       const img = overlay.querySelector('img') as HTMLImageElement;
-      if (img) { img.src = image.entry.thumb; img.style.objectFit = 'cover'; }
+      const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
+      if (img) { img.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb; img.style.objectFit = 'cover'; }
 
       // Animate back to original card screen position
       const screenX = image.x - this.offset;
