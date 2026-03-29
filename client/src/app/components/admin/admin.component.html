@@ -1,3 +1,4 @@
+<div class="admin-scroll" appScrollIndicator>
 <div class="admin-panel">
   @if (loading()) {
     <p class="admin-loading">Loading...</p>
@@ -65,11 +66,364 @@
     </div>
 
   } @else {
-    <!-- Authenticated -->
-    <div class="admin-header">
-      <h2>Admin</h2>
-      <button class="btn btn-secondary" (click)="logout()">Log Out</button>
+    <!-- Authenticated — Config Editor -->
+    <h2>Site Configuration</h2>
+
+    <!-- Identity -->
+    <div class="admin-section" [class.open]="accordionIdentity()">
+      <button class="accordion-header" (click)="accordionIdentity.set(!accordionIdentity())">
+        <span class="accordion-caret">&#x25B6;</span>
+        Identity
+      </button>
+      <div class="accordion-body">
+        <div class="form-group">
+          <label>Site Logo</label>
+          @if (siteLogo()) {
+            <div class="logo-preview-row">
+              <img [src]="siteLogo()" alt="Site logo" class="logo-preview" />
+              <button type="button" class="btn btn-secondary btn-sm" (click)="removeLogo()">Remove</button>
+            </div>
+          } @else {
+            <button type="button" class="btn btn-secondary" (click)="logoFileInput.click()">
+              Upload Logo
+            </button>
+          }
+          <input #logoFileInput type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" (change)="uploadLogo($event)" hidden />
+          <span class="admin-hint">PNG preferred. Replaces the site name and subtitle in the header.</span>
+        </div>
+        <div class="form-group">
+          <label>Favicon</label>
+          @if (siteFavicon()) {
+            <div class="logo-preview-row">
+              <img [src]="siteFavicon()" alt="Favicon" class="logo-preview" style="max-height: 32px" />
+              <button type="button" class="btn btn-secondary btn-sm" (click)="removeFavicon()">Remove</button>
+            </div>
+          } @else {
+            <button type="button" class="btn btn-secondary" (click)="faviconFileInput.click()">
+              Upload Favicon
+            </button>
+          }
+          <input #faviconFileInput type="file" accept="image/svg+xml,image/png,image/x-icon,image/gif" (change)="uploadFavicon($event)" hidden />
+          <span class="admin-hint">Uploads an SVG or PNG for browser tabs. See the README for generating multiple sizes for native apps and other platforms.</span>
+        </div>
+        <div class="form-group">
+          <label for="cfg-title">Site Name</label>
+          <input id="cfg-title" type="text" [(ngModel)]="title" (ngModelChange)="onConfigChange()" placeholder="Photo Stream" />
+        </div>
+        <div class="form-group">
+          <label for="cfg-desc">Subtitle</label>
+          <input id="cfg-desc" type="text" [(ngModel)]="subtitle" (ngModelChange)="onConfigChange()" placeholder="A floating photo gallery" />
+        </div>
+        <div class="form-group">
+          <label for="cfg-email">Contact Email</label>
+          <input id="cfg-email" type="email" [(ngModel)]="contactEmail" (ngModelChange)="onConfigChange()" placeholder="Optional — enables copyright banner on images" />
+        </div>
+        <div class="form-group">
+          <label for="cfg-head-title">Browser Tab Title</label>
+          <input id="cfg-head-title" type="text" [(ngModel)]="pageHeadTitle" (ngModelChange)="onConfigChange()" placeholder="Optional — shown after site name in browser tab" />
+          <span class="admin-hint">{{ title || 'Photo Stream' }}{{ pageHeadTitle ? ' | ' + pageHeadTitle : '' }}</span>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <app-markdown-editor
+            [value]="description"
+            (valueChange)="description = $event; onConfigChange()"
+          ></app-markdown-editor>
+          <span class="admin-hint">Shown in the About dialog.</span>
+        </div>
+      </div>
     </div>
-    <p class="admin-subtitle">Admin panel — coming soon</p>
+
+    <!-- Theme (includes Typography) -->
+    <div class="admin-section" [class.open]="accordionTheme()">
+      <button class="accordion-header" (click)="accordionTheme.set(!accordionTheme())">
+        <span class="accordion-caret">&#x25B6;</span>
+        Theme
+      </button>
+      <div class="accordion-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-header">Header Color</label>
+            <input id="cfg-header" type="color" [(ngModel)]="headerColor" (ngModelChange)="onConfigChange()" />
+          </div>
+          <div class="form-group">
+            <label>Background</label>
+            <div class="bg-picker-anchor" #bgPickerAnchor>
+              <input type="color" [ngModel]="bgColor" (click)="$event.preventDefault(); bgPickerOpen.set(!bgPickerOpen())" readonly />
+              @if (bgPickerOpen()) {
+                <div class="bg-picker-popover">
+                  <div class="bg-picker-row">
+                    <canvas
+                      class="bg-picker-canvas"
+                      width="240"
+                      height="100"
+                      #bgCanvas
+                      (mousedown)="onBgCanvasMouseDown($event)"
+                      (mousemove)="onBgCanvasDrag($event)"
+                      (mouseup)="bgDragging = false"
+                      (mouseleave)="bgDragging = false"
+                      (touchstart)="onBgCanvasTouchStart($event)"
+                      (touchmove)="onBgCanvasTouchMove($event)"
+                      (touchend)="bgDragging = false"
+                    ></canvas>
+                    <input
+                      type="range"
+                      class="bg-lightness-slider"
+                      min="20"
+                      max="80"
+                      [ngModel]="bgLightness"
+                      (ngModelChange)="bgLightness = $event; onBgLightnessChange()"
+                    />
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Watermark</label>
+          @if (watermark()) {
+            <div class="logo-preview-row">
+              <img [src]="watermark()" alt="Watermark" class="logo-preview" />
+              <button type="button" class="btn btn-secondary btn-sm" (click)="removeWatermark()">Remove</button>
+            </div>
+          } @else {
+            <button type="button" class="btn btn-secondary" (click)="watermarkFileInput.click()">
+              Upload Watermark
+            </button>
+          }
+          <input #watermarkFileInput type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" (change)="uploadWatermark($event)" hidden />
+          <span class="admin-hint">PNG preferred. Anchored to the right edge of the gallery, scaled to fill the vertical space.</span>
+        </div>
+        <div class="form-group">
+          <label>Font</label>
+          <button type="button" class="font-picker-toggle" (click)="toggleFontPicker()">
+            <span class="font-picker-current" [style.font-family]="resolvedFontBody + ', sans-serif'">
+              {{ fontBody === '_custom' ? (customFontBody || 'Custom') : fontBody }}
+            </span>
+            <span class="font-picker-arrow" [class.open]="fontPickerOpen()">&#9662;</span>
+          </button>
+          @if (fontPickerOpen()) {
+            <div class="font-picker-grid">
+              @for (font of fontOptions; track font) {
+                <button
+                  type="button"
+                  class="font-picker-option"
+                  [class.active]="fontBody === font"
+                  (click)="selectFont(font)"
+                >
+                  <span class="font-picker-name">{{ font }}</span>
+                  <span class="font-picker-sample" [style.font-family]="font + ', sans-serif'">
+                    {{ title || 'Site Title' }} &mdash; {{ description || 'Site description' }}
+                  </span>
+                </button>
+              }
+              <button
+                type="button"
+                class="font-picker-option"
+                [class.active]="fontBody === '_custom'"
+                (click)="selectCustomFont()"
+              >
+                <span class="font-picker-name">Custom...</span>
+                <span class="font-picker-sample" style="font-style: italic; opacity: 0.6">
+                  Enter a Google Fonts family name
+                </span>
+              </button>
+            </div>
+          }
+          @if (fontBody === '_custom') {
+            <input type="text" [(ngModel)]="customFontBody" (ngModelChange)="onConfigChange()" placeholder="Google Fonts family name" class="form-inline" />
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    @if (siteConfig.allTags().length > 0) {
+      <div class="admin-section" [class.open]="accordionTags()">
+        <button class="accordion-header" (click)="accordionTags.set(!accordionTags())">
+          <span class="accordion-caret">&#x25B6;</span>
+          Tags
+        </button>
+        <div class="accordion-body">
+          <div class="form-group">
+            <label>Display as</label>
+            <div class="flow-picker">
+              <label class="flow-option" [class.active]="tagDisplayMode === 'nav'">
+                <input type="radio" name="tagMode" value="nav" [(ngModel)]="tagDisplayMode" (ngModelChange)="onConfigChange()" />
+                <span>Navigation buttons</span>
+              </label>
+              <label class="flow-option" [class.active]="tagDisplayMode === 'dropdown'">
+                <input type="radio" name="tagMode" value="dropdown" [(ngModel)]="tagDisplayMode" (ngModelChange)="onConfigChange()" />
+                <span>Filter dropdown</span>
+              </label>
+            </div>
+          </div>
+          <div class="admin-hint-row">
+            <p class="admin-hint">Select which tags to surface. Leave all unchecked to show everything.</p>
+            <button class="admin-link-btn" (click)="selectAllTags()">All</button>
+            <button class="admin-link-btn" (click)="deselectAllTags()">None</button>
+          </div>
+          <div class="tag-grid">
+            @for (tag of siteConfig.allTags(); track tag) {
+              <label class="tag-check" [class.active]="enabledTags.includes(tag)">
+                <input type="checkbox" [checked]="enabledTags.includes(tag)" (change)="toggleTag(tag)" />
+                {{ tag }}
+              </label>
+            }
+          </div>
+          @if (hiddenCount() > 0) {
+            <div class="admin-hidden-report">
+              <button class="admin-hidden-toggle" (click)="showHidden.set(!showHidden())">
+                {{ hiddenCount() }} of {{ totalImageCount() }} images won't be visible
+                <span class="admin-forgot-caret" [class.open]="showHidden()">&#x25B6;</span>
+              </button>
+              @if (showHidden()) {
+                <div class="admin-hidden-list">
+                  @for (img of hiddenImages(); track img.id) {
+                    <div class="admin-hidden-card">
+                      <img [src]="img.thumb" [alt]="img.id" loading="lazy" />
+                      <span class="admin-hidden-label">{{ img.id }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Flow -->
+    <div class="admin-section" [class.open]="accordionFlow()">
+      <button class="accordion-header" (click)="accordionFlow.set(!accordionFlow())">
+        <span class="accordion-caret">&#x25B6;</span>
+        Flow
+      </button>
+      <div class="accordion-body">
+        <div class="form-group">
+          <label>Sort Order</label>
+          <div class="flow-picker">
+            <label class="flow-option" [class.active]="sortOrder === 'random'">
+              <input type="radio" name="sort" value="random" [(ngModel)]="sortOrder" (ngModelChange)="onConfigChange()" />
+              <span>Random</span>
+            </label>
+            <label class="flow-option" [class.active]="sortOrder === 'date-desc'">
+              <input type="radio" name="sort" value="date-desc" [(ngModel)]="sortOrder" (ngModelChange)="onConfigChange()" />
+              <span>Newest First</span>
+            </label>
+            <label class="flow-option" [class.active]="sortOrder === 'date-asc'">
+              <input type="radio" name="sort" value="date-asc" [(ngModel)]="sortOrder" (ngModelChange)="onConfigChange()" />
+              <span>Oldest First</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Direction</label>
+          <div class="flow-picker">
+            <label class="flow-option" [class.active]="flowDirection === 'rtl'">
+              <input type="radio" name="flow" value="rtl" [(ngModel)]="flowDirection" (ngModelChange)="onConfigChange()" />
+              <span>Right to Left</span>
+            </label>
+            <label class="flow-option" [class.active]="flowDirection === 'ltr'">
+              <input type="radio" name="flow" value="ltr" [(ngModel)]="flowDirection" (ngModelChange)="onConfigChange()" />
+              <span>Left to Right</span>
+            </label>
+            <label class="flow-option" [class.active]="flowDirection === 'ttb'">
+              <input type="radio" name="flow" value="ttb" [(ngModel)]="flowDirection" (ngModelChange)="onConfigChange()" />
+              <span>Top to Bottom</span>
+            </label>
+            <label class="flow-option" [class.active]="flowDirection === 'btt'">
+              <input type="radio" name="flow" value="btt" [(ngModel)]="flowDirection" (ngModelChange)="onConfigChange()" />
+              <span>Bottom to Top</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Speed</label>
+          <div class="flow-picker">
+            <label class="flow-option" [class.active]="flowSpeed === 'off'">
+              <input type="radio" name="speed" value="off" [(ngModel)]="flowSpeed" (ngModelChange)="onConfigChange()" />
+              <span>Off</span>
+            </label>
+            <label class="flow-option" [class.active]="flowSpeed === 'low'">
+              <input type="radio" name="speed" value="low" [(ngModel)]="flowSpeed" (ngModelChange)="onConfigChange()" />
+              <span>Low</span>
+            </label>
+            <label class="flow-option" [class.active]="flowSpeed === 'med'">
+              <input type="radio" name="speed" value="med" [(ngModel)]="flowSpeed" (ngModelChange)="onConfigChange()" />
+              <span>Medium</span>
+            </label>
+            <label class="flow-option" [class.active]="flowSpeed === 'high'">
+              <input type="radio" name="speed" value="high" [(ngModel)]="flowSpeed" (ngModelChange)="onConfigChange()" />
+              <span>High</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="admin-section" [class.open]="accordionFeatures()">
+      <button class="accordion-header" (click)="accordionFeatures.set(!accordionFeatures())">
+        <span class="accordion-caret">&#x25B6;</span>
+        Features
+      </button>
+      <div class="accordion-body">
+        <label class="toggle-row">
+          <input type="checkbox" [(ngModel)]="enableShare" (ngModelChange)="onConfigChange()" />
+          <span>Enable sharing</span>
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" [(ngModel)]="enableDownload" (ngModelChange)="onConfigChange()" />
+          <span>Enable downloads</span>
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" [(ngModel)]="enableQr" (ngModelChange)="onConfigChange()" />
+          <span>Enable QR codes</span>
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" [(ngModel)]="enableKiosk" (ngModelChange)="onConfigChange()" />
+          <span>Enable kiosk mode</span>
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" [(ngModel)]="nsfwBlurDefault" (ngModelChange)="onConfigChange()" />
+          <span>Work-safe mode on by default</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="admin-upload">
+      <div
+        class="image-upload-zone"
+        [class.drag-over]="imageDragOver()"
+        (dragover)="onImageDragOver($event)"
+        (dragleave)="onImageDragLeave()"
+        (drop)="onImageDrop($event)"
+        (click)="imageFileInput.click()"
+      >
+        @if (uploadingImages()) {
+          <p>Uploading...</p>
+        } @else {
+          <p>Drag &amp; drop images here</p>
+          <p>or click to browse</p>
+          <p style="font-size: 0.75rem; margin-top: 0.5rem">JPG, PNG, GIF, WebP</p>
+        }
+      </div>
+      <input #imageFileInput type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple (change)="uploadImages($event)" hidden />
+      @if (uploadResult(); as result) {
+        <div class="upload-result">
+          @if (result.uploaded.length) {
+            <p class="upload-success">Uploaded {{ result.uploaded.length }} image{{ result.uploaded.length === 1 ? '' : 's' }}</p>
+          }
+          @for (err of result.errors; track err) {
+            <p class="upload-error">{{ err }}</p>
+          }
+        </div>
+      }
+    </div>
+
   }
+</div>
 </div>
