@@ -18,10 +18,53 @@ require_once __DIR__ . '/../lib/image.php';
 $storageDir   = realpath(__DIR__ . '/../../storage/originals');
 $thumbDir     = realpath(__DIR__ . '/../../storage/thumbnails');
 $processedDir = realpath(__DIR__ . '/../../storage/processed');
+$configPath   = __DIR__ . '/../config/site.json';
 
 if (!$storageDir) {
     echo json_encode(['version' => '', 'images' => []]);
     exit;
+}
+
+// Read site config for banner info
+$siteConfig = file_exists($configPath) ? json_decode(file_get_contents($configPath), true) : [];
+$contactEmail = $siteConfig['contactEmail'] ?? '';
+$bannerConfig = [];
+if ($contactEmail) {
+    $bannerConfig = [
+        'email' => $contactEmail,
+        'title' => $siteConfig['title'] ?? 'Photo Stream',
+        'subtitle' => $siteConfig['subtitle'] ?? '',
+        'fontBody' => $siteConfig['fontBody'] ?? 'Raleway',
+        'siteLogo' => $siteConfig['siteLogo'] ?? '',
+    ];
+    // Track banner config hash — if it changes, nuke processed images to regenerate
+    $bannerHash = md5(json_encode($bannerConfig));
+    $bannerHashFile = $processedDir . '/.banner_hash';
+    $oldHash = file_exists($bannerHashFile) ? trim(file_get_contents($bannerHashFile)) : '';
+    if ($bannerHash !== $oldHash) {
+        // Config changed — clear all processed images so they regenerate with new banner
+        $existing = @scandir($processedDir);
+        if ($existing) {
+            foreach ($existing as $f) {
+                if ($f[0] === '.') continue;
+                @unlink($processedDir . '/' . $f);
+            }
+        }
+        file_put_contents($bannerHashFile, $bannerHash);
+    }
+} else {
+    // No email — clear banner hash so removing email triggers regeneration too
+    $bannerHashFile = $processedDir . '/.banner_hash';
+    if (file_exists($bannerHashFile)) {
+        @unlink($bannerHashFile);
+        $existing = @scandir($processedDir);
+        if ($existing) {
+            foreach ($existing as $f) {
+                if ($f[0] === '.') continue;
+                @unlink($processedDir . '/' . $f);
+            }
+        }
+    }
 }
 
 $images = scanImages($storageDir);
@@ -70,7 +113,11 @@ foreach ($images as $image) {
     $procExists = file_exists($expectedProc) || $fallbackProc;
 
     if (!$procExists) {
-        $result = generateProcessed($image['path'], $procBase);
+        $imgBanner = $bannerConfig;
+        if ($imgBanner && $image['copyright']) {
+            $imgBanner['copyright'] = $image['copyright'];
+        }
+        $result = generateProcessed($image['path'], $procBase, $imgBanner);
         if ($result) {
             $validProcessedFiles[] = basename($result);
         }
@@ -106,7 +153,10 @@ foreach ($images as $image) {
         'width' => $image['width'],
         'height' => $image['height'],
         'nsfw' => $image['nsfw'],
+        'bannerHeight' => $contactEmail ? BANNER_HEIGHT : 0,
         'copyright' => $image['copyright'],
+        'captureDate' => $image['captureDate'] ?? '',
+        'title' => $image['title'] ?? '',
     ];
     if ($blurFilename) {
         $entry['thumbBlur'] = '/api/image/thumb/' . rawurlencode($blurFilename);

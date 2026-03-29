@@ -64,6 +64,8 @@ function scanImages(string $dir): array {
             'tags' => $tags,
             'nsfw' => $nsfw,
             'copyright' => $canReadExif ? readExifCopyright($file) : '',
+            'captureDate' => $canReadExif ? readExifDate($file) : '',
+            'title' => $canReadExif ? readExifTitle($file) : '',
         ];
     }
 
@@ -90,6 +92,28 @@ function readExifTags(string $file): array {
 function readExifCopyright(string $file): string {
     $exif = @exif_read_data($file, 'IFD0');
     return $exif['Copyright'] ?? '';
+}
+
+function readExifDate(string $file): string {
+    $exif = @exif_read_data($file, 'EXIF');
+    return $exif['DateTimeOriginal'] ?? $exif['DateTime'] ?? '';
+}
+
+function readExifTitle(string $file): string {
+    $iptc = [];
+    getimagesize($file, $info);
+    if (!empty($info['APP13'])) {
+        $iptcData = iptcparse($info['APP13']);
+        // 2#005 = Object Name (Title)
+        if (isset($iptcData['2#005'][0])) {
+            return trim($iptcData['2#005'][0]);
+        }
+        // 2#120 = Caption
+        if (isset($iptcData['2#120'][0])) {
+            return trim($iptcData['2#120'][0]);
+        }
+    }
+    return '';
 }
 
 function getAllTags(string $originalsDir): array {

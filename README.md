@@ -1,272 +1,192 @@
-# angular-momentum
+# Photo Stream
 
-This repo is intended to allow spooling up Angular projects in a monorepo rapidly, with a minimum of configuration.
+A floating photo gallery and slideshow platform. Drop images in, configure via a web admin panel, and serve a visually rich, animated gallery to the web -- or as a native app on desktop and mobile.
 
-## Current features
-* Angular 21 w/ Zoneless change detection &  Node 24.11.1
-* Parallel server/client execution
-* Bare-bones api proxy to the back-end *
-* Frontend environment detection *
-* Auto-unsub from subscriptions
-* Heroku deployment
-* cookie consent banner *
-* Google Analytics
-* Service worker to persist app and manage versions *
-* Typescript with node for back-end
-* Client & Server unit testing via jasmine
-* Benchmark memory usage and response times (throttled for mobile) in tests
-* Internationalization (i18n) with Transloco *
-* IndexedDB for offline storage *
-* Documentation enforced via husky
-* e2e testing with Playwright + snapshots
-* 100% coverage in unit tests (jasmine for client and jest for server)
-* Feature flags *
-* CI/CD (github actions, sonar)
-* Hotjar script for user behavior analysis
-* Websockets to reconcile disparities between server and local data *
-* public api with GraphQL *
-* DB-agnostic query layer
-* Network connectivity detection *
-* CDN for static assets and binary distros
-* Tauri app signing and (desktop) auto-updating for distribution to Android, iOS, macOS, Windows, and Linux.
-* Automatic platform deploys via Github Actions
-* Supabase(?) user management (emails and password resetting, etc) *
-* timezone detection AND user-setting *
-* Push notifications (WebSocket-based) for Web, PWA, and all Tauri platforms *
-* toast notifications *
-* Server-side rendering
-* Lighthouse CI to mitigate performance slip
+This project is based on [angular-momentum](https://github.com/TheGameKnave/angular-momentum), but is fully vibe-coded as a proof of concept.
 
-(* indicates a feature that’s visible in the sample app)
+## Goals
 
-## Pending features
+### 1. Image Gallery Site + Companion Apps
 
-* CDN for static assets and binary distros, depending on Tauri's ability to cache assets
+Provide site code that becomes a full image gallery with minimal configuration. The web site and native apps share the same functionality:
 
-## License
-This project is licensed under the MIT License (see [LICENSE](https://github.com/TheGameKnave/angular-momentum/blob/main/LICENSE) file for details).
+- Animated "river" of floating, rotating photo cards
+- Lightbox viewer with navigation, download, share, and QR code
+- Tag-based filtering and NSFW content gating
+- Per-image metadata (copyright, tags) read from embedded IPTC/EXIF data
+- Admin panel for uploading images, configuring themes, and managing settings
+- Kiosk mode for unattended display
+- PWA support for installable web apps
+- Native apps via Tauri (macOS, Windows, Linux, Android, iOS)
 
-### Using This as a Base for Your Own App?
-- If you modify and distribute this **library itself**, you must keep it MIT-licensed.
-- If you use this library as a foundation to build **your own application**, you can license your application however you choose.
+### 2. Standalone Mobile Slideshow App (Planned)
 
-## Quick start
+Publish a standalone app that functions as a personal mobile slideshow. Instead of reading from a server cache, this mode would:
 
-### Node
+- Read photos directly from the device filesystem
+- Support external image feeds (RSS, API endpoints, etc.)
+- Function offline as a self-contained photo viewer
 
-Install node `24.11.1` Recommended to install NVM to manage node versions.
+## Features
 
-Install NPM 10.8.1 (should be bundled with node).
+### Gallery
+- Animated floating card layout with configurable flow direction (LTR, RTL, TTB, BTT) and speed
+- Responsive column count based on viewport aspect ratio
+- GSAP-powered animation with random rotation and gaussian-distributed positioning
+- Click any card to open a full-size lightbox with keyboard/swipe navigation
 
-### Angular cli
+### Image Management
+- Upload images via drag-and-drop in the admin panel
+- Supported formats: JPG, PNG, GIF, WebP (TIFF and PSD with Imagick)
+- Automatic thumbnail generation (600x600 max) and full-size processing (2400x2400 max)
+- Optional copyright banner composited onto processed images
 
-Install Angular CLI to allow executing commands: `npm i -g @angular/cli`
+### Metadata & Tags
+- **Tags**: Extracted automatically from IPTC keywords (field `#2#025`) embedded in images. Use any photo editor (Lightroom, Bridge, ExifTool, etc.) to set keywords before uploading.
+- **NSFW**: Add the keyword `nsfw` (case-insensitive) to any image to mark it as sensitive. These display with a blur by default; users can toggle visibility.
+- **Copyright**: Read from the EXIF Copyright field. When a contact email is configured, a banner with the copyright info is composited onto processed images.
+- **Tag filtering**: Admin can choose which tags appear in the UI. Tags display as a nav bar or multi-select dropdown.
 
-### Install modules
+### Admin Panel
+- Password-protected setup wizard (first visit creates the password)
+- Configure: site title, description, colors, fonts, logo, palette mode
+- Toggle features: share, download, QR code, kiosk mode
+- Upload and delete images
+- Select visible tags and tag display mode
+- Preview theme changes in real time
 
-From the root, run `npm ci`
+### Caching & Offline
+- Service worker with configurable caching strategy
+- Thumbnails cached (500 items, 30 days) and full images cached (100 items, 30 days)
+- API responses cached network-first with fallback
+- IndexedDB for client-side state persistence
 
-### Environment variables
+## Tech Stack
 
-Create your `.env` file from the `.env.example` **and** ***never*** **commit sensitive information like API keys or passwords or usernames or email addresses**
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Angular 21 (Zoneless), TypeScript 5.9, Tailwind CSS 4 |
+| Animation | GSAP 3.12 |
+| Backend | PHP 8 with GD (Imagick optional) |
+| Native Apps | Tauri 2.9+ |
+| PWA | Angular Service Worker |
 
+## Quick Start
 
-### git branches
+### Prerequisites
 
-Develop against branches from `dev` feature branch using prefix `feature/` or `defect/`. `main` is for production releases, `staging` is to test prod.
+- Node 24.11.1 (recommend [NVM](https://github.com/nvm-sh/nvm))
+- npm 10.8.1
+- PHP 8+ with GD extension
+- Angular CLI: `npm i -g @angular/cli`
 
-## Available Scripts
+### Install & Run
 
-In the project directory, you can run:
+```bash
+npm ci          # Install dependencies
+npm run dev     # Run client (port 6200) + PHP server (port 8080) concurrently
+```
 
-### `npm start`
+Open [http://localhost:6200](http://localhost:6200) to view the gallery.
 
-Runs the front- and back-end concurrently. See above.  
-**This is the preferred method of running a local**
+Navigate to `/admin` to set up your password and configure the site.
 
-### `npm run client`
+### Add Images
 
-Runs only the front-end of the app (on port 6200) in development mode.  
-Open [http://localhost:6200](http://localhost:6200) to view it in the browser.
+1. Go to `/admin` and log in
+2. Drag and drop images into the upload area
+3. Images are automatically processed (thumbnails, full-size, optional copyright banner)
+4. Tags and copyright are read from embedded IPTC/EXIF metadata -- set these in your photo editor before uploading
 
-The page will reload if you make edits.
+### Favicon
 
-### `npm run server`
+The admin panel lets you upload an SVG or PNG favicon for browser tabs. For full cross-platform favicon support (Apple touch icons, Android manifest icons, Windows tiles, etc.), you'll need to generate multiple sizes and formats:
 
-Runs only the back-end of the app (on port 4201) in development mode.  
-Open [http://localhost:4201/api](http://localhost:4201/api) to view it in the browser.
+1. Start with a high-resolution source image (at least 512x512 PNG or an SVG)
+2. Use a favicon generator service like [RealFaviconGenerator](https://realfavicongenerator.net/) or [favicon.io](https://favicon.io/) to produce the full set of formats and sizes
+3. Place the generated files in `client/src/` and update `client/src/index.html` with the appropriate `<link>` tags
 
-This will display the API responses.
+**Note:** Tauri handles its own app icon processing separately during the build step — see `src-tauri/icons/`. Tauri icon generation is outside the scope of the admin panel upload.
+
+### Individual Scripts
+
+```bash
+npm run client      # Frontend only (port 6200)
+npm run server      # PHP backend only (port 8080)
+npm run build       # Production build
+npm run build:prod  # Optimized production build
+```
 
 ## Tests
 
-* from root, run `npm test` for full test suite, below (best to ensure green 100% coverage before any PRs to `dev`)
-
-### Translation Testing
-
-* from root, run `npm run test-translation` to uncover any gaps in translation files, relative to schema (will not detect completely missing schema keys; refer to browser errors for that)
-
-### Unit Testing
-
-* from root, run `npm run test-server` and `npm run test-client` to execute each unit test suite independently
-
-### Playwright end-to-end testing
-
-* from root, run `npm run test:e2e`
-Runs e2e tests including visual regression tests.
-
-* from root, run `npm run test:e2e:ui`
-Opens the Playwright UI for interactive test running and debugging.
-
-* from root, run `npm run test:e2e:headed`
-Runs e2e tests with browser visible.
-
-#### Visual regression testing
-Playwright captures screenshots during tests and compares them against baseline snapshots.
-
-* from root, run `npm run test:e2e:accept`
-Accept all screenshot diffs and overwrite baseline snapshots.
-
-### SonarQube code hygeine testing
-
-Install Docker from website (not homebrew).
-
-from `tests`, create docker instance with `docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest`
-
-Navigate to [SonarQube Server](http://localhost:9000) instance
-
-* Log in to your SonarQube server as an administrator.
-* Go to the Security page (usually located in the top-right corner of the page).
-* Click on My Account.
-* Scroll down to the Security section.
-* Click on Generate Tokens.
-* Enter a name for the token (e.g., "My Token").
-* Click Generate.
-* add token to .env file
-
-Download SonarScanner and run from project root: `npm run sonar`
-
-## Deployment
-
-### Install Heroku CLI
-
-* mac (requires homebrew): `brew tap heroku/brew && brew install heroku`
-* linux: `sudo snap install --classic heroku`
-
-### Add Heroku to Git
-
-`heroku git:remote -a <APP_NAME>-dev`
-`git remote rename heroku heroku-dev`  
-`heroku git:remote -a <APP_NAME>-staging`  
-`git remote rename heroku heroku-staging`  
-`heroku git:remote -a <APP_NAME>`  
-`git remote rename heroku heroku-production`
-
-### Deploy
-
-From root:  
-`npm run deploy:dev`  
-`npm run deploy:staging`  
-`npm run deploy:production`
-
-## Tauri
-
-This repo utilizes Tauri to publish native apps for Windows, MacOS, Linux, Android, and iOS. Some of the scripts are fairly straightforward, but all require external dependencies: at the very least, Rust; and likely xCode and/or Android Studio. For more information, see the [Tauri documentation](https://tauri.app/). It's best to spin up a completely blank repo and follow the instructions on the Tauri website along with generous usage of ChatGPT to get your external tools running.
-
-After your pipeline is configured, the following scripts are useful.
-
-from `client`, while running a server locally:
-* `npm run tauri:dev` to dev-build and deploy to local machine.
-* `npm run tauri:android` to dev-build and deploy to Android simulator.
-* `npm run tauri:ios` to dev-build and deploy to iOS simulator.
-
-from `client`, while remote server is running:
-* `npm run tauri build` to build a standalone dev release for Windows, MacOS, and Linux.
-* `npm run tauri android dev` to build a standalone dev release for Android. (set `tauri.conf.json` devUrl to `https://angularmomentum.app`) to enable live server features.
-* `npm run tauri ios build -- --export-method app-store-connect` to build a release for iOS.
-* `npx tauri ios build --debug --target aarch64-sim` to build a debug prod release for iOS.
-
-### Tauri configuration
-
-Tauri desktop builds can have update tar.gz files that can be downloaded and installed automatically. Manually edit `latest.json` with the signature of each built update zip, and host them on a CDN (see below).
-
-* e.g. `cat "src-tauri/target/release/bundle/macos/Angular Momentum.app.tar.gz.sig"` to retrieve the signature.
-
-### Tauri platform builds
-
-#### Windows
-Run on a windows install; run `npm run tauri build` to build a standalone release for Windows.
-
-#### MacOS
-See build instructions above.
-
-#### Linux
-On a linux install; run `npm run tauri build` to build a standalone release for Linux.
-
-## Push Notifications
-
-The app includes a complete push notification system that works across all platforms (Web, PWA, Desktop, Mobile).
-
-### Architecture
-
-- **NotificationService** - Main service for managing notifications, permissions, and notification history
-- **NotificationCenterComponent** - UI component with bell icon, badge, and dropdown notification center
-- **WebSocket Delivery** - Real-time notification delivery via Socket.IO
-- **GraphQL API** - Backend mutations for sending notifications
-- **Platform Support**:
-  - **Web/PWA**: Uses Web Notifications API + Service Worker
-  - **Tauri (Desktop/Mobile)**: Uses `tauri-plugin-notification` for native OS notifications
-
-### API Reference
-
-**NotificationService Methods:**
-- `show(options)` - Show a notification
-- `requestPermission()` - Request notification permission
-- `checkPermission()` - Check current permission status
-- `isSupported()` - Check if notifications are supported
-- `markAsRead(id)` - Mark notification as read
-- `clearAll()` - Clear all notifications
-
-**Reactive Signals:**
-- `permissionGranted` - Permission status
-- `notifications` - All notifications array
-- `unreadCount` - Number of unread notifications
-
-**Backend Functions:**
-- `broadcastNotification(io, notification)` - Send to all clients
-- `sendNotificationToUser(io, socketId, notification)` - Send to specific user
-- `sendNotificationToRoom(io, room, notification)` - Send to room/group
-
-### Feature Flag
-
-Push notifications are controlled by the `Notifications` feature flag. Toggle via GraphQL:
-
-```graphql
-mutation {
-  updateFeatureFlag(key: "Notifications", value: true) {
-    key
-    value
-  }
-}
+```bash
+npm test            # Full client test suite
+npm run test:php    # PHP unit tests
+npm run test:all    # Both
 ```
 
-### Platform Notes
+## Configuration
 
-- **Web/PWA**: Requires HTTPS in production, service worker registration
-- **Tauri Desktop**: Native OS notifications, works even when app is closed
-- **Tauri Mobile**: Requires notification permissions in platform-specific configs
+Site settings are stored in `server/config/site.json` and managed through the admin panel. Key options:
 
-~~## CDN~~
+| Setting | Description |
+|---------|-------------|
+| `title` | Site name displayed in the header |
+| `description` | Subtitle / tagline |
+| `siteDescription` | Markdown content for the about panel |
+| `headerColor` / `bgColor` | Theme colors |
+| `fontBody` | Google Font name (18 presets available) |
+| `paletteMode` | `mono`, `complementary`, `triad`, or `high-contrast` |
+| `flowDirection` | `rtl`, `ltr`, `ttb`, `btt` |
+| `flowSpeed` | `off`, `low`, `med`, `high` |
+| `enabledTags` | Array of tags to show in the UI (empty = all) |
+| `tagDisplayMode` | `nav` (button bar) or `dropdown` (multi-select) |
+| `nsfwBlurDefault` | Whether NSFW images are blurred by default |
+| `contactEmail` | Enables copyright banner on processed images |
+| `enableShare` / `enableDownload` / `enableQr` / `enableKiosk` | Feature toggles |
 
-~~This repo relies on serving assets from a CDN. The current implementation is linode/akamai but you'll want to replace that with your preferred provider.~~
+## Tauri (Native Apps)
 
-~~### Structure~~
+This project uses Tauri to build native apps for macOS, Windows, Linux, Android, and iOS. You'll need Rust and platform-specific toolchains (Xcode, Android Studio). Tauri setup can be complex -- if you're new to native toolchains, lean heavily on the [Tauri docs](https://tauri.app/) and AI assistants to get your environment running.
+
+From `client`, while running a local server:
+
+```bash
+npm run tauri:dev       # Desktop dev build
+npm run tauri:android   # Android simulator
+npm run tauri:ios       # iOS simulator
+```
+
+Production builds:
+
+```bash
+npm run tauri build                                          # Desktop (Win/Mac/Linux)
+npm run tauri android dev                                    # Android
+npm run tauri ios build -- --export-method app-store-connect  # iOS
+```
+
+## Project Structure
 
 ```
-angularmomentum/
-├── assets/
-│   ├── production/
-│   └── staging/
-├── dist/
-│   └── (future versioned releases folders here)
+photo-stream/
+├── client/                 # Angular frontend
+│   └── src/
+│       ├── app/
+│       │   ├── components/ # Gallery, Lightbox, Admin, Kiosk
+│       │   ├── services/   # Config, gallery state, connectivity
+│       │   └── directives/ # Shared directives
+│       └── assets/         # Styles, icons
+├── server/
+│   ├── api/                # PHP endpoints (manifest, config, upload, auth, etc.)
+│   ├── config/             # site.json, .password
+│   ├── lib/                # Image processing, scanning, auth helpers
+│   └── tests/              # PHPUnit tests
+└── storage/
+    ├── originals/          # Uploaded source images
+    ├── processed/          # Full-size processed images
+    └── thumbnails/         # Generated thumbnails
 ```
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

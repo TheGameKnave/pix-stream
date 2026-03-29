@@ -50,13 +50,13 @@ for ($i = 0; $i < $count; $i++) {
     }
 
     $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-    if (!in_array($ext, ['jpg', 'jpeg', 'gif'])) {
-        $errors[] = "$name: only JPG and GIF files are supported";
+    if (!in_array($ext, ['jpg', 'jpeg', 'gif', 'png', 'webp'])) {
+        $errors[] = "$name: only JPG, PNG, GIF, and WebP files are supported";
         continue;
     }
 
     $info = @getimagesize($tmpName);
-    if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_GIF])) {
+    if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_GIF, IMAGETYPE_PNG, IMAGETYPE_WEBP])) {
         $errors[] = "$name: not a valid image file";
         continue;
     }

@@ -10,11 +10,15 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 // API routes
 $routes = [
-    '/api/manifest'  => '/api/manifest.php',
-    '/api/config'    => '/api/config.php',
-    '/api/upload'    => '/api/upload.php',
-    '/api/tags'      => '/api/tags.php',
-    '/api/status'    => '/api/status.php',
+    '/api/manifest'   => '/api/manifest.php',
+    '/api/config'     => '/api/config.php',
+    '/api/upload'     => '/api/upload.php',
+    '/api/tags'       => '/api/tags.php',
+    '/api/status'     => '/api/status.php',
+    '/api/logo'       => '/api/logo.php',
+    '/api/favicon'    => '/api/favicon.php',
+    '/api/watermark'  => '/api/watermark.php',
+    '/api/delete'     => '/api/delete.php',
 ];
 
 // Exact match
@@ -67,6 +71,31 @@ if (preg_match('#^/api/image/full/(.+)$#', $uri, $matches)) {
             http_response_code(404);
         }
     }
+    return true;
+}
+
+// Serve files from /storage/ (logo, favicon, watermark)
+if (preg_match('#^/storage/(.+)$#', $uri, $matches)) {
+    $file = realpath(__DIR__ . '/../storage/' . $matches[1]);
+    if ($file && is_file($file)) {
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        $mimes = [
+            'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png',
+            'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml',
+            'ico' => 'image/x-icon',
+        ];
+        header('Content-Type: ' . ($mimes[$ext] ?? 'application/octet-stream'));
+        header('Cache-Control: public, max-age=2592000');
+        readfile($file);
+        return true;
+    }
+    http_response_code(404);
+    return true;
+}
+
+// Serve favicon at domain root — browsers request this automatically for every page
+if ($uri === '/favicon.ico' || $uri === '/favicon.svg') {
+    require __DIR__ . '/api/serve-favicon.php';
     return true;
 }
 

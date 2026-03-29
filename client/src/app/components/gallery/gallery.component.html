@@ -1,11 +1,14 @@
 <div class="gallery-canvas" [class.lightbox-active]="lightboxOpen()" #canvas>
+  @if (siteConfig.config()?.watermark) {
+    <img [src]="siteConfig.config()!.watermark" alt="" class="gallery-watermark" />
+  }
   @if (loading()) {
     <div class="gallery-loading">Loading...</div>
-  } @else if (cards().length === 0) {
+  } @else if (empty()) {
     <div class="gallery-empty">No images found.</div>
   } @else {
     <div class="river-inner">
-      @for (card of cards(); track $index) {
+      @for (card of cards(); track card.uid) {
         <div
           class="river-card"
           [class.exiting]="card.exiting"

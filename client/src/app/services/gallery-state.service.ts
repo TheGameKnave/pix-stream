@@ -12,6 +12,9 @@ export interface ImageEntry {
   height: number;
   nsfw: boolean;
   copyright: string;
+  bannerHeight: number;
+  captureDate: string;
+  title: string;
 }
 
 export interface ManifestResponse {
@@ -20,6 +23,7 @@ export interface ManifestResponse {
 }
 
 export interface FloatingImage {
+  uid: number;
   entry: ImageEntry;
   x: number;
   y: number;

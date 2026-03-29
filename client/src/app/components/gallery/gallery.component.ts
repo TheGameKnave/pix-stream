@@ -14,7 +14,7 @@ import { isPlatformBrowser, Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
-import { SiteConfigService } from '@app/services/site-config.service';
+import { SiteConfigService, slugify } from '@app/services/site-config.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import gsap from 'gsap';
@@ -31,6 +31,7 @@ async function loadObserver(): Promise<void> {
 }
 
 const MAX_ROTATION = 15;
+let _nextCardUid = 1;
 
 /** Which column indices should be materialized for a given camera offset. */
 export function visibleColRange(
@@ -48,10 +49,12 @@ export function visibleColRange(
 export function nearbyIds(
   cards: FloatingImage[], targetCol: number,
   gridOrigin: number, colSpacing: number, proximity: number,
+  vertical = false,
 ): Set<string> {
   const ids = new Set<string>();
   for (const c of cards) {
-    const cardCol = Math.round((c.x + c.w / 2 - gridOrigin) / colSpacing);
+    const pos = vertical ? c.y + c.h / 2 : c.x + c.w / 2;
+    const cardCol = Math.round((pos - gridOrigin) / colSpacing);
     if (Math.abs(cardCol - targetCol) <= proximity) {
       ids.add(c.entry.id);
     }
@@ -85,7 +88,7 @@ export function makeCard(entry: ImageEntry, x: number, row: number, cellH: numbe
   const y = row * cellH + cellH * 0.5 - h * 0.5 + jitter;
   const rotation = (Math.random() - 0.5) * 2 * MAX_ROTATION;
   const z = Math.random();
-  return { entry, x, y, w, h, rotation, z, zIndex: Math.round(z * 100), shadow: buildShadow(z) };
+  return { uid: _nextCardUid++, entry, x, y, w, h, rotation, z, zIndex: Math.round(z * 100), shadow: buildShadow(z) };
 }
 
 @Component({
@@ -106,6 +109,7 @@ export class GalleryComponent {
   readonly connectivity = inject(ConnectivityService);
 
   readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
+  readonly empty = signal(false);
   readonly cards = signal<FloatingImage[]>([]);
   readonly loading = signal(true);
 
@@ -118,6 +122,7 @@ export class GalleryComponent {
   private riverPaused = false;
   private lightboxEl: HTMLElement | null = null;
   private lightboxSourceCard: HTMLElement | null = null;
+  private urlBeforeLightbox = '/';
   private lightboxControls: HTMLElement | null = null;
   private qrOverlay: HTMLElement | null = null;
   private displacedCards: { el: HTMLElement; dx: number; dy: number }[] = [];
@@ -136,15 +141,18 @@ export class GalleryComponent {
    * - When card.x + card.w - offset < -margin → card exited left → recycle to right
    */
   private offset = 0;
-  private baseSpeed = -0.5; // offset change per frame; negative = flow L→R
+  private baseSpeed = -0.5;
   private userSpeed = 0;
+  private vertical = false; // true for ttb/btt flow
+  private primaryLen = 0;
   private rafId = 0;
   private pollTimer = 0;
   private observer: any = null;
   private allEntries: ImageEntry[] = [];
   private entries: ImageEntry[] = [];
   private entryIds = new Set<string>();
-  private lastActiveTags: string[] | undefined = undefined; // track to detect changes
+  private lastActiveTags: string[] | undefined = undefined;
+  private lastFilterKey: string | undefined = undefined;
   private targetArea = 0;
   private vh = 0;
   private vw = 0;
@@ -169,13 +177,20 @@ export class GalleryComponent {
     if (!this.isBrowser) return;
 
     // Set active tags from route param (supports + delimited multi-tag slugs)
-    const tagsParam = this.route.snapshot.paramMap.get('tags');
-    if (tagsParam && tagsParam !== 'about') {
-      const slugs = tagsParam.split('+').map(t => decodeURIComponent(t));
-      this.siteConfig.setActiveFromSlugs(slugs);
-      // Angular encodes + as %2B in the URL — fix it
-      this.location.replaceState('/' + slugs.join('+'));
-    }
+    // Subscribe to paramMap so back/forward navigation updates tags
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      const tagsParam = params.get('tags');
+      if (tagsParam && tagsParam !== 'about') {
+        const slugs = tagsParam.split('+').map(t => decodeURIComponent(t));
+        this.siteConfig.setActiveFromSlugs(slugs);
+        this.location.replaceState('/' + slugs.join('+'));
+      } else if (!tagsParam) {
+        // Navigated to root — clear tags
+        if (this.siteConfig.activeTags().length > 0) {
+          this.siteConfig.activeTags.set([]);
+        }
+      }
+    });
 
     // Pause river when about panel is open
     effect(() => {
@@ -201,14 +216,18 @@ export class GalleryComponent {
       }
     });
 
-    // Rebuild river when active tags change
+    // Rebuild river when active tags or sort order change
     effect(() => {
       const tags = this.siteConfig.activeTags();
-      if (this.lastActiveTags === undefined) {
+      const sort = this.siteConfig.config()?.sortOrder ?? 'random';
+      const key = tags.join('+') + '|' + sort;
+      if (this.lastFilterKey === undefined) {
+        this.lastFilterKey = key;
         this.lastActiveTags = tags;
         return; // skip initial
       }
-      if (tags.join('+') === this.lastActiveTags.join('+')) return;
+      if (key === this.lastFilterKey) return;
+      this.lastFilterKey = key;
       this.lastActiveTags = tags;
       if (this.allEntries.length > 0) {
         this.applyFilter();
@@ -241,25 +260,70 @@ export class GalleryComponent {
 
   private filterEntries(entries: ImageEntry[]): ImageEntry[] {
     const tags = this.siteConfig.activeTags();
-    if (tags.length === 0) return entries;
-    return entries.filter(e => tags.some(t => e.tags.includes(t)));
+    let result = tags.length === 0 ? [...entries] : entries.filter(e => tags.some(t => e.tags.includes(t)));
+    const sort = this.siteConfig.config()?.sortOrder ?? 'random';
+    if (sort === 'random') {
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+    } else if (sort === 'date-asc') {
+      result.sort((a, b) => (a.captureDate || a.filename).localeCompare(b.captureDate || b.filename));
+    } else {
+      result.sort((a, b) => (b.captureDate || b.filename).localeCompare(a.captureDate || a.filename));
+    }
+    return result;
   }
 
   private applyFilter(): void {
+    const prevEntryIds = this.entryIds;
     this.entries = this.filterEntries(this.allEntries);
     this.entryIds = new Set(this.entries.map(e => e.id));
+    this.empty.set(this.entries.length === 0);
     this.siteConfig.hasNsfw.set(this.entries.some(e => e.nsfw));
     this.recalcFillRatio();
     this.hasStaleCards = true;
+
+    // Animated bump when new images enter the pool or no visible cards remain
+    const hasNew = this.entries.some(e => !prevEntryIds.has(e.id));
+    const noVisibleCards = this.cards().length === 0 && this.entries.length > 0;
+    if ((hasNew && prevEntryIds.size > 0) || noVisibleCards) {
+      this.animateBump();
+    }
+  }
+
+
+  private animateBump(dir?: -1 | 1): void {
+    // Inject a velocity burst that decays naturally via the existing userSpeed friction
+    const bumpDist = this.primaryLen;
+    // sum of geometric series with 0.95 decay = initialSpeed / (1 - 0.95) = initialSpeed * 20
+    const d = dir ?? (this.baseSpeed !== 0 ? Math.sign(this.baseSpeed) as -1 | 1 : -1);
+    this.userSpeed = (bumpDist / 20) * d;
   }
 
   private initMetrics(): void {
     const el = this.canvas()?.nativeElement;
     this.vw = el?.clientWidth ?? window.innerWidth;
     this.vh = el?.clientHeight ?? window.innerHeight;
+
+    const flow = this.siteConfig.config()?.flowDirection ?? 'rtl';
+    this.vertical = flow === 'ttb' || flow === 'btt';
+    const speedMap: Record<string, number> = { off: 0, low: 0.2, med: 0.5, high: 1.2 };
+    const magnitude = speedMap[this.siteConfig.config()?.flowSpeed ?? 'med'] ?? 0.5;
+    this.baseSpeed = (flow === 'ltr' || flow === 'btt') ? magnitude : -magnitude;
+
+    // Primary axis = scroll direction, cross axis = lanes
+    this.primaryLen = this.vertical ? this.vh : this.vw;
+    const crossLen = this.vertical ? this.vw : this.vh;
+
     this.rows = laneCount(this.vw, this.vh);
-    this.cellH = this.vh / this.rows;
-    // Size cards to ~80% of cell height so they fill rows nicely at any resolution
+    // For vertical flow, lanes run horizontally so use vw-based count
+    if (this.vertical) {
+      const ratio = this.vh / this.vw;
+      this.rows = ratio > 1.3 ? 5 : ratio > 0.8 ? 7 : 9;
+    }
+
+    this.cellH = crossLen / this.rows;
     const avgH = this.cellH * 1.1;
     this.avgW = avgH * 1.2;
     this.targetArea = avgH * this.avgW;
@@ -282,6 +346,7 @@ export class GalleryComponent {
           this.entryIds = new Set(entries.map(e => e.id));
           this.state.manifestVersion = res.version;
           if (entries.length === 0) {
+            this.empty.set(true);
             this.loading.set(false);
             return;
           }
@@ -314,12 +379,14 @@ export class GalleryComponent {
 
   /** Which columns are needed for a given camera offset */
   private getVisibleColRange(): [number, number] {
-    return visibleColRange(this.offset, this.vw, this.bufferMargin, this.gridOrigin, this.colSpacing);
+    return visibleColRange(this.offset, this.primaryLen, this.bufferMargin, this.gridOrigin, this.colSpacing);
   }
 
   /** Build all cards for a single column, skipping slots per fillRatio. */
   private buildColumn(col: number, allCards: FloatingImage[]): FloatingImage[] {
-    const usedIds = nearbyIds(allCards, col, this.gridOrigin, this.colSpacing, 2);
+    // Proximity covers the full visible viewport width to minimize duplicates on screen
+    const visCols = Math.ceil(this.primaryLen / this.colSpacing);
+    const usedIds = nearbyIds(allCards, col, this.gridOrigin, this.colSpacing, Math.max(2, visCols), this.vertical);
 
     const colCards: FloatingImage[] = [];
     for (let row = 0; row < this.rows; row++) {
@@ -332,7 +399,7 @@ export class GalleryComponent {
 
   /** What fraction of row-slots should be filled, given the entry pool size? */
   private recalcFillRatio(): void {
-    const slotsPerScreen = Math.ceil(this.vw / this.colSpacing) * this.rows;
+    const slotsPerScreen = Math.ceil((this.primaryLen || this.vw) / this.colSpacing) * this.rows;
     this.fillRatio = Math.min(1, (this.entries.length * 0.6) / slotsPerScreen);
   }
 
@@ -342,24 +409,21 @@ export class GalleryComponent {
     this.gridOrigin = 0;
 
     this.recalcFillRatio();
-    const cols = Math.max(1, Math.round((this.vw * 2) / this.colSpacing));
-
-    const shuffled = [...entries];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    const cols = Math.max(1, Math.round((this.primaryLen * 2) / this.colSpacing));
 
     const initialCards: FloatingImage[] = [];
-    let idx = 0;
+    const usedIds = new Set<string>();
 
     for (let col = 0; col < cols; col++) {
       this.materializedCols.add(col);
       for (let row = 0; row < this.rows; row++) {
         if (Math.random() > this.fillRatio) continue;
-        const entry = shuffled[idx % shuffled.length];
-        idx++;
+        const entry = this.pickEntry(usedIds);
         initialCards.push(this.makeCardInCell(entry, this.colCenterX(col), row, this.colSpacing));
+      }
+      // Reset used IDs periodically so the pool doesn't exhaust — but keep a rolling window
+      if (usedIds.size > entries.length * 0.7) {
+        usedIds.clear();
       }
     }
 
@@ -380,7 +444,9 @@ export class GalleryComponent {
       if (el) {
         const inner = el.querySelector('.river-inner') as HTMLElement;
         if (inner) {
-          inner.style.transform = `translateX(${-this.offset}px)`;
+          inner.style.transform = this.vertical
+            ? `translateY(${-this.offset}px)`
+            : `translateX(${-this.offset}px)`;
         }
       }
 
@@ -391,7 +457,13 @@ export class GalleryComponent {
     };
 
     this.rafId = requestAnimationFrame(tick);
-    this.destroyRef.onDestroy(() => cancelAnimationFrame(this.rafId));
+    this.destroyRef.onDestroy(() => {
+      cancelAnimationFrame(this.rafId);
+      // Clear persisted state so re-entering the gallery fetches fresh data
+      this.state.cards = null;
+      this.state.entries = null;
+      this.state.offset = 0;
+    });
   }
 
   /** Add columns about to scroll into view, remove columns that scrolled out. */
@@ -431,8 +503,8 @@ export class GalleryComponent {
         const colCenter = this.colCenterX(col);
         const halfCell = this.colSpacing / 2;
         currentCards = currentCards.filter(c => {
-          const cx = c.x + c.w / 2;
-          return cx < colCenter - halfCell || cx > colCenter + halfCell;
+          const cp = this.vertical ? c.y + c.h / 2 : c.x + c.w / 2;
+          return cp < colCenter - halfCell || cp > colCenter + halfCell;
         });
         changed = true;
       }
@@ -446,31 +518,36 @@ export class GalleryComponent {
 
   private prevJitterX = 0;
 
-  /** Create a card positioned within a grid cell — same logic as initCards. */
-  private makeCardInCell(entry: ImageEntry, cellCenterX: number, row: number, cellW: number): FloatingImage {
+  /** Create a card positioned within a grid cell.
+   *  `colCenter` is along the primary (scroll) axis; `row` is a cross-axis lane. */
+  private makeCardInCell(entry: ImageEntry, colCenter: number, row: number, cellW: number): FloatingImage {
     const aspect = entry.width && entry.height ? entry.width / entry.height : 1;
     const w = Math.sqrt(this.targetArea * aspect);
     const h = w / aspect;
 
-    const cellCenterY = row * this.cellH + this.cellH / 2;
-    const rangeX = cellW - w * 0.5;
-    let jitterX = (Math.random() - 0.5) * rangeX;
-    // If this card's X jitter is too close to the previous row's, re-roll once
-    // to avoid accidental vertical alignment.
-    if (Math.abs(jitterX - this.prevJitterX) < rangeX * 0.2) {
-      jitterX = (Math.random() - 0.5) * rangeX;
+    const laneCenter = row * this.cellH + this.cellH / 2;
+    const rangePrimary = cellW - (this.vertical ? h : w) * 0.5;
+    let jitterPrimary = (Math.random() - 0.5) * rangePrimary;
+    if (Math.abs(jitterPrimary - this.prevJitterX) < rangePrimary * 0.2) {
+      jitterPrimary = (Math.random() - 0.5) * rangePrimary;
     }
-    this.prevJitterX = jitterX;
-    const jitterY = (Math.random() - 0.5) * (this.cellH - h * 0.5);
+    this.prevJitterX = jitterPrimary;
+    const jitterCross = (Math.random() - 0.5) * (this.cellH - (this.vertical ? w : h) * 0.5);
 
-    const x = cellCenterX + jitterX - w / 2;
-    const y = cellCenterY + jitterY - h / 2;
+    let x: number, y: number;
+    if (this.vertical) {
+      y = colCenter + jitterPrimary - h / 2;
+      x = laneCenter + jitterCross - w / 2;
+    } else {
+      x = colCenter + jitterPrimary - w / 2;
+      y = laneCenter + jitterCross - h / 2;
+    }
+
     const rotation = (Math.random() - 0.5) * 2 * MAX_ROTATION;
-    // Bias z-index toward higher values for cards nearer the top of the screen
-    const topBias = 1 - (row / Math.max(1, this.rows - 1)); // 1 at top, 0 at bottom
+    const topBias = 1 - (row / Math.max(1, this.rows - 1));
     const z = Math.min(1, Math.max(0, topBias * 0.6 + Math.random() * 0.4));
 
-    return { entry, x, y, w, h, rotation, z, zIndex: Math.round(z * 100), shadow: buildShadow(z) };
+    return { uid: _nextCardUid++, entry, x, y, w, h, rotation, z, zIndex: Math.round(z * 100), shadow: buildShadow(z) };
   }
 
   /** Reflow the grid when a resize crosses a lane-count threshold. */
@@ -580,6 +657,7 @@ export class GalleryComponent {
 
   dismissNsfwPrompt(): void {
     this.nsfwPromptOpen.set(false);
+    this.closeLightbox();
   }
 
   disableNsfwAndOpen(): void {
@@ -619,12 +697,17 @@ export class GalleryComponent {
       .sort((a, b) => a.card.x - b.card.x);
     this.lightboxOrderIdx = this.lightboxOrder.findIndex(o => o.cardIndex === cardIndex);
 
-    // Update URL without navigation
-    this.location.replaceState('/photo/' + encodeURIComponent(image.entry.id));
+    // Update URL without navigation — save current path unless it's already a /photo/ URL
+    const currentPath = this.location.path() || '/';
+    if (!currentPath.startsWith('/photo/')) {
+      this.urlBeforeLightbox = currentPath;
+    }
+    const slug = slugify(image.entry.title || image.entry.id);
+    this.location.replaceState('/photo/' + slug);
 
     // SEO meta
     this.seo.updateTags({
-      title: image.entry.id + ' — Photo Stream',
+      title: this.siteConfig.pageTitle(image.entry.title || image.entry.id),
       image: image.entry.full,
     });
     if (image.entry.tags.length > 0) {
@@ -678,7 +761,7 @@ export class GalleryComponent {
     const img = document.createElement('img');
     img.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb;
     img.draggable = false;
-    img.style.cssText = 'display:block; width:100%; height:100%; object-fit:cover; pointer-events:none;';
+    img.style.cssText = 'display:block; width:100%; height:100%; object-fit:cover;';
     overlay.appendChild(img);
     overlay.addEventListener('click', () => this.closeLightbox());
     this.attachSwipe(overlay);
@@ -686,13 +769,27 @@ export class GalleryComponent {
     this.lightboxEl = overlay;
 
     // Preload full image and swap when ready (skip for blurred NSFW — don't download unblurred content)
+    const bannerH = image.entry.bannerHeight || 0;
     if (!isBlurred) {
       const fullImg = new Image();
-      fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
+      fullImg.onload = () => {
+        img.src = image.entry.full;
+        if (bannerH > 0) {
+          // Scale the image so the visible portion (minus banner) fills the container,
+          // then clip the banner off the bottom with overflow:hidden
+          const visibleRatio = fullImg.naturalHeight / (fullImg.naturalHeight - bannerH);
+          img.style.objectFit = 'fill';
+          img.style.width = '100%';
+          img.style.height = (100 * visibleRatio) + '%';
+          overlay.style.overflow = 'hidden';
+        } else {
+          img.style.objectFit = 'contain';
+        }
+      };
       fullImg.src = image.entry.full;
     }
 
-    // Calculate target: fill viewport, maintain aspect ratio
+    // Calculate target: fill viewport, maintain aspect ratio (use original dimensions, not banner-extended)
     const pad = 16;
     const maxW = lbVw - pad * 2;
     const maxH = lbVh - pad * 2;
@@ -732,7 +829,6 @@ export class GalleryComponent {
   }
 
   private addLightboxControls(canvas: HTMLElement, image: FloatingImage): void {
-    // Position controls over the lightbox image
     const lb = this.lightboxEl;
     if (!lb) return;
     const lbRect = lb.getBoundingClientRect();
@@ -744,8 +840,9 @@ export class GalleryComponent {
       left:${lbRect.left}px; top:${lbRect.top}px;
       width:${lbRect.width}px; height:${lbRect.height}px;
     `;
-    // Pass clicks through to the lightbox (close) unless hitting a button
-    controls.addEventListener('click', () => this.closeLightbox());
+    controls.addEventListener('click', (e) => {
+      if (e.target === controls) this.closeLightbox();
+    });
 
     // Top-right actions (download + share + qr)
     const actions = document.createElement('div');
@@ -755,29 +852,40 @@ export class GalleryComponent {
       display:flex; gap:10px;
     `;
 
-    const dlBtn = document.createElement('button');
-    dlBtn.className = 'lb-btn';
-    dlBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-    dlBtn.title = 'Download';
-    dlBtn.addEventListener('click', (e) => { e.stopPropagation(); this.downloadImage(image); });
+    const mkBtn = (html: string, title: string, handler: () => void) => {
+      const btn = document.createElement('button');
+      btn.className = 'lb-btn';
 
-    const shareBtn = document.createElement('button');
-    shareBtn.className = 'lb-btn';
-    shareBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`;
-    shareBtn.title = 'Share';
+      btn.innerHTML = html;
+      btn.title = title;
+      btn.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
+      return btn;
+    };
+
+    const dlBtn = mkBtn(
+      `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+      'Download', () => this.downloadImage(image));
+
+    const shareBtn = mkBtn(
+      `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`,
+      'Share', () => this.shareImage(image));
     shareBtn.dataset['role'] = 'share';
-    shareBtn.addEventListener('click', (e) => { e.stopPropagation(); this.shareImage(image); });
 
-    const qrBtn = document.createElement('button');
-    qrBtn.className = 'lb-btn';
-    qrBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="17"/><line x1="14" y1="21" x2="17" y2="21"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>`;
-    qrBtn.title = 'QR Code';
-    qrBtn.addEventListener('click', (e) => { e.stopPropagation(); this.showQrCode(image); });
+    const qrBtn = mkBtn(
+      `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="17"/><line x1="14" y1="21" x2="17" y2="21"/><line x1="21" y1="21" x2="21" y2="21.01"/></svg>`,
+      'QR Code', () => this.showQrCode(image));
 
-    actions.appendChild(dlBtn);
-    actions.appendChild(shareBtn);
-    actions.appendChild(qrBtn);
-    controls.appendChild(actions);
+    const deleteBtn = mkBtn(
+      `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+      'Delete image', () => this.deleteImage(image));
+    deleteBtn.className = 'lb-btn lb-btn-delete';
+
+    const cfg = this.siteConfig.config();
+    if (cfg?.enableDownload !== false) actions.appendChild(dlBtn);
+    if (cfg?.enableShare !== false) actions.appendChild(shareBtn);
+    if (cfg?.enableQr !== false) actions.appendChild(qrBtn);
+    if (this.siteConfig.adminAuthenticated()) actions.appendChild(deleteBtn);
+    if (actions.childElementCount > 0) controls.appendChild(actions);
 
     // Left chevron
     const hasLeft = this.lightboxOrderIdx > 0;
@@ -786,6 +894,7 @@ export class GalleryComponent {
     if (hasLeft) {
       const left = document.createElement('button');
       left.className = 'lb-chevron lb-chevron-left';
+
       left.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
       left.addEventListener('click', (e) => { e.stopPropagation(); this.navigateLightbox(-1); });
       controls.appendChild(left);
@@ -794,6 +903,7 @@ export class GalleryComponent {
     if (hasRight) {
       const right = document.createElement('button');
       right.className = 'lb-chevron lb-chevron-right';
+
       right.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
       right.addEventListener('click', (e) => { e.stopPropagation(); this.navigateLightbox(1); });
       controls.appendChild(right);
@@ -802,9 +912,28 @@ export class GalleryComponent {
     canvas.appendChild(controls);
     this.lightboxControls = controls;
 
-    // Fade in all buttons on hover, fade out on leave
-    controls.addEventListener('mouseenter', () => controls.classList.add('visible'));
-    controls.addEventListener('mouseleave', () => controls.classList.remove('visible'));
+    // Fade controls on hover
+    const show = () => { controls.classList.add('visible'); };
+    const hide = () => { controls.classList.remove('visible'); };
+    controls.addEventListener('mouseenter', show);
+    controls.addEventListener('mouseleave', hide);
+    if (controls.matches(':hover')) show();
+    // Always visible on touch devices (no hover)
+    if ('ontouchstart' in window) {
+      controls.classList.add('visible');
+    }
+  }
+
+  private deleteImage(image: FloatingImage): void {
+    if (!confirm(`Delete "${image.entry.id}"? This cannot be undone.`)) return;
+    this.http.delete(`/api/delete?id=${encodeURIComponent(image.entry.filename)}`).subscribe({
+      next: () => {
+        this.closeLightbox();
+        // Remove the card from the current river
+        const current = this.cards();
+        this.cards.set(current.filter(c => c.entry.id !== image.entry.id));
+      },
+    });
   }
 
   private downloadImage(image: FloatingImage): void {
@@ -944,8 +1073,8 @@ export class GalleryComponent {
 
     // Restore URL (skip if navigating to next image)
     if (!willReopen) {
-      this.location.replaceState('/');
-      this.seo.updateTags({ title: 'Photo Stream' });
+      this.location.replaceState(this.urlBeforeLightbox);
+      this.seo.updateTags({ title: this.siteConfig.pageTitle() });
       this.seo.clearKeywords();
     }
 
@@ -979,27 +1108,61 @@ export class GalleryComponent {
     };
 
     if (overlay) {
-      // Swap back to thumbnail for the shrink animation
       const img = overlay.querySelector('img') as HTMLImageElement;
-      const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
-      if (img) { img.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb; img.style.objectFit = 'cover'; }
+      overlay.style.overflow = 'hidden';
 
-      // Animate back to original card screen position
-      const screenX = image.x - this.offset;
-      const screenY = image.y;
+      // Animate back to the source card's actual screen position
+      const sourceCard = this.lightboxSourceCard;
+      let targetX: number, targetY: number, targetW: number, targetH: number;
+      if (sourceCard) {
+        const rect = sourceCard.getBoundingClientRect();
+        targetX = rect.left;
+        targetY = rect.top;
+        targetW = rect.width;
+        targetH = rect.height;
+      } else {
+        targetX = this.vertical ? image.x : image.x - this.offset;
+        targetY = this.vertical ? image.y - this.offset : image.y;
+        targetW = image.w;
+        targetH = image.h;
+      }
 
-      gsap.to(overlay, {
-        left: screenX,
-        top: screenY,
-        width: image.w,
-        height: image.h,
-        rotation: image.rotation,
-        boxShadow: image.shadow,
-        borderRadius: '4px',
-        duration: 0.35,
-        ease: 'power2.in',
-        onComplete: finish,
-      });
+      // If the image has a banner, we need to cross-fade to avoid the banner flash.
+      // Create a thumbnail overlay on top, fade it in, then animate the shrink.
+      const bannerH = image.entry.bannerHeight || 0;
+      const startShrink = () => {
+        gsap.to(overlay, {
+          left: targetX,
+          top: targetY,
+          width: targetW,
+          height: targetH,
+          rotation: image.rotation,
+          boxShadow: image.shadow,
+          borderRadius: '4px',
+          duration: 0.35,
+          ease: 'power2.in',
+          onComplete: finish,
+        });
+      };
+
+      if (bannerH > 0 && img) {
+        // Place a thumbnail img on top of the full image, then shrink
+        const thumbImg = document.createElement('img');
+        const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
+        thumbImg.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb;
+        thumbImg.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;';
+        overlay.style.position = overlay.style.position || 'fixed';
+        overlay.appendChild(thumbImg);
+        // Wait one frame for the thumb to paint, then animate
+        requestAnimationFrame(() => startShrink());
+      } else {
+        if (img) {
+          img.style.objectFit = 'cover';
+          img.style.width = '100%';
+          img.style.height = '100%';
+        }
+        startShrink();
+      }
     } else {
       finish();
     }
@@ -1049,13 +1212,31 @@ export class GalleryComponent {
 
   /** If the URL is /photo/:id on load, open that image's lightbox. */
   private checkDeepLink(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) return;
+    const param = this.route.snapshot.paramMap.get('id');
+    if (!param) return;
+    const slug = decodeURIComponent(param);
+
+    const matchEntry = (e: { title: string; id: string }) =>
+      slugify(e.title || e.id) === slug || e.id === slug || e.title === slug;
 
     const currentCards = this.cards();
-    const index = currentCards.findIndex(c => c.entry.id === id);
+    let index = currentCards.findIndex(c => matchEntry(c.entry));
+
     if (index >= 0) {
       setTimeout(() => this.openLightbox(currentCards[index], index), 100);
+      return;
+    }
+
+    // Image not on screen — find it in entries and create a temporary card
+    const entry = this.entries.find(matchEntry)
+      || this.allEntries.find(matchEntry);
+    if (entry) {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const card = this.makeCardInCell(entry, vw / 2, 0, Math.min(vw, vh) * 0.4);
+      const cards = [...currentCards, card];
+      this.cards.set(cards);
+      setTimeout(() => this.openLightbox(card, cards.length - 1), 100);
     }
   }
 
@@ -1113,9 +1294,17 @@ export class GalleryComponent {
         }
         return;
       }
-      if (!this.lightboxOpen()) return;
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.navigateLightbox(1);
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.navigateLightbox(-1);
+      if (this.lightboxOpen()) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.navigateLightbox(1);
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.navigateLightbox(-1);
+        return;
+      }
+      // Arrow keys bump the main stream in the pressed direction
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        this.animateBump(-1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        this.animateBump(1);
+      }
     };
     window.addEventListener('keydown', onKey);
     this.destroyRef.onDestroy(() => window.removeEventListener('keydown', onKey));

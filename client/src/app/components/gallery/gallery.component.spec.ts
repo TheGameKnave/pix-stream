@@ -46,6 +46,9 @@ describe('makeCard', () => {
     height: 1200,
     nsfw: false,
     copyright: '',
+    bannerHeight: 0,
+    captureDate: '',
+    title: '',
   };
 
   it('returns a FloatingImage with correct entry reference', () => {
@@ -125,7 +128,8 @@ describe('visibleColRange', () => {
 describe('nearbyIds', () => {
   function fakeCard(id: string, x: number): FloatingImage {
     return {
-      entry: { id, filename: '', type: '', thumb: '', full: '', tags: [], width: 100, height: 100, nsfw: false, copyright: '' },
+      uid: 0,
+      entry: { id, filename: '', type: '', thumb: '', full: '', tags: [], width: 100, height: 100, nsfw: false, copyright: '', bannerHeight: 0, captureDate: '', title: '' },
       x, y: 0, w: 100, h: 100, rotation: 0, z: 0.5, zIndex: 50, shadow: '',
     };
   }

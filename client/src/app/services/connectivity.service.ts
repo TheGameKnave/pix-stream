@@ -65,7 +65,7 @@ export class ConnectivityService {
         cache: 'no-store',
         headers: { 'ngsw-bypass': 'true' },
       });
-      this._isOnline.set(res.ok);
+      this._isOnline.set(res.status > 0);
       if (res.ok) {
         this.currentInterval = BASE_INTERVAL_MS;
         this.clearOfflineBanner();

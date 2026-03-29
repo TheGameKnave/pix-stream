@@ -14,6 +14,10 @@ export const routes: Route[] = [
     loadComponent: () => import('./components/gallery/gallery.component').then(m => m.GalleryComponent),
   },
   {
+    path: 'kiosk/:tags',
+    loadComponent: () => import('./components/gallery/gallery.component').then(m => m.GalleryComponent),
+  },
+  {
     path: 'admin',
     loadComponent: () => import('./components/admin/admin.component').then(m => m.AdminComponent),
   },
