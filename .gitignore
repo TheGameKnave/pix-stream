@@ -160,6 +160,10 @@ storage/processed/*
 storage/thumbnails/*
 !storage/**/.gitkeep
 
+# Generated favicon at server root
+server/favicon.ico
+server/favicon.svg
+
 # Admin password
 server/config/.password
 
