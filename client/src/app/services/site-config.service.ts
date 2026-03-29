@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { Title } from '@angular/platform-browser';
 
 export function slugify(tag: string): string {
   return tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -8,27 +9,44 @@ export function slugify(tag: string): string {
 
 export interface SiteConfig {
   title: string;
-  description: string;
-  accentColor: string;
+  subtitle: string;
+  headerColor: string;
   paletteMode: string;
   bgColor: string;
-  fontDisplay: string;
   fontBody: string;
   nsfwBlurDefault: boolean;
+  enabledTags: string[];
+  tagDisplayMode: 'nav' | 'dropdown';
+  enableShare: boolean;
+  enableDownload: boolean;
+  enableQr: boolean;
+  enableKiosk: boolean;
+  flowDirection: 'rtl' | 'ltr' | 'ttb' | 'btt';
+  flowSpeed: 'off' | 'low' | 'med' | 'high';
+  contactEmail: string;
+  pageHeadTitle: string;
+  description: string;
+  siteLogo: string;
+  siteFavicon: string;
+  watermark: string;
+  sortOrder: 'date-desc' | 'date-asc' | 'random';
 }
 
 @Injectable({ providedIn: 'root' })
 export class SiteConfigService {
   private readonly http = inject(HttpClient);
+  private readonly titleService = inject(Title);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly config = signal<SiteConfig | null>(null);
+  readonly allTags = signal<string[]>([]);
   readonly tags = signal<string[]>([]);
   readonly activeTags = signal<string[]>([]);
   readonly nsfwBlur = signal(this.loadNsfwPref());
   readonly hasNsfw = signal(false);
   readonly aboutOpen = signal(false);
   readonly adminSetupRequired = signal(false);
+  readonly adminAuthenticated = signal(false);
   private pendingSlugs: string[] = [];
 
   load(): void {
@@ -38,12 +56,21 @@ export class SiteConfigService {
         if (!this.isBrowser || localStorage.getItem('nsfw-blur') === null) {
           this.nsfwBlur.set(config.nsfwBlurDefault);
         }
+        if (this.isBrowser) {
+          this.applyTheme(config);
+          this.titleService.setTitle(this.pageTitle());
+        }
+        // Re-filter tags now that config (with enabledTags) is available
+        if (this.allTags().length > 0) {
+          this.applyTagFilter(this.allTags());
+        }
       },
     });
 
     this.http.get<string[]>('/api/tags').subscribe({
       next: (tags) => {
-        this.tags.set(tags);
+        this.allTags.set(tags);
+        this.applyTagFilter(tags);
         if (this.pendingSlugs.length) {
           this.resolveSlugsTags(this.pendingSlugs);
           this.pendingSlugs = [];
@@ -51,8 +78,11 @@ export class SiteConfigService {
       },
     });
 
-    this.http.get<{ setupRequired: boolean }>('/api/auth/status').subscribe({
-      next: (res) => this.adminSetupRequired.set(res.setupRequired),
+    this.http.get<{ setupRequired: boolean; authenticated: boolean }>('/api/auth/status').subscribe({
+      next: (res) => {
+        this.adminSetupRequired.set(res.setupRequired);
+        this.adminAuthenticated.set(res.authenticated);
+      },
     });
   }
 
@@ -78,6 +108,153 @@ export class SiteConfigService {
     if (this.isBrowser) {
       localStorage.setItem('nsfw-blur', JSON.stringify(next));
     }
+  }
+
+  saveConfig(partial: Partial<SiteConfig>): void {
+    this.http.put<SiteConfig>('/api/config', partial).subscribe({
+      next: (config) => {
+        this.config.set(config);
+        this.applyTagFilter(this.allTags());
+        if (this.isBrowser) {
+          this.applyTheme(config);
+          this.titleService.setTitle(this.pageTitle());
+        }
+      },
+    });
+  }
+
+  private applyTagFilter(allTags: string[]): void {
+    const enabled = this.config()?.enabledTags ?? [];
+    this.tags.set(enabled.length > 0 ? allTags.filter(t => enabled.includes(t)) : allTags);
+  }
+
+  /** Build a page title: SiteName | pageHeadTitle | imageSlug */
+  pageTitle(...segments: string[]): string {
+    const c = this.config();
+    const parts = [c?.title || 'Photo Stream'];
+    if (c?.pageHeadTitle) parts.push(c.pageHeadTitle);
+    parts.push(...segments.filter(Boolean));
+    return parts.join(' | ');
+  }
+
+  private applyTheme(config: SiteConfig): void {
+    const root = document.documentElement.style;
+    root.setProperty('--color-header', config.headerColor);
+    const headerText = this.contrastText(config.headerColor);
+    root.setProperty('--color-header-text', headerText);
+    this.applyHeaderGlow(config.headerColor, headerText, root);
+    const [hH] = this.hexToHsl(config.headerColor);
+    const accentHsl = `hsl(${Math.round((hH + 180) % 360)}, 50%, 50%)`;
+    root.setProperty('--color-accent', accentHsl);
+    root.setProperty('--color-accent-text', '#fafafa');
+    root.setProperty('--color-accent-glow', 'none');
+    const accentLink = this.hslOppositeHueInvertedL(config.headerColor);
+    root.setProperty('--color-accent-link', accentLink);
+    root.setProperty('--color-bg', this.clampBgLightness(config.bgColor));
+    this.applyTextColor(config.bgColor, root);
+    const font = `'${config.fontBody}', sans-serif`;
+    root.setProperty('--font-display', font);
+    root.setProperty('--font-body', font);
+    this.loadFont(config.fontBody);
+    this.applyFavicon(config.siteFavicon);
+  }
+
+  private applyFavicon(url: string): void {
+    // Remove existing to force browser to re-fetch
+    const old = document.querySelector('link[rel="icon"]');
+    if (old) old.remove();
+
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    if (url) {
+      const isIco = url.includes('.ico');
+      link.type = isIco ? 'image/x-icon' : 'image/svg+xml';
+      link.href = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+    } else {
+      link.type = 'image/svg+xml';
+      link.href = 'favicon.svg';
+    }
+    document.head.appendChild(link);
+  }
+
+  /** Returns #222 for light backgrounds, #fafafa for dark. */
+  private contrastText(hex: string): string {
+    const [, , l] = this.hexToHsl(hex);
+    return l > 55 ? '#222' : '#fafafa';
+  }
+
+  /** Set text color based on background lightness. Near-middle gets a glow (inverse of font color). */
+  private applyTextColor(bgHex: string, root: CSSStyleDeclaration): void {
+    const [, , l] = this.hexToHsl(bgHex);
+    const cl = Math.max(40, Math.min(60, l)); // clamped lightness matches clampBgLightness
+    const dark = cl <= 50;
+    root.setProperty('--color-text', dark ? '#fafafa' : '#222');
+    root.setProperty('--color-text-muted', dark ? '#999' : '#555');
+    if (cl > 43 && cl < 57) {
+      const glow = dark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)';
+      root.setProperty('--color-text-shadow',
+        `1px 0 4px ${glow}, -1px 0 4px ${glow}, 0 1px 4px ${glow}, 0 -1px 4px ${glow}`);
+    } else {
+      root.setProperty('--color-text-shadow', 'none');
+    }
+  }
+
+  /** When header color is near-middle lightness, add a glow that's the inverse of the header font color. */
+  private applyHeaderGlow(headerHex: string, headerText: string, root: CSSStyleDeclaration): void {
+    const [, , l] = this.hexToHsl(headerHex);
+    if (l > 35 && l < 65) {
+      // Glow is inverse of the font color on the header
+      const glow = headerText === '#222' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
+      root.setProperty('--color-header-glow',
+        `1px 0 4px ${glow}, -1px 0 4px ${glow}, 0 1px 4px ${glow}, 0 -1px 4px ${glow}`);
+    } else {
+      root.setProperty('--color-header-glow', 'none');
+    }
+  }
+
+  private hexToHsl(hex: string): [number, number, number] {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+
+    return [h * 360, s * 100, l * 100];
+  }
+
+  /** Clamp a hex color's HSL lightness to 40-60% so the bg stays mid-tone. */
+  private clampBgLightness(hex: string): string {
+    const [h, s, l] = this.hexToHsl(hex);
+    const cl = Math.max(40, Math.min(60, l));
+    return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(cl)}%)`;
+  }
+
+  /** Return the opposite hue with inverted lightness (for link colors). */
+  private hslOppositeHueInvertedL(hex: string): string {
+    const [h, s, l] = this.hexToHsl(hex);
+    return `hsl(${Math.round((h + 180) % 360)}, ${Math.round(s)}%, ${Math.round(100 - l)}%)`;
+  }
+
+  private loadedFonts = new Set<string>();
+
+  private loadFont(family: string): void {
+    if (this.loadedFonts.has(family)) return;
+    this.loadedFonts.add(family);
+    // Skip default font — already loaded via CSS
+    if (family === 'Raleway') return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@300;400;500;600;700&display=swap`;
+    document.head.appendChild(link);
   }
 
   private loadNsfwPref(): boolean {

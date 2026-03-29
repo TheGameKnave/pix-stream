@@ -4,7 +4,9 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { UpdateService } from '@app/services/update.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 import { SiteConfigService, slugify } from '@app/services/site-config.service';
-import { filter } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { filter, take } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import QRCode from 'qrcode';
 import { MarkdownComponent } from 'ngx-markdown';
 
@@ -22,24 +24,24 @@ export class AppComponent {
   protected readonly showHeader = signal(true);
   protected readonly showInfo = this.siteConfig.aboutOpen;
   protected readonly tagDropdownOpen = signal(false);
+  protected readonly aboutDescription = computed(() => {
+    return this.siteConfig.config()?.description || '';
+  });
+
   protected readonly instructionsMd = computed(() => {
     const tagCount = this.siteConfig.tags().length;
     const lines = [
-      '### How to use',
-      '',
-      '- **Scroll or swipe** to explore the stream',
-      '- **Click a photo** to view it full size',
-      '- **Arrow keys or swipe** to navigate between photos',
-      '- **Esc** to close',
+      '**Scroll**, **arrow key** or **swipe** to explore the stream. **Click** / **tap** a photo to view it full size, then use **arrow keys** or **swipe** to navigate. Press **Esc** or **click** / **tap** to close.',
     ];
     if (tagCount > 5) {
-      lines.push('- Use the **filter** to browse by tag');
+      lines.push('Use the **filter** to browse by tag.');
     } else if (tagCount > 0) {
-      lines.push('- Use the **tags** in the header to browse');
+      lines.push('Use the **tags** in the header to browse.');
     }
-    return lines.join('\n');
+    return lines.join(' ');
   });
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -53,10 +55,13 @@ export class AppComponent {
     const updateFromUrl = (url: string) => {
       this.showHeader.set(!url.startsWith('/kiosk'));
       this.siteConfig.aboutOpen.set(url === '/about');
+      if (url.startsWith('/admin')) {
+        this.siteConfig.activeTags.set([]);
+      }
     };
     updateFromUrl(this.router.url);
 
-    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e) => {
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef)).subscribe((e) => {
       updateFromUrl(e.url);
     });
 
@@ -99,7 +104,24 @@ export class AppComponent {
     this.tagDropdownOpen.update(v => !v);
   }
 
-  selectTag(tag: string): void {
+  /** Nav mode: singular select — click swaps the active tag */
+  selectNavTag(tag: string): void {
+    const current = this.siteConfig.activeTags();
+    const onGallery = ['/', ''].includes(this.router.url) || this.router.url.startsWith('/kiosk') || !this.router.url.startsWith('/admin');
+    if (current.includes(tag)) {
+      this.siteConfig.activeTags.set([]);
+      if (onGallery) this.location.replaceState('/');
+      else this.router.navigateByUrl('/');
+    } else {
+      this.siteConfig.activeTags.set([tag]);
+      const url = '/' + slugify(tag);
+      if (onGallery) this.location.replaceState(url);
+      else this.router.navigateByUrl(url);
+    }
+  }
+
+  /** Dropdown mode: multi-select toggle */
+  toggleFilterTag(tag: string): void {
     const current = this.siteConfig.activeTags();
     if (current.includes(tag)) {
       const next = current.filter(t => t !== tag);
@@ -119,7 +141,7 @@ export class AppComponent {
 
   openAbout(): void {
     if (this.showInfo()) return;
-    this.urlBeforeAbout = this.router.url;
+    this.urlBeforeAbout = this.location.path() || '/';
     this.location.replaceState('/about');
     this.showInfo.set(true);
   }
@@ -163,5 +185,14 @@ export class AppComponent {
     panel.appendChild(label);
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
+  }
+
+  adminLogout(): void {
+    this.http.post('/api/auth/logout', {}).pipe(take(1)).subscribe({
+      next: () => {
+        this.siteConfig.adminAuthenticated.set(false);
+        this.router.navigateByUrl('/');
+      },
+    });
   }
 }
