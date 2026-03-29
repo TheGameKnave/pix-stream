@@ -39,12 +39,17 @@
       <stop offset="0%" stop-color="#f8f6f2"/>
       <stop offset="100%" stop-color="#e8e4de"/>
     </linearGradient>
+    <!-- Drop shadow for the polaroid -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="4" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
   </defs>
 
-  <rect width="1024" height="1024" rx="180" fill="#2a2a2a"/>
-  <g transform="translate(512,490) rotate(-6)">
+  <g transform="translate(490,480) scale(1.2) rotate(-6)" filter="url(#shadow)">
     <!-- Polaroid body -->
     <rect x="-300" y="-320" width="600" height="700" rx="16" fill="url(#frame)"/>
+    <!-- Polaroid outline stroke -->
+    <rect x="-300" y="-320" width="600" height="700" rx="16" fill="none" stroke="#3a3530" stroke-width="12"/>
     <!-- Subtle inner shadow on polaroid -->
     <rect x="-300" y="-320" width="600" height="700" rx="16" fill="none" stroke="#c8c0b8" stroke-width="1" opacity="0.5"/>
 
@@ -57,9 +62,9 @@
     <g clip-path="url(#photo)">
       <!-- Stream waves with gradient -->
       <g fill="none" stroke="url(#water)" stroke-width="28" stroke-linecap="round" opacity="0.7">
-        <path d="M-270,-130 C-180,-185 -90,-75 0,-130 90,-185 180,-75 270,-130"/>
-        <path d="M-270,-30 C-180,-85 -90,25 0,-30 90,-85 180,25 270,-30"/>
-        <path d="M-270,70 C-180,15 -90,125 0,70 90,15 180,125 270,70"/>
+        <path d="M-270,-130 C-180,-185 -90,-75 0,-130 90,-185 180,-75 270,-130" transform="translate(30,0)"/>
+        <path d="M-270,-30 C-180,-85 -90,25 0,-30 90,-85 180,25 270,-30" transform="translate(-20,0)"/>
+        <path d="M-270,70 C-180,15 -90,125 0,70 90,15 180,125 270,70" transform="translate(15,0)"/>
       </g>
       <!-- Scattered light reflections on water -->
       <g fill="none" stroke="#a8ddef" stroke-linecap="round">
