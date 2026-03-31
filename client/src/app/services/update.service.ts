@@ -4,7 +4,7 @@ import { SwUpdate } from '@angular/service-worker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval, startWith } from 'rxjs';
 
-import { check, Update } from '@tauri-apps/plugin-updater';
+import { check } from '@tauri-apps/plugin-updater';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { relaunch } from '@tauri-apps/plugin-process';
 import { isTauri } from '@tauri-apps/api/core';
@@ -71,7 +71,7 @@ export class UpdateService {
           cancelLabel: 'Later',
         });
         if (confirmed) {
-          await update.downloadAndInstall(() => {});
+          await update.downloadAndInstall(() => { /* noop */ });
           await relaunch();
         }
         this.confirming = false;
