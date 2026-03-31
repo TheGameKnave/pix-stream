@@ -1,7 +1,8 @@
 import { Injectable, inject, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Title } from '@angular/platform-browser';
+import { Meta, Title } from '@angular/platform-browser';
+import { take } from 'rxjs';
 
 export function slugify(tag: string): string {
   return tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -11,7 +12,6 @@ export interface SiteConfig {
   title: string;
   subtitle: string;
   headerColor: string;
-  paletteMode: string;
   bgColor: string;
   fontBody: string;
   nsfwBlurDefault: boolean;
@@ -36,6 +36,7 @@ export interface SiteConfig {
 export class SiteConfigService {
   private readonly http = inject(HttpClient);
   private readonly titleService = inject(Title);
+  private readonly meta = inject(Meta);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   readonly config = signal<SiteConfig | null>(null);
@@ -50,7 +51,7 @@ export class SiteConfigService {
   private pendingSlugs: string[] = [];
 
   load(): void {
-    this.http.get<SiteConfig>('/api/config').subscribe({
+    this.http.get<SiteConfig>('/api/config').pipe(take(1)).subscribe({
       next: (config) => {
         this.config.set(config);
         if (!this.isBrowser || localStorage.getItem('nsfw-blur') === null) {
@@ -59,6 +60,11 @@ export class SiteConfigService {
         if (this.isBrowser) {
           this.applyTheme(config);
           this.titleService.setTitle(this.pageTitle());
+          const desc = config.subtitle || config.description?.replace(/[#*_`[\]()]/g, '').slice(0, 160) || '';
+          if (desc) {
+            this.meta.updateTag({ name: 'description', content: desc });
+            this.meta.updateTag({ property: 'og:description', content: desc });
+          }
         }
         // Re-filter tags now that config (with enabledTags) is available
         if (this.allTags().length > 0) {
@@ -67,7 +73,7 @@ export class SiteConfigService {
       },
     });
 
-    this.http.get<string[]>('/api/tags').subscribe({
+    this.http.get<string[]>('/api/tags').pipe(take(1)).subscribe({
       next: (tags) => {
         this.allTags.set(tags);
         this.applyTagFilter(tags);
@@ -78,7 +84,7 @@ export class SiteConfigService {
       },
     });
 
-    this.http.get<{ setupRequired: boolean; authenticated: boolean }>('/api/auth/status').subscribe({
+    this.http.get<{ setupRequired: boolean; authenticated: boolean }>('/api/auth/status').pipe(take(1)).subscribe({
       next: (res) => {
         this.adminSetupRequired.set(res.setupRequired);
         this.adminAuthenticated.set(res.authenticated);
@@ -111,7 +117,7 @@ export class SiteConfigService {
   }
 
   saveConfig(partial: Partial<SiteConfig>): void {
-    this.http.put<SiteConfig>('/api/config', partial).subscribe({
+    this.http.put<SiteConfig>('/api/config', partial).pipe(take(1)).subscribe({
       next: (config) => {
         this.config.set(config);
         this.applyTagFilter(this.allTags());
@@ -143,8 +149,8 @@ export class SiteConfigService {
     const headerText = this.contrastText(config.headerColor);
     root.setProperty('--color-header-text', headerText);
     this.applyHeaderGlow(config.headerColor, headerText, root);
-    const [hH] = this.hexToHsl(config.headerColor);
-    const accentHsl = `hsl(${Math.round((hH + 180) % 360)}, 50%, 50%)`;
+    const [hH, sH] = this.hexToHsl(config.headerColor);
+    const accentHsl = `hsl(${Math.round((hH + 180) % 360)}, ${Math.round(sH)}%, 45%)`;
     root.setProperty('--color-accent', accentHsl);
     root.setProperty('--color-accent-text', '#fafafa');
     root.setProperty('--color-accent-glow', 'none');
@@ -203,12 +209,14 @@ export class SiteConfigService {
   private applyHeaderGlow(headerHex: string, headerText: string, root: CSSStyleDeclaration): void {
     const [, , l] = this.hexToHsl(headerHex);
     if (l > 35 && l < 65) {
-      // Glow is inverse of the font color on the header
       const glow = headerText === '#222' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
       root.setProperty('--color-header-glow',
         `1px 0 4px ${glow}, -1px 0 4px ${glow}, 0 1px 4px ${glow}, 0 -1px 4px ${glow}`);
+      root.setProperty('--color-header-icon-shadow',
+        `drop-shadow(0 0 3px ${glow})`);
     } else {
       root.setProperty('--color-header-glow', 'none');
+      root.setProperty('--color-header-icon-shadow', 'none');
     }
   }
 

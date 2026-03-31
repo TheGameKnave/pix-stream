@@ -17,10 +17,12 @@ import { SeoService } from '@app/services/seo.service';
 import { SiteConfigService, slugify } from '@app/services/site-config.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
 import gsap from 'gsap';
 import QRCode from 'qrcode';
 import { GalleryStateService, FloatingImage, ImageEntry, ManifestResponse } from '@app/services/gallery-state.service';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _Observer: any = null;
 
 async function loadObserver(): Promise<void> {
@@ -107,6 +109,8 @@ export class GalleryComponent {
   private readonly state = inject(GalleryStateService);
   readonly siteConfig = inject(SiteConfigService);
   readonly connectivity = inject(ConnectivityService);
+  private readonly prefersReducedMotion = this.isBrowser
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
   readonly empty = signal(false);
@@ -129,6 +133,8 @@ export class GalleryComponent {
   private lightboxOrder: { card: FloatingImage; cardIndex: number }[] = [];
   private lightboxOrderIdx = -1;
   private lightboxNavigating = false;
+  private focusBeforeLightbox: HTMLElement | null = null;
+  private boundTrapFocus: ((e: KeyboardEvent) => void) | null = null;
 
   /*
    * Coordinate system:
@@ -147,6 +153,7 @@ export class GalleryComponent {
   private primaryLen = 0;
   private rafId = 0;
   private pollTimer = 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private observer: any = null;
   private allEntries: ImageEntry[] = [];
   private entries: ImageEntry[] = [];
@@ -260,7 +267,7 @@ export class GalleryComponent {
 
   private filterEntries(entries: ImageEntry[]): ImageEntry[] {
     const tags = this.siteConfig.activeTags();
-    let result = tags.length === 0 ? [...entries] : entries.filter(e => tags.some(t => e.tags.includes(t)));
+    const result = tags.length === 0 ? [...entries] : entries.filter(e => tags.some(t => e.tags.includes(t)));
     const sort = this.siteConfig.config()?.sortOrder ?? 'random';
     if (sort === 'random') {
       for (let i = result.length - 1; i > 0; i--) {
@@ -572,7 +579,7 @@ export class GalleryComponent {
   /** Poll the manifest every 30s; on version change, swap entries and let recycle prune stale cards. */
   private startManifestPoll(): void {
     this.pollTimer = window.setInterval(() => {
-      this.http.get<ManifestResponse>('/api/manifest').subscribe({
+      this.http.get<ManifestResponse>('/api/manifest').pipe(take(1)).subscribe({
         next: (res) => {
           if (res.version === this.state.manifestVersion) return;
           this.state.manifestVersion = res.version;
@@ -609,12 +616,12 @@ export class GalleryComponent {
     this.observer = _Observer.create({
       target: el,
       type: 'wheel,touch,pointer',
-      onChangeX: (self: any) => {
+      onChangeX: (self: { deltaX?: number; deltaY?: number }) => {
         if (this.lightboxOpen()) return;
         this.userSpeed -= (self.deltaX ?? 0) * 0.12;
         this.userSpeed = Math.max(-25, Math.min(25, this.userSpeed));
       },
-      onChangeY: (self: any) => {
+      onChangeY: (self: { deltaX?: number; deltaY?: number }) => {
         if (this.lightboxOpen()) return;
         this.userSpeed -= (self.deltaY ?? 0) * 0.12;
         this.userSpeed = Math.max(-25, Math.min(25, this.userSpeed));
@@ -632,6 +639,7 @@ export class GalleryComponent {
   }
 
   onPointerMove(): void {
+    // noop
   }
 
   onPointerUp(event: PointerEvent, image: FloatingImage, index: number): void {
@@ -685,6 +693,7 @@ export class GalleryComponent {
   openLightbox(image: FloatingImage, cardIndex: number): void {
     if (this.lightboxOpen()) return;
 
+    this.focusBeforeLightbox = document.activeElement as HTMLElement | null;
     this.lightboxImage.set(image);
     this.lightboxOpen.set(true);
 
@@ -749,6 +758,9 @@ export class GalleryComponent {
     // Create a fixed overlay element that mimics the card
     const overlay = document.createElement('div');
     overlay.className = 'lightbox-zoom';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', `Photo: ${image.entry.title || image.entry.id}`);
     overlay.style.cssText = `
       position:fixed; left:${startX}px; top:${startY}px;
       width:${startW}px; height:${startH}px;
@@ -808,7 +820,7 @@ export class GalleryComponent {
     // Fade in curtain
     const curtain = el.querySelector('.lightbox-curtain') as HTMLElement;
     if (curtain) {
-      gsap.to(curtain, { opacity: 1, duration: 0.4, ease: 'power2.out' });
+      gsap.to(curtain, { opacity: 1, duration: this.prefersReducedMotion ? 0 : 0.4, ease: 'power2.out' });
     }
 
     // Animate overlay to center, then add controls
@@ -820,7 +832,7 @@ export class GalleryComponent {
       rotation: 0,
       boxShadow: '0 0 0 0 rgba(0,0,0,0)',
       borderRadius: '0px',
-      duration: 0.5,
+      duration: this.prefersReducedMotion ? 0 : 0.5,
       ease: 'power2.out',
       onComplete: () => {
         if (!isBlurred) this.addLightboxControls(el, image);
@@ -855,9 +867,10 @@ export class GalleryComponent {
     const mkBtn = (html: string, title: string, handler: () => void) => {
       const btn = document.createElement('button');
       btn.className = 'lb-btn';
-
       btn.innerHTML = html;
       btn.title = title;
+      btn.setAttribute('aria-label', title);
+      btn.querySelector('svg')?.setAttribute('aria-hidden', 'true');
       btn.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
       return btn;
     };
@@ -894,8 +907,8 @@ export class GalleryComponent {
     if (hasLeft) {
       const left = document.createElement('button');
       left.className = 'lb-chevron lb-chevron-left';
-
-      left.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`;
+      left.setAttribute('aria-label', 'Previous image');
+      left.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>`;
       left.addEventListener('click', (e) => { e.stopPropagation(); this.navigateLightbox(-1); });
       controls.appendChild(left);
     }
@@ -903,8 +916,8 @@ export class GalleryComponent {
     if (hasRight) {
       const right = document.createElement('button');
       right.className = 'lb-chevron lb-chevron-right';
-
-      right.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>`;
+      right.setAttribute('aria-label', 'Next image');
+      right.innerHTML = `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>`;
       right.addEventListener('click', (e) => { e.stopPropagation(); this.navigateLightbox(1); });
       controls.appendChild(right);
     }
@@ -922,11 +935,37 @@ export class GalleryComponent {
     if ('ontouchstart' in window) {
       controls.classList.add('visible');
     }
+
+    // Focus trap: keep Tab cycling within lightbox controls
+    const focusableSelector = 'button, [href], [tabindex]:not([tabindex="-1"])';
+    this.boundTrapFocus = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = controls.querySelectorAll(focusableSelector);
+      if (focusable.length === 0) return;
+      const first = focusable[0] as HTMLElement;
+      const last = focusable[focusable.length - 1] as HTMLElement;
+      if (e.shiftKey) {
+        if (document.activeElement === first || !controls.contains(document.activeElement)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last || !controls.contains(document.activeElement)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', this.boundTrapFocus);
+
+    // Move focus into the first lightbox button
+    const firstBtn = controls.querySelector('button') as HTMLElement | null;
+    firstBtn?.focus();
   }
 
   private deleteImage(image: FloatingImage): void {
     if (!confirm(`Delete "${image.entry.id}"? This cannot be undone.`)) return;
-    this.http.delete(`/api/delete?id=${encodeURIComponent(image.entry.filename)}`).subscribe({
+    this.http.delete(`/api/delete?id=${encodeURIComponent(image.entry.filename)}`).pipe(take(1)).subscribe({
       next: () => {
         this.closeLightbox();
         // Remove the card from the current river
@@ -1023,7 +1062,7 @@ export class GalleryComponent {
       gsap.to(el, {
         x: `+=${dx}`,
         y: `+=${dy}`,
-        duration: 0.4,
+        duration: this.prefersReducedMotion ? 0 : 0.4,
         ease: 'power2.out',
       });
     });
@@ -1034,7 +1073,7 @@ export class GalleryComponent {
       gsap.to(el, {
         x: `-=${dx}`,
         y: `-=${dy}`,
-        duration: 0.35,
+        duration: this.prefersReducedMotion ? 0 : 0.35,
         ease: 'power2.inOut',
       });
     }
@@ -1087,7 +1126,7 @@ export class GalleryComponent {
     if (!willReopen) {
       const curtain = el?.querySelector('.lightbox-curtain') as HTMLElement;
       if (curtain) {
-        gsap.to(curtain, { opacity: 0, duration: 0.4, ease: 'power2.in' });
+        gsap.to(curtain, { opacity: 0, duration: this.prefersReducedMotion ? 0 : 0.4, ease: 'power2.in' });
       }
     }
 
@@ -1100,10 +1139,20 @@ export class GalleryComponent {
       }
       if (overlay) { overlay.remove(); }
       if (this.lightboxControls) { this.lightboxControls.remove(); this.lightboxControls = null; }
+      // Tear down focus trap
+      if (this.boundTrapFocus) {
+        document.removeEventListener('keydown', this.boundTrapFocus);
+        this.boundTrapFocus = null;
+      }
       this.lightboxEl = null;
       this.lightboxOpen.set(false);
       this.lightboxImage.set(null);
-      if (!willReopen) this.resumeRiver();
+      if (!willReopen) {
+        this.resumeRiver();
+        // Restore focus to the element that opened the lightbox
+        this.focusBeforeLightbox?.focus();
+        this.focusBeforeLightbox = null;
+      }
       onDone?.();
     };
 
@@ -1139,7 +1188,7 @@ export class GalleryComponent {
           rotation: image.rotation,
           boxShadow: image.shadow,
           borderRadius: '4px',
-          duration: 0.35,
+          duration: this.prefersReducedMotion ? 0 : 0.35,
           ease: 'power2.in',
           onComplete: finish,
         });
@@ -1220,7 +1269,7 @@ export class GalleryComponent {
       slugify(e.title || e.id) === slug || e.id === slug || e.title === slug;
 
     const currentCards = this.cards();
-    let index = currentCards.findIndex(c => matchEntry(c.entry));
+    const index = currentCards.findIndex(c => matchEntry(c.entry));
 
     if (index >= 0) {
       setTimeout(() => this.openLightbox(currentCards[index], index), 100);

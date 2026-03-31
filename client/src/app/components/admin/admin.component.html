@@ -30,7 +30,7 @@
       />
     </div>
     @if (error()) {
-      <p class="admin-error">{{ error() }}</p>
+      <p class="admin-error" aria-live="assertive">{{ error() }}</p>
     }
     <button class="btn" (click)="setup()">Set Password</button>
 
@@ -49,14 +49,14 @@
       />
     </div>
     @if (error()) {
-      <p class="admin-error">{{ error() }}</p>
+      <p class="admin-error" aria-live="assertive">{{ error() }}</p>
     }
     <button class="btn" (click)="login()">Log In</button>
 
     <div class="admin-forgot">
-      <button class="admin-forgot-toggle" (click)="showForgot.set(!showForgot())">
+      <button class="admin-forgot-toggle" (click)="showForgot.set(!showForgot())" [attr.aria-expanded]="showForgot()">
         Forgot password?
-        <span class="admin-forgot-caret" [class.open]="showForgot()">&#x25B6;</span>
+        <span class="admin-forgot-caret" [class.open]="showForgot()" aria-hidden="true">&#x25B6;</span>
       </button>
       @if (showForgot()) {
         <div class="admin-forgot-content">
@@ -67,17 +67,17 @@
 
   } @else {
     <!-- Authenticated — Config Editor -->
-    <h2>Site Configuration</h2>
+    <h2 class="admin-title">Site Configuration <span class="admin-save-status" aria-live="polite">{{ saveStatus() }}</span></h2>
 
     <!-- Identity -->
     <div class="admin-section" [class.open]="accordionIdentity()">
-      <button class="accordion-header" (click)="accordionIdentity.set(!accordionIdentity())">
-        <span class="accordion-caret">&#x25B6;</span>
+      <button class="accordion-header" (click)="accordionIdentity.set(!accordionIdentity())" [attr.aria-expanded]="accordionIdentity()" aria-controls="accordion-identity">
+        <span class="accordion-caret" aria-hidden="true">&#x25B6;</span>
         Identity
       </button>
-      <div class="accordion-body">
+      <div class="accordion-body" id="accordion-identity" role="region" aria-label="Identity">
         <div class="form-group">
-          <label>Site Logo</label>
+          <span class="form-label">Site Logo</span>
           @if (siteLogo()) {
             <div class="logo-preview-row">
               <img [src]="siteLogo()" alt="Site logo" class="logo-preview" />
@@ -92,7 +92,7 @@
           <span class="admin-hint">PNG preferred. Replaces the site name and subtitle in the header.</span>
         </div>
         <div class="form-group">
-          <label>Favicon</label>
+          <span class="form-label">Favicon</span>
           @if (siteFavicon()) {
             <div class="logo-preview-row">
               <img [src]="siteFavicon()" alt="Favicon" class="logo-preview" style="max-height: 32px" />
@@ -124,7 +124,7 @@
           <span class="admin-hint">{{ title || 'Photo Stream' }}{{ pageHeadTitle ? ' | ' + pageHeadTitle : '' }}</span>
         </div>
         <div class="form-group">
-          <label>Description</label>
+          <span class="form-label">Description</span>
           <app-markdown-editor
             [value]="description"
             (valueChange)="description = $event; onConfigChange()"
@@ -136,18 +136,59 @@
 
     <!-- Theme (includes Typography) -->
     <div class="admin-section" [class.open]="accordionTheme()">
-      <button class="accordion-header" (click)="accordionTheme.set(!accordionTheme())">
-        <span class="accordion-caret">&#x25B6;</span>
+      <button class="accordion-header" (click)="accordionTheme.set(!accordionTheme())" [attr.aria-expanded]="accordionTheme()" aria-controls="accordion-theme">
+        <span class="accordion-caret" aria-hidden="true">&#x25B6;</span>
         Theme
       </button>
-      <div class="accordion-body">
+      <div class="accordion-body" id="accordion-theme" role="region" aria-label="Theme">
         <div class="form-row">
           <div class="form-group">
-            <label for="cfg-header">Header Color</label>
-            <input id="cfg-header" type="color" [(ngModel)]="headerColor" (ngModelChange)="onConfigChange()" />
+            <span class="form-label" id="cfg-header-label">Header Color</span>
+            <div class="bg-picker-anchor" #hdrPickerAnchor aria-labelledby="cfg-header-label">
+              <input type="color" [ngModel]="headerColor" (click)="$event.preventDefault(); hdrPickerOpen.set(!hdrPickerOpen())" readonly />
+              @if (hdrPickerOpen()) {
+                <div class="bg-picker-popover">
+                  <div class="bg-picker-row">
+                    <canvas
+                      class="bg-picker-canvas"
+                      width="240"
+                      height="100"
+                      #hdrCanvas
+                      role="img"
+                      aria-label="Header color picker"
+                      (mousedown)="onHdrCanvasMouseDown($event)"
+                      (mousemove)="onHdrCanvasDrag($event)"
+                      (mouseup)="hdrDragging = false"
+                      (mouseleave)="hdrDragging = false"
+                      (touchstart)="onHdrCanvasTouchStart($event)"
+                      (touchmove)="onHdrCanvasTouchMove($event)"
+                      (touchend)="hdrDragging = false"
+                    ></canvas>
+                    <input
+                      type="range"
+                      class="bg-lightness-slider"
+                      min="20"
+                      max="80"
+                      aria-label="Lightness"
+                      [ngModel]="hdrLightness"
+                      (ngModelChange)="hdrLightness = $event; onHdrLightnessChange()"
+                    />
+                    <input
+                      type="text"
+                      class="bg-hex-input"
+                      aria-label="Header color hex value"
+                      [ngModel]="headerColor"
+                      (ngModelChange)="headerColor = $event; onHdrColorInputChange()"
+                      placeholder="#01ddb1"
+                      maxlength="7"
+                    />
+                  </div>
+                </div>
+              }
+            </div>
           </div>
           <div class="form-group">
-            <label>Background</label>
+            <span class="form-label">Background</span>
             <div class="bg-picker-anchor" #bgPickerAnchor>
               <input type="color" [ngModel]="bgColor" (click)="$event.preventDefault(); bgPickerOpen.set(!bgPickerOpen())" readonly />
               @if (bgPickerOpen()) {
@@ -158,6 +199,8 @@
                       width="240"
                       height="100"
                       #bgCanvas
+                      role="img"
+                      aria-label="Color saturation and hue picker"
                       (mousedown)="onBgCanvasMouseDown($event)"
                       (mousemove)="onBgCanvasDrag($event)"
                       (mouseup)="bgDragging = false"
@@ -171,8 +214,18 @@
                       class="bg-lightness-slider"
                       min="20"
                       max="80"
+                      aria-label="Lightness"
                       [ngModel]="bgLightness"
                       (ngModelChange)="bgLightness = $event; onBgLightnessChange()"
+                    />
+                    <input
+                      type="text"
+                      class="bg-hex-input"
+                      aria-label="Background color hex value"
+                      [ngModel]="bgColor"
+                      (ngModelChange)="bgColor = $event; onBgColorInputChange()"
+                      placeholder="#808080"
+                      maxlength="7"
                     />
                   </div>
                 </div>
@@ -181,7 +234,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Watermark</label>
+          <span class="form-label">Watermark</span>
           @if (watermark()) {
             <div class="logo-preview-row">
               <img [src]="watermark()" alt="Watermark" class="logo-preview" />
@@ -196,7 +249,7 @@
           <span class="admin-hint">PNG preferred. Anchored to the right edge of the gallery, scaled to fill the vertical space.</span>
         </div>
         <div class="form-group">
-          <label>Font</label>
+          <span class="form-label">Font</span>
           <button type="button" class="font-picker-toggle" (click)="toggleFontPicker()">
             <span class="font-picker-current" [style.font-family]="resolvedFontBody + ', sans-serif'">
               {{ fontBody === '_custom' ? (customFontBody || 'Custom') : fontBody }}
@@ -241,13 +294,13 @@
     <!-- Tags -->
     @if (siteConfig.allTags().length > 0) {
       <div class="admin-section" [class.open]="accordionTags()">
-        <button class="accordion-header" (click)="accordionTags.set(!accordionTags())">
-          <span class="accordion-caret">&#x25B6;</span>
+        <button class="accordion-header" (click)="accordionTags.set(!accordionTags())" [attr.aria-expanded]="accordionTags()" aria-controls="accordion-tags">
+          <span class="accordion-caret" aria-hidden="true">&#x25B6;</span>
           Tags
         </button>
-        <div class="accordion-body">
+        <div class="accordion-body" id="accordion-tags" role="region" aria-label="Tags">
           <div class="form-group">
-            <label>Display as</label>
+            <span class="form-label">Display as</span>
             <div class="flow-picker">
               <label class="flow-option" [class.active]="tagDisplayMode === 'nav'">
                 <input type="radio" name="tagMode" value="nav" [(ngModel)]="tagDisplayMode" (ngModelChange)="onConfigChange()" />
@@ -296,13 +349,13 @@
 
     <!-- Flow -->
     <div class="admin-section" [class.open]="accordionFlow()">
-      <button class="accordion-header" (click)="accordionFlow.set(!accordionFlow())">
-        <span class="accordion-caret">&#x25B6;</span>
+      <button class="accordion-header" (click)="accordionFlow.set(!accordionFlow())" [attr.aria-expanded]="accordionFlow()" aria-controls="accordion-flow">
+        <span class="accordion-caret" aria-hidden="true">&#x25B6;</span>
         Flow
       </button>
-      <div class="accordion-body">
+      <div class="accordion-body" id="accordion-flow" role="region" aria-label="Flow">
         <div class="form-group">
-          <label>Sort Order</label>
+          <span class="form-label">Sort Order</span>
           <div class="flow-picker">
             <label class="flow-option" [class.active]="sortOrder === 'random'">
               <input type="radio" name="sort" value="random" [(ngModel)]="sortOrder" (ngModelChange)="onConfigChange()" />
@@ -319,7 +372,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Direction</label>
+          <span class="form-label">Direction</span>
           <div class="flow-picker">
             <label class="flow-option" [class.active]="flowDirection === 'rtl'">
               <input type="radio" name="flow" value="rtl" [(ngModel)]="flowDirection" (ngModelChange)="onConfigChange()" />
@@ -340,7 +393,7 @@
           </div>
         </div>
         <div class="form-group">
-          <label>Speed</label>
+          <span class="form-label">Speed</span>
           <div class="flow-picker">
             <label class="flow-option" [class.active]="flowSpeed === 'off'">
               <input type="radio" name="speed" value="off" [(ngModel)]="flowSpeed" (ngModelChange)="onConfigChange()" />
@@ -365,11 +418,11 @@
 
     <!-- Features -->
     <div class="admin-section" [class.open]="accordionFeatures()">
-      <button class="accordion-header" (click)="accordionFeatures.set(!accordionFeatures())">
-        <span class="accordion-caret">&#x25B6;</span>
+      <button class="accordion-header" (click)="accordionFeatures.set(!accordionFeatures())" [attr.aria-expanded]="accordionFeatures()" aria-controls="accordion-features">
+        <span class="accordion-caret" aria-hidden="true">&#x25B6;</span>
         Features
       </button>
-      <div class="accordion-body">
+      <div class="accordion-body" id="accordion-features" role="region" aria-label="Features">
         <label class="toggle-row">
           <input type="checkbox" [(ngModel)]="enableShare" (ngModelChange)="onConfigChange()" />
           <span>Enable sharing</span>
@@ -397,23 +450,28 @@
     <div class="admin-upload">
       <div
         class="image-upload-zone"
+        role="button"
+        tabindex="0"
+        aria-label="Upload images — drag and drop or click to browse"
         [class.drag-over]="imageDragOver()"
         (dragover)="onImageDragOver($event)"
         (dragleave)="onImageDragLeave()"
         (drop)="onImageDrop($event)"
         (click)="imageFileInput.click()"
+        (keydown.enter)="imageFileInput.click()"
+        (keydown.space)="imageFileInput.click(); $event.preventDefault()"
       >
         @if (uploadingImages()) {
           <p>Uploading...</p>
         } @else {
-          <p>Drag &amp; drop images here</p>
+          <p>Drag &amp; drop gallery images here</p>
           <p>or click to browse</p>
           <p style="font-size: 0.75rem; margin-top: 0.5rem">JPG, PNG, GIF, WebP</p>
         }
       </div>
       <input #imageFileInput type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple (change)="uploadImages($event)" hidden />
       @if (uploadResult(); as result) {
-        <div class="upload-result">
+        <div class="upload-result" aria-live="polite">
           @if (result.uploaded.length) {
             <p class="upload-success">Uploaded {{ result.uploaded.length }} image{{ result.uploaded.length === 1 ? '' : 's' }}</p>
           }

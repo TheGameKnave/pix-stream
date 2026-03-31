@@ -20,6 +20,7 @@
   --color-text-muted: #999;
   --color-header-text: #fafafa;
   --color-header-glow: none;
+  --color-header-icon-shadow: none;
   --color-text-shadow: none;
 
   // Borders
@@ -73,7 +74,7 @@ html, body {
 }
 
 a {
-  color: var(--color-accent-link);
+  color: var(--color-accent);
   text-decoration: none;
 
   &:hover {
@@ -87,6 +88,48 @@ button {
   border: none;
   background: none;
   color: inherit;
+}
+
+// =============================================================================
+// Screen-reader-only utility
+// =============================================================================
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.external-link-icon {
+  display: inline;
+  vertical-align: baseline;
+  margin-left: 0.15em;
+  position: relative;
+  top: 0.1em;
+}
+
+// =============================================================================
+// Focus-visible — keyboard-only focus rings
+// =============================================================================
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+// Suppress focus ring on header icon buttons (use a subtler glow instead)
+.header-icon-btn:focus-visible,
+.lb-btn:focus-visible,
+.lb-chevron:focus-visible {
+  outline: none;
+  color: rgba(255, 255, 255, 1);
+  filter:
+    drop-shadow(0 0 4px var(--color-accent))
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
 }
 
 // =============================================================================
@@ -203,6 +246,7 @@ button {
   color: var(--color-header-text);
   opacity: 0.7;
   transition: opacity 0.2s ease;
+  filter: var(--color-header-icon-shadow);
 
   &:hover {
     opacity: 1;
@@ -229,7 +273,7 @@ button {
   max-width: 400px;
   width: 90%;
   text-align: center;
-  text-shadow: none;
+  text-shadow: var(--color-header-glow);
   overflow: hidden;
 
   &[data-watermark]::before {
@@ -284,12 +328,12 @@ button {
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(to right, transparent, var(--color-header-text), transparent);
+      background: linear-gradient(to right, transparent, var(--color-accent), transparent);
       opacity: 0.2;
     }
 
     p { margin: 0 0 0.5rem; }
-    a { color: var(--color-accent-link); }
+    a { color: var(--color-accent); }
     strong { color: inherit; font-weight: 600; }
   }
 
@@ -341,7 +385,7 @@ button {
       margin: 0 0 0.25rem;
 
       a {
-        color: var(--color-accent-link);
+        color: var(--color-accent);
         text-decoration: none;
 
         &:hover {
@@ -361,7 +405,7 @@ button {
     opacity: 0.6;
     font-size: 0.8rem;
 
-    a { color: var(--color-accent-link); }
+    a { color: var(--color-accent); }
   }
 }
 
@@ -375,7 +419,7 @@ button {
   line-height: 1;
 
   &:hover {
-    color: var(--color-text);
+    opacity: 1;
   }
 }
 
@@ -809,11 +853,17 @@ button {
     input, select, textarea {
       width: 100%;
       padding: 0.5rem;
-      background: transparent;
-      border: 1px solid rgba(128,128,128,0.2);
-      border-radius: 4px;
+      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+      border: 1px solid var(--color-accent);
+      border-radius: 6px;
       color: var(--color-header-text);
       font-family: inherit;
+      transition: background 0.15s ease;
+
+      &:focus {
+        background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+        outline: none;
+      }
     }
 
     input[type="color"] {
@@ -822,6 +872,12 @@ button {
       padding: 0;
       border: none;
       cursor: pointer;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
     }
 
     textarea {
@@ -849,13 +905,12 @@ button {
     }
 
     &.btn-secondary {
-      background: transparent;
-      border: 1px solid rgba(128,128,128,0.3);
-      color: var(--color-header-text);
-      opacity: 0.7;
+      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+      border: 1px solid var(--color-accent);
+      color: var(--color-accent);
 
       &:hover {
-        opacity: 1;
+        background: color-mix(in srgb, var(--color-accent) 15%, transparent);
       }
     }
   }
@@ -869,6 +924,19 @@ button {
     h2 {
       margin-bottom: 0;
     }
+  }
+
+  .admin-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  .admin-save-status {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--color-accent);
+    opacity: 0.8;
   }
 
   .admin-subtitle {
@@ -952,7 +1020,7 @@ button {
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(to right, transparent, var(--color-header-text), transparent);
+      background: linear-gradient(to right, transparent, var(--color-accent), transparent);
       opacity: 0.15;
     }
 
@@ -1059,6 +1127,18 @@ button {
     display: flex;
     flex-direction: column;
     gap: 4px;
+
+    .bg-hex-input {
+      width: 100%;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.8rem;
+      font-family: monospace;
+      text-align: center;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 3px;
+      color: #fafafa;
+    }
   }
 
   .bg-picker-canvas {
@@ -1241,22 +1321,22 @@ button {
   }
 
   .image-upload-zone {
-    border: 2px dashed rgba(128,128,128,0.3);
+    border: 2px dashed var(--color-accent);
     border-radius: 6px;
     padding: 1.5rem;
     text-align: center;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+    transition: background 0.2s;
     opacity: 0.7;
     font-size: 0.85rem;
+    background: color-mix(in srgb, var(--color-accent) 5%, transparent);
 
     &.drag-over {
-      border-color: var(--color-accent);
-      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+      background: color-mix(in srgb, var(--color-accent) 15%, transparent);
     }
 
     &:hover {
-      border-color: var(--color-accent);
+      background: color-mix(in srgb, var(--color-accent) 10%, transparent);
     }
 
     p {
@@ -1305,17 +1385,23 @@ button {
     font-size: 0.75rem;
     opacity: 0.7;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 
     input[type="checkbox"] {
       display: none;
+    }
+
+    &:hover {
+      border-color: var(--color-accent);
+      opacity: 0.9;
+      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
     }
 
     &.active {
       border-color: var(--color-accent);
       color: var(--color-accent);
       opacity: 1;
-      background: rgba(128,128,128,0.1);
+      background: color-mix(in srgb, var(--color-accent) 10%, transparent);
     }
   }
 
@@ -1334,17 +1420,23 @@ button {
     font-size: 0.8rem;
     opacity: 0.7;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 
     input[type="radio"] {
       display: none;
+    }
+
+    &:hover {
+      border-color: var(--color-accent);
+      opacity: 0.9;
+      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
     }
 
     &.active {
       border-color: var(--color-accent);
       color: var(--color-accent);
       opacity: 1;
-      background: rgba(128,128,128,0.1);
+      background: color-mix(in srgb, var(--color-accent) 10%, transparent);
     }
   }
 
@@ -1482,4 +1574,24 @@ button {
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 3px;
+}
+
+// =============================================================================
+// Reduced motion — respect user preference
+// =============================================================================
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .river-card {
+    transition: none;
+  }
+
+  .lightbox-controls {
+    opacity: 1;
+    transition: none;
+  }
 }
