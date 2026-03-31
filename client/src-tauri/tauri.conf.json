@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Photo Stream",
+  "productName": "Pix Stream",
   "version": "0.1.0",
-  "identifier": "app.photostream",
+  "identifier": "app.pixstream",
   "build": {
     "beforeDevCommand": "ng serve --hmr",
     "devUrl": "http://localhost:6200",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Photo Stream",
+        "title": "Pix Stream",
         "width": 1200,
         "height": 900,
         "resizable": true,

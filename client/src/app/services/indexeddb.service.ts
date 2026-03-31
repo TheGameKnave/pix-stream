@@ -2,7 +2,7 @@ import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { openDB, IDBPDatabase } from 'idb';
 
-const DB_NAME = 'photo-stream';
+const DB_NAME = 'pix-stream';
 const DB_VERSION = 1;
 const STORE_NAME = 'preferences';
 

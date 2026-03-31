@@ -2,9 +2,9 @@
 <header class="app-header" #headerEl>
   <a class="logo" (click)="goHome()" (keydown.enter)="goHome()" tabindex="0">
     @if (siteConfig.config()?.siteLogo) {
-      <img [src]="siteConfig.config()!.siteLogo" [alt]="(siteConfig.config()?.title || 'Photo Stream') + (siteConfig.config()?.subtitle ? ' — ' + siteConfig.config()!.subtitle : '')" class="logo-image" />
+      <img [src]="siteConfig.config()!.siteLogo" [alt]="(siteConfig.config()?.title || 'Pix Stream') + (siteConfig.config()?.subtitle ? ' — ' + siteConfig.config()!.subtitle : '')" class="logo-image" />
     } @else {
-      <h1 class="logo-title">{{ siteConfig.config()?.title || 'Photo Stream' }}</h1>
+      <h1 class="logo-title">{{ siteConfig.config()?.title || 'Pix Stream' }}</h1>
       @if (siteConfig.config()?.subtitle) {
         <span class="logo-subtitle">{{ siteConfig.config()?.subtitle }}</span>
       }
@@ -100,9 +100,9 @@
     <div class="info-panel" [attr.data-watermark]="siteConfig.config()?.watermark || null" [style.--watermark-url]="siteConfig.config()?.watermark ? 'url(' + siteConfig.config()!.watermark + ')' : 'none'" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()" tabindex="-1">
       <button class="info-close" (click)="closeAbout()" aria-label="Close">&times;</button>
       @if (siteConfig.config()?.siteLogo) {
-        <img [src]="siteConfig.config()!.siteLogo" [alt]="siteConfig.config()?.title || 'Photo Stream'" class="info-logo" />
+        <img [src]="siteConfig.config()!.siteLogo" [alt]="siteConfig.config()?.title || 'Pix Stream'" class="info-logo" />
       } @else {
-        <h2>{{ siteConfig.config()?.title || 'Photo Stream' }}</h2>
+        <h2>{{ siteConfig.config()?.title || 'Pix Stream' }}</h2>
         @if (siteConfig.config()?.subtitle) {
           <p class="info-desc">{{ siteConfig.config()?.subtitle }}</p>
         }
@@ -120,7 +120,7 @@
         <markdown [data]="instructionsMd()"></markdown>
       </div>
       <p class="info-credits">
-        Built with <a href="https://github.com/TheGameKnave/photo-stream" target="_blank" rel="noopener">Photo Stream <svg class="external-link-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span class="sr-only"> (opens in new tab)</span></a>
+        Built with <a href="https://github.com/TheGameKnave/pix-stream" target="_blank" rel="noopener">Pix Stream <svg class="external-link-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span class="sr-only"> (opens in new tab)</span></a>
       </p>
     </div>
   </div>

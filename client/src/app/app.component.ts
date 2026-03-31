@@ -154,7 +154,7 @@ export class AppComponent {
 
   async shareSite(): Promise<void> {
     const url = window.location.href;
-    const title = this.siteConfig.config()?.title || 'Photo Stream';
+    const title = this.siteConfig.config()?.title || 'Pix Stream';
     if (navigator.share) {
       try { await navigator.share({ title, url }); return; } catch { /* cancelled */ }
     }

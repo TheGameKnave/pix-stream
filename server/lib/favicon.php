@@ -54,7 +54,7 @@ function svgToFavicon(string $svgPath, string $destDir): string {
 function writeDefaultFavicon(string $destDir): void {
     $candidates = [
         __DIR__ . '/../../client/src/favicon.svg',
-        __DIR__ . '/../../client/dist/photo-stream/browser/favicon.svg',
+        __DIR__ . '/../../client/dist/pix-stream/browser/favicon.svg',
     ];
     foreach ($candidates as $c) {
         $resolved = realpath($c);

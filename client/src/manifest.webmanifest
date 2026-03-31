@@ -1,6 +1,6 @@
 {
-  "name": "Photo Stream",
-  "short_name": "Photos",
+  "name": "Pix Stream",
+  "short_name": "Pix",
   "description": "A floating photo gallery",
   "theme_color": "#1a1a1a",
   "background_color": "#1a1a1a",

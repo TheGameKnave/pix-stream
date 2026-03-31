@@ -1,4 +1,4 @@
-# Photo Stream
+# Pix Stream
 
 A floating photo gallery and slideshow platform. Drop images in, configure via a web admin panel, and serve a visually rich, animated gallery to the web -- or as a native app on desktop and mobile.
 
@@ -167,7 +167,7 @@ npm run tauri ios build -- --export-method app-store-connect  # iOS
 ## Project Structure
 
 ```
-photo-stream/
+pix-stream/
 ├── client/                 # Angular frontend
 │   └── src/
 │       ├── app/

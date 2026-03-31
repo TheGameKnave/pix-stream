@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "photo-stream": {
+    "pix-stream": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -19,7 +19,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
-            "outputPath": "dist/photo-stream",
+            "outputPath": "dist/pix-stream",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "server": "src/main.server.ts",
@@ -86,10 +86,10 @@
           },
           "configurations": {
             "production": {
-              "buildTarget": "photo-stream:build:production"
+              "buildTarget": "pix-stream:build:production"
             },
             "development": {
-              "buildTarget": "photo-stream:build:development"
+              "buildTarget": "pix-stream:build:development"
             }
           },
           "defaultConfiguration": "development"

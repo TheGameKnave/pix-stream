@@ -4,7 +4,7 @@
  * Sets up a temporary storage tree so tests don't touch real data.
  */
 
-define('TEST_ROOT', sys_get_temp_dir() . '/photo-stream-test-' . getmypid());
+define('TEST_ROOT', sys_get_temp_dir() . '/pix-stream-test-' . getmypid());
 define('TEST_ORIGINALS', TEST_ROOT . '/originals');
 define('TEST_THUMBNAILS', TEST_ROOT . '/thumbnails');
 define('TEST_CONFIG', TEST_ROOT . '/config');

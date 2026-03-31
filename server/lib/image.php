@@ -507,7 +507,7 @@ function composeBanner(string $imagePath, array $bannerConfig, string $format): 
 
     $fonts = resolveBannerFonts($bannerConfig);
     $bannerY = $origH;
-    $title = $bannerConfig['title'] ?? 'Photo Stream';
+    $title = $bannerConfig['title'] ?? 'Pix Stream';
     $tagline = $bannerConfig['subtitle'] ?? '';
     $copyright = $bannerConfig['copyright'] ?? '';
     $email = $bannerConfig['email'] ?? '';
@@ -659,7 +659,7 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
         $origH = $im->getImageHeight();
         $newH = $origH + BANNER_HEIGHT;
 
-        $title = $bannerConfig['title'] ?? 'Photo Stream';
+        $title = $bannerConfig['title'] ?? 'Pix Stream';
         $tagline = $bannerConfig['subtitle'] ?? '';
         $email = $bannerConfig['email'] ?? '';
         $copyright = $bannerConfig['copyright'] ?? '';

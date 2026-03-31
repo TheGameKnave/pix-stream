@@ -137,7 +137,7 @@ export class SiteConfigService {
   /** Build a page title: SiteName | pageHeadTitle | imageSlug */
   pageTitle(...segments: string[]): string {
     const c = this.config();
-    const parts = [c?.title || 'Photo Stream'];
+    const parts = [c?.title || 'Pix Stream'];
     if (c?.pageHeadTitle) parts.push(c.pageHeadTitle);
     parts.push(...segments.filter(Boolean));
     return parts.join(' | ');

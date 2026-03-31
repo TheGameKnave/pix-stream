@@ -95,7 +95,7 @@ describe('SiteConfigService', () => {
 
   describe('pageTitle', () => {
     it('returns default title when config is null', () => {
-      expect(service.pageTitle()).toBe('Photo Stream');
+      expect(service.pageTitle()).toBe('Pix Stream');
     });
 
     it('returns site title from config', () => {

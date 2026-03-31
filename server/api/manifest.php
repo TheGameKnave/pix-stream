@@ -32,7 +32,7 @@ $bannerConfig = [];
 if ($contactEmail) {
     $bannerConfig = [
         'email' => $contactEmail,
-        'title' => $siteConfig['title'] ?? 'Photo Stream',
+        'title' => $siteConfig['title'] ?? 'Pix Stream',
         'subtitle' => $siteConfig['subtitle'] ?? '',
         'fontBody' => $siteConfig['fontBody'] ?? 'Raleway',
         'siteLogo' => $siteConfig['siteLogo'] ?? '',
