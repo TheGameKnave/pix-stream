@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
 import { Markdown } from 'tiptap-markdown';
 import { TiptapEditorDirective } from 'ngx-tiptap';
 
@@ -16,6 +17,8 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
       <span class="md-sep"></span>
       <button type="button" title="Bullet List" [class.active]="editor?.isActive('bulletList')" (click)="cmd('bulletList')">&#8226;</button>
       <button type="button" title="Ordered List" [class.active]="editor?.isActive('orderedList')" (click)="cmd('orderedList')">1.</button>
+      <span class="md-sep"></span>
+      <button type="button" title="Link" [class.active]="editor?.isActive('link')" (click)="cmd('link')">&#128279;</button>
     </div>
     <div tiptap [editor]="editor!" class="md-content"></div>
   `,
@@ -25,9 +28,10 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
       display: flex;
       gap: 2px;
       padding: 4px;
-      border: 1px solid rgba(128,128,128,0.2);
+      border: 1px solid var(--color-accent);
       border-bottom: none;
-      border-radius: 4px 4px 0 0;
+      border-radius: 6px 6px 0 0;
+      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
     }
     .md-toolbar button {
       padding: 3px 8px;
@@ -43,12 +47,17 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
     .md-toolbar button.active { opacity: 1; background: rgba(128,128,128,0.15); }
     .md-sep { width: 1px; margin: 2px 4px; background: rgba(128,128,128,0.2); }
     .md-content {
-      border: 1px solid rgba(128,128,128,0.2);
-      border-radius: 0 0 4px 4px;
+      border: 1px solid var(--color-accent);
+      border-radius: 0 0 6px 6px;
       min-height: 100px;
       padding: 0.5rem;
       font-size: 0.85rem;
       line-height: 1.5;
+      background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+      transition: background 0.15s ease;
+    }
+    .md-content:focus-within {
+      background: color-mix(in srgb, var(--color-accent) 12%, transparent);
     }
     :host ::ng-deep .tiptap { outline: none; min-height: 80px; }
     :host ::ng-deep .tiptap p { margin: 0 0 0.4rem; }
@@ -56,6 +65,7 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
     :host ::ng-deep .tiptap ul, :host ::ng-deep .tiptap ol { padding-left: 1.2rem; margin: 0 0 0.4rem; }
     :host ::ng-deep .tiptap strong { font-weight: 600; }
     :host ::ng-deep .tiptap em { font-style: italic; }
+    :host ::ng-deep .tiptap a { color: var(--color-accent); text-decoration: underline; }
   `],
 })
 export class MarkdownEditorComponent implements OnInit, OnDestroy {
@@ -68,11 +78,12 @@ export class MarkdownEditorComponent implements OnInit, OnDestroy {
     this.editor = new Editor({
       extensions: [
         StarterKit,
+        Link.configure({ openOnClick: false }),
         Markdown,
       ],
       content: this.value,
       onUpdate: ({ editor }) => {
-        const md = (editor.storage as any).markdown?.getMarkdown?.() ?? '';
+        const md = (editor.storage as unknown as Record<string, { getMarkdown?: () => string }>)['markdown']?.getMarkdown?.() ?? '';
         this.valueChange.emit(md);
       },
     });
@@ -87,6 +98,15 @@ export class MarkdownEditorComponent implements OnInit, OnDestroy {
       case 'heading': chain.toggleHeading({ level: 3 }).run(); break;
       case 'bulletList': chain.toggleBulletList().run(); break;
       case 'orderedList': chain.toggleOrderedList().run(); break;
+      case 'link': {
+        if (this.editor.isActive('link')) {
+          chain.unsetLink().run();
+        } else {
+          const url = prompt('URL:');
+          if (url) chain.setLink({ href: url }).run();
+        }
+        break;
+      }
     }
   }
 
