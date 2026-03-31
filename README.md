@@ -164,6 +164,54 @@ npm run tauri android dev                                    # Android
 npm run tauri ios build -- --export-method app-store-connect  # iOS
 ```
 
+## Deploying to Shared Hosting (Apache + PHP)
+
+Pix Stream runs on any standard PHP host with Apache and mod_rewrite. No Node.js or build tools needed on your server.
+
+### Build
+
+```bash
+./build.sh
+```
+
+This creates a `public_html/` directory at the project root containing everything your host needs — the PHP backend and the compiled Angular frontend, merged together and ready to upload.
+
+Note: if you're not modifying the project and only want to deploy the frontend, this build has been run already and you can skip this step.
+
+### Upload
+
+Upload the entire contents of `public_html/` to your host's document root (usually called `public_html/` on the host as well).
+
+On your host, create a `storage/` directory as a **sibling** of the document root (one level up, not inside it):
+
+```
+├── public_html/           ← upload public_html/ contents here
+│   ├── .htaccess
+│   ├── api/
+│   ├── config/
+│   ├── lib/
+│   ├── index.html
+│   ├── main.js
+│   ├── assets/
+│   └── ...
+└── storage/               ← create this, must be writable
+    ├── originals/
+    ├── processed/
+    └── thumbnails/
+```
+
+Make `storage/` and its subdirectories writable by the web server (`chmod 755` or `775`).
+
+### After Upload
+
+Visit your domain to see the gallery. Navigate to `/admin` to set your password and configure the site.
+
+### Requirements
+
+- PHP 8+ with GD extension (Imagick optional, enables TIFF/PSD support)
+- Apache with mod_rewrite enabled
+- `storage/` directory writable by the web server
+
 ## Project Structure
 
 ```

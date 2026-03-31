@@ -1,0 +1,121 @@
+{
+  "configVersion": 1,
+  "timestamp": 1774920644091,
+  "index": "/index.csr.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/chunk-6PSMNC2E.js",
+        "/chunk-DAQOROHW.js",
+        "/chunk-DH6BYUFV.js",
+        "/chunk-FWEHS7YR.js",
+        "/chunk-RGKKM5ZE.js",
+        "/chunk-XB6GHQPH.js",
+        "/main-PWZTG3N2.js",
+        "/manifest.webmanifest",
+        "/styles-P3VGGUDD.css"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "fonts",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [
+        "/assets/fonts/Raleway-Italic-VariableFont_wght.ttf",
+        "/assets/fonts/Raleway-Italic.ttf",
+        "/assets/fonts/Raleway-Regular.ttf",
+        "/assets/fonts/Raleway-VariableFont_wght.ttf"
+      ],
+      "patterns": []
+    },
+    {
+      "name": "icons",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "urls": [],
+      "patterns": []
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-manifest",
+      "patterns": [
+        "\\/api\\/manifest[^/]*",
+        "\\/api\\/config[^/]*"
+      ],
+      "strategy": "freshness",
+      "maxSize": 5,
+      "maxAge": 3600000,
+      "timeoutMs": 5000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
+      "name": "thumbnails",
+      "patterns": [
+        "\\/api\\/image\\/thumb\\/.*"
+      ],
+      "strategy": "performance",
+      "maxSize": 500,
+      "maxAge": 2592000000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
+      "name": "images",
+      "patterns": [
+        "\\/api\\/image\\/full\\/.*"
+      ],
+      "strategy": "performance",
+      "maxSize": 100,
+      "maxAge": 2592000000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    }
+  ],
+  "hashTable": {
+    "/assets/fonts/Raleway-Italic-VariableFont_wght.ttf": "2995b80908669bbea8a9698f2eacebc5edf1df7b",
+    "/assets/fonts/Raleway-Italic.ttf": "afb719661380623cb5b0972db4523c024f9373e7",
+    "/assets/fonts/Raleway-Regular.ttf": "1f0329874af08d7978b3e6af9004ef413fe5248a",
+    "/assets/fonts/Raleway-VariableFont_wght.ttf": "036a6aa66bef92b9927aa75b7d95587c9066a360",
+    "/chunk-6PSMNC2E.js": "d694a2930da5c2d08745323b3dc85316d95d9b55",
+    "/chunk-DAQOROHW.js": "43aa3e22eadd428c99babbc1519a5e31bd70a473",
+    "/chunk-DH6BYUFV.js": "c80f77df33778dc037ea5a63fcdbdd8de7222546",
+    "/chunk-FWEHS7YR.js": "eb09cf81da6f6c1eb94ffa9b38e5b9a22734ed98",
+    "/chunk-RGKKM5ZE.js": "1dfab163a7bec62d1844ecf8b0cc238a19308c4a",
+    "/chunk-XB6GHQPH.js": "eba05026133eaa4063c36e034b81a5e32583fe14",
+    "/main-PWZTG3N2.js": "8bddf50350ff2dc12adb855c4c8b44ab06622118",
+    "/manifest.webmanifest": "9c03128e4da0464a675b1ff29b33952ba910aeb5",
+    "/styles-P3VGGUDD.css": "7fc145e72ee22fe381b637a251d12544037f8620"
+  },
+  "navigationUrls": [
+    {
+      "positive": true,
+      "regex": "^\\/.*$"
+    },
+    {
+      "positive": false,
+      "regex": "^\\/(?:.+\\/)?api\\/.*$"
+    }
+  ],
+  "navigationRequestStrategy": "performance"
+}

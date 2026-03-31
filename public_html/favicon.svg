@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Warm sky gradient for streambed -->
+    <radialGradient id="bed" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#7a6b55"/>
+      <stop offset="100%" stop-color="#5c4e3c"/>
+    </radialGradient>
+    <!-- Water gradient - soft blue with warmth -->
+    <linearGradient id="water" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6bb8d4"/>
+      <stop offset="100%" stop-color="#3d8aaa"/>
+    </linearGradient>
+    <!-- Pad gradient - warm green -->
+    <radialGradient id="pad" cx="35%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1cb88a"/>
+      <stop offset="60%" stop-color="#0a8a6a"/>
+      <stop offset="100%" stop-color="#06755a"/>
+    </radialGradient>
+    <!-- Rock gradients -->
+    <linearGradient id="rock1" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#9a9288"/>
+      <stop offset="100%" stop-color="#6a6358"/>
+    </linearGradient>
+    <linearGradient id="rock2" x1="0.2" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a8a098"/>
+      <stop offset="100%" stop-color="#7a7268"/>
+    </linearGradient>
+    <linearGradient id="rock3" x1="0.5" y1="0" x2="0.2" y2="1">
+      <stop offset="0%" stop-color="#b5ada5"/>
+      <stop offset="100%" stop-color="#8a8278"/>
+    </linearGradient>
+    <!-- Petal gradient -->
+    <radialGradient id="petal" cx="40%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#f06ab8"/>
+      <stop offset="100%" stop-color="#d42e8e"/>
+    </radialGradient>
+    <!-- Polaroid frame gradient -->
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8f6f2"/>
+      <stop offset="100%" stop-color="#e8e4de"/>
+    </linearGradient>
+    <!-- Drop shadow for the polaroid -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="4" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <g transform="translate(490,480) scale(1.2) rotate(-6)" filter="url(#shadow)">
+    <!-- Polaroid body -->
+    <rect x="-300" y="-320" width="600" height="700" rx="16" fill="url(#frame)"/>
+    <!-- Polaroid outline stroke -->
+    <rect x="-300" y="-320" width="600" height="700" rx="16" fill="none" stroke="#3a3530" stroke-width="12"/>
+    <!-- Subtle inner shadow on polaroid -->
+    <rect x="-300" y="-320" width="600" height="700" rx="16" fill="none" stroke="#c8c0b8" stroke-width="1" opacity="0.5"/>
+
+    <!-- Photo area -->
+    <clipPath id="photo">
+      <rect x="-250" y="-270" width="500" height="480" rx="4"/>
+    </clipPath>
+    <rect x="-250" y="-270" width="500" height="480" rx="4" fill="url(#bed)"/>
+
+    <g clip-path="url(#photo)">
+      <!-- Stream waves with gradient -->
+      <g fill="none" stroke="url(#water)" stroke-width="28" stroke-linecap="round" opacity="0.7">
+        <path d="M-270,-130 C-180,-185 -90,-75 0,-130 90,-185 180,-75 270,-130" transform="translate(30,0)"/>
+        <path d="M-270,-30 C-180,-85 -90,25 0,-30 90,-85 180,25 270,-30" transform="translate(-20,0)"/>
+        <path d="M-270,70 C-180,15 -90,125 0,70 90,15 180,125 270,70" transform="translate(15,0)"/>
+      </g>
+      <!-- Scattered light reflections on water -->
+      <g fill="none" stroke="#a8ddef" stroke-linecap="round">
+        <path d="M-120,-140 C-100,-150 -80,-130 -60,-140" stroke-width="6" opacity="0.3"/>
+        <path d="M80,-20 C100,-30 120,-15 140,-22" stroke-width="6" opacity="0.3"/>
+        <path d="M-40,80 C-20,70 0,85 20,75" stroke-width="6" opacity="0.3"/>
+        <path d="M-200,-80 C-185,-88 -170,-76 -155,-82" stroke-width="5" opacity="0.2"/>
+        <path d="M150,-160 C165,-168 178,-155 192,-162" stroke-width="4" opacity="0.2"/>
+        <path d="M-180,40 C-165,32 -150,44 -135,38" stroke-width="5" opacity="0.25"/>
+        <path d="M180,120 C195,112 210,124 225,118" stroke-width="4" opacity="0.2"/>
+        <path d="M-60,-200 C-45,-208 -30,-196 -15,-202" stroke-width="4" opacity="0.15"/>
+        <path d="M20,150 C35,142 50,154 65,148" stroke-width="5" opacity="0.2"/>
+        <path d="M-140,160 C-125,152 -110,164 -95,158" stroke-width="4" opacity="0.18"/>
+        <path d="M200,-80 C212,-86 224,-78 236,-84" stroke-width="3" opacity="0.15"/>
+        <path d="M-220,120 C-208,114 -196,122 -184,116" stroke-width="3" opacity="0.15"/>
+        <path d="M100,40 C112,34 124,42 136,36" stroke-width="5" opacity="0.22"/>
+        <path d="M-80,-40 C-68,-46 -56,-38 -44,-44" stroke-width="4" opacity="0.18"/>
+        <path d="M-160,-180 C-148,-186 -136,-178 -124,-184" stroke-width="3" opacity="0.12"/>
+        <path d="M60,-100 C72,-106 84,-98 96,-104" stroke-width="4" opacity="0.2"/>
+      </g>
+
+      <!-- Rock stack - top left -->
+      <g>
+        <path d="M-250,-270 C-242,-215 -215,-190 -185,-200 C-155,-210 -130,-185 -110,-210 C-95,-228 -85,-260 -90,-270 Z" fill="url(#rock1)"/>
+        <path d="M-250,-270 C-244,-225 -225,-205 -200,-215 C-178,-223 -165,-198 -148,-215 C-138,-225 -130,-255 -138,-270 Z" fill="url(#rock2)"/>
+        <path d="M-230,-270 C-226,-240 -215,-225 -195,-232 C-180,-237 -168,-218 -155,-232 C-147,-240 -142,-262 -148,-270 Z" fill="url(#rock3)"/>
+        <path d="M-225,-230 C-218,-225 -205,-222 -195,-228" stroke="#6a9a70" stroke-width="4" fill="none" opacity="0.5"/>
+        <path d="M-200,-218 C-190,-213 -175,-215 -165,-222" stroke="#6a9a70" stroke-width="3" fill="none" opacity="0.4"/>
+      </g>
+
+      <!-- Rock stack - bottom right -->
+      <g>
+        <path d="M250,210 C242,155 215,130 180,142 C155,150 135,125 112,145 C95,160 88,195 92,210 Z" fill="url(#rock1)"/>
+        <path d="M250,210 C244,168 222,148 195,158 C175,165 160,142 142,158 C130,170 125,195 132,210 Z" fill="url(#rock2)"/>
+        <path d="M235,210 C230,178 212,162 188,170 C170,176 158,155 142,170 C132,180 128,200 135,210 Z" fill="url(#rock3)"/>
+        <path d="M205,168 C200,155 190,148 178,153 C168,157 162,150 155,158 C150,163 152,174 160,178 C170,182 185,180 195,175 Z" fill="url(#rock3)"/>
+        <path d="M195,162 C188,156 178,155 170,160" stroke="#6a9a70" stroke-width="4" fill="none" opacity="0.5"/>
+      </g>
+
+      <!-- Lilypad - notch narrowed to ~22° -->
+      <g transform="translate(50, 0) scale(2.2) rotate(12)">
+        <path d="M0,0
+                 L40.2,-7.3
+                 A42,28 0 1,0 40.2,7.3
+                 Z" fill="url(#pad)"/>
+        <!-- Soft highlight on pad -->
+        <ellipse cx="-8" cy="-6" rx="18" ry="12" fill="#1cc892" opacity="0.3" transform="rotate(-10)"/>
+        <!-- Veins -->
+        <g stroke="#088060" stroke-width="1.2" fill="none" opacity="0.4">
+          <path d="M0,0 L-38,-10"/>
+          <path d="M0,0 L-36,12"/>
+          <path d="M0,0 L-20,-24"/>
+          <path d="M0,0 L-18,24"/>
+          <path d="M0,0 L10,-26"/>
+          <path d="M0,0 L14,26"/>
+          <path d="M0,0 L-40,2"/>
+        </g>
+        <!-- Flower -->
+        <g transform="translate(-8,-4)">
+          <path d="M0,-9 C4,-5 4,0 0,4 C-4,0 -4,-5 0,-9 Z" fill="url(#petal)" transform="rotate(0)"/>
+          <path d="M0,-9 C4,-5 4,0 0,4 C-4,0 -4,-5 0,-9 Z" fill="url(#petal)" transform="rotate(72)"/>
+          <path d="M0,-9 C4,-5 4,0 0,4 C-4,0 -4,-5 0,-9 Z" fill="url(#petal)" opacity="0.85" transform="rotate(144)"/>
+          <path d="M0,-9 C4,-5 4,0 0,4 C-4,0 -4,-5 0,-9 Z" fill="url(#petal)" transform="rotate(216)"/>
+          <path d="M0,-9 C4,-5 4,0 0,4 C-4,0 -4,-5 0,-9 Z" fill="url(#petal)" opacity="0.85" transform="rotate(288)"/>
+          <!-- Warm center -->
+          <circle r="3.5" fill="#f5c842"/>
+          <circle r="2" fill="#f8dc6a" opacity="0.7"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

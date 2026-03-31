@@ -1,0 +1,24 @@
+{
+    "title": "Pix Stream",
+    "subtitle": "A floating image gallery",
+    "headerColor": "#dddddd",
+    "bgColor": "#808080",
+    "fontBody": "Roboto",
+    "nsfwBlurDefault": true,
+    "enabledTags": [
+    ],
+    "tagDisplayMode": "dropdown",
+    "enableShare": true,
+    "enableDownload": true,
+    "enableQr": true,
+    "enableKiosk": true,
+    "flowDirection": "rtl",
+    "flowSpeed": "med",
+    "contactEmail": "",
+    "pageHeadTitle": "",
+    "description": "A self-hosted image gallery built for photographers, artists, and creatives. Browse the stream, click any image to view it full size, and use the **tags** above to filter by category.\n\nCustomize this text in the [admin panel](\/admin) under **Description**.",
+    "siteLogo": "",
+    "siteFavicon": "",
+    "watermark": "",
+    "sortOrder": "random"
+}
