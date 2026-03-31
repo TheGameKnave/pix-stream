@@ -136,7 +136,6 @@ Site settings are stored in `server/config/site.json` and managed through the ad
 | `siteDescription` | Markdown content for the about panel |
 | `headerColor` / `bgColor` | Theme colors |
 | `fontBody` | Google Font name (18 presets available) |
-| `paletteMode` | `mono`, `complementary`, `triad`, or `high-contrast` |
 | `flowDirection` | `rtl`, `ltr`, `ttb`, `btt` |
 | `flowSpeed` | `off`, `low`, `med`, `high` |
 | `enabledTags` | Array of tags to show in the UI (empty = all) |

@@ -50,7 +50,6 @@ function getDefaultConfig(): array {
         'title' => 'Photo Stream',
         'subtitle' => 'A floating photo gallery',
         'headerColor' => '#01ddb1',
-        'paletteMode' => 'mono',
         'bgColor' => '#808080',
         'fontBody' => 'Raleway',
         'nsfwBlurDefault' => false,

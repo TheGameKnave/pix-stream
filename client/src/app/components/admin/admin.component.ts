@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, HostListener, ViewChild, AfterViewChecked, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { take } from 'rxjs';
 import { SiteConfigService, SiteConfig } from '@app/services/site-config.service';
 import { ScrollIndicatorDirective } from '@app/directives/scroll-indicator.directive';
 import { MarkdownEditorComponent } from '@app/directives/markdown-editor.directive';
@@ -17,12 +18,6 @@ const FONT_OPTIONS = [
   'Oswald', 'Josefin Sans', 'Cormorant Garamond', 'Libre Baskerville',
 ];
 
-const PALETTE_MODES = [
-  { value: 'mono', label: 'Monochrome' },
-  { value: 'complement', label: 'Complementary' },
-  { value: 'triad', label: 'Triadic' },
-  { value: 'contrast', label: 'High Contrast' },
-];
 
 @Component({
   selector: 'app-admin',
@@ -43,9 +38,9 @@ export class AdminComponent implements AfterViewChecked {
   readonly error = signal('');
   readonly showForgot = signal(false);
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  readonly saveStatus = signal('');
 
   readonly fontOptions = FONT_OPTIONS;
-  readonly paletteModes = PALETTE_MODES;
   readonly fontPickerOpen = signal(false);
   private fontPreviewsLoaded = false;
 
@@ -58,6 +53,15 @@ export class AdminComponent implements AfterViewChecked {
   readonly bgPickerOpen = signal(false);
   @ViewChild('bgPickerAnchor') bgPickerAnchorRef?: ElementRef<HTMLElement>;
   bgDragging = false;
+  private bgCanvasDrawn = false;
+  bgLightness = 50;
+
+  readonly hdrPickerOpen = signal(false);
+  @ViewChild('hdrPickerAnchor') hdrPickerAnchorRef?: ElementRef<HTMLElement>;
+  @ViewChild('hdrCanvas') hdrCanvasRef?: ElementRef<HTMLCanvasElement>;
+  hdrDragging = false;
+  private hdrCanvasDrawn = false;
+  hdrLightness = 50;
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -65,9 +69,11 @@ export class AdminComponent implements AfterViewChecked {
         !this.bgPickerAnchorRef.nativeElement.contains(event.target as Node)) {
       this.bgPickerOpen.set(false);
     }
+    if (this.hdrPickerOpen() && this.hdrPickerAnchorRef &&
+        !this.hdrPickerAnchorRef.nativeElement.contains(event.target as Node)) {
+      this.hdrPickerOpen.set(false);
+    }
   }
-  private bgCanvasDrawn = false;
-  bgLightness = 50;
 
   password = '';
   confirmPassword = '';
@@ -76,7 +82,6 @@ export class AdminComponent implements AfterViewChecked {
   title = '';
   subtitle = '';
   headerColor = '#01ddb1';
-  paletteMode = 'mono';
   bgColor = '#808080';
   fontBody = 'Raleway';
   customFontBody = '';
@@ -111,15 +116,18 @@ export class AdminComponent implements AfterViewChecked {
   ngAfterViewChecked(): void {
     if (this.bgCanvasRef && !this.bgCanvasDrawn) {
       this.bgCanvasDrawn = true;
-      this.drawBgCanvas();
+      this.drawCanvas(this.bgCanvasRef.nativeElement, this.bgColor, this.bgLightness);
     }
-    if (!this.bgCanvasRef) {
-      this.bgCanvasDrawn = false;
+    if (this.hdrCanvasRef && !this.hdrCanvasDrawn) {
+      this.hdrCanvasDrawn = true;
+      this.drawCanvas(this.hdrCanvasRef.nativeElement, this.headerColor, this.hdrLightness);
     }
+    if (!this.bgCanvasRef) this.bgCanvasDrawn = false;
+    if (!this.hdrCanvasRef) this.hdrCanvasDrawn = false;
   }
 
   private checkStatus(): void {
-    this.http.get<AuthStatus>('/api/auth/status').subscribe({
+    this.http.get<AuthStatus>('/api/auth/status').pipe(take(1)).subscribe({
       next: (res) => {
         this.authenticated.set(res.authenticated);
         this.setupRequired.set(res.setupRequired);
@@ -139,7 +147,7 @@ export class AdminComponent implements AfterViewChecked {
   }
 
   private loadManifest(): void {
-    this.http.get<ManifestResponse>('/api/manifest').subscribe({
+    this.http.get<ManifestResponse>('/api/manifest').pipe(take(1)).subscribe({
       next: (res) => {
         this.allImages = res.images.map(i => ({ id: i.id, tags: i.tags, thumb: i.thumb }));
         this.totalImageCount.set(this.allImages.length);
@@ -152,7 +160,8 @@ export class AdminComponent implements AfterViewChecked {
     this.title = c.title;
     this.subtitle = c.subtitle;
     this.headerColor = c.headerColor;
-    this.paletteMode = c.paletteMode;
+    const [, , hdrL] = this.hexToHsl(c.headerColor);
+    this.hdrLightness = Math.round(Math.max(20, Math.min(80, hdrL)));
     this.bgColor = c.bgColor;
     const [, , bgL] = this.hexToHsl(c.bgColor);
     this.bgLightness = Math.round(Math.max(20, Math.min(80, bgL)));
@@ -212,42 +221,32 @@ export class AdminComponent implements AfterViewChecked {
     this.fontPickerOpen.set(false);
   }
 
-  // --- Background hue/saturation picker ---
+  // --- Shared hue/saturation picker ---
 
-  private readonly GRAY_STRIP = 14; // pixels reserved for the gray strip at bottom
+  private readonly GRAY_STRIP = 14;
 
-  private drawBgCanvas(): void {
-    const canvas = this.bgCanvasRef?.nativeElement;
-    if (!canvas) return;
+  private drawCanvas(canvas: HTMLCanvasElement, colorHex: string, lightness: number): void {
     const ctx = canvas.getContext('2d')!;
     const w = canvas.width;
     const gradientH = canvas.height - this.GRAY_STRIP;
-    // Hue × saturation area
     for (let x = 0; x < w; x++) {
       for (let y = 0; y < gradientH; y++) {
         const hue = (x / w) * 360;
         const sat = 100 - (y / gradientH) * 100;
-        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${this.bgLightness}%)`;
+        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${lightness}%)`;
         ctx.fillRect(x, y, 1, 1);
       }
     }
-    // Gray strip (sat=0) at the bottom
-    ctx.fillStyle = `hsl(0, 0%, ${this.bgLightness}%)`;
+    ctx.fillStyle = `hsl(0, 0%, ${lightness}%)`;
     ctx.fillRect(0, gradientH, w, this.GRAY_STRIP);
-    // Divider line
     ctx.strokeStyle = 'rgba(128,128,128,0.4)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, gradientH);
     ctx.lineTo(w, gradientH);
     ctx.stroke();
-    // Draw crosshair
-    this.drawBgCrosshair(ctx, w, canvas.height);
-  }
-
-  private drawBgCrosshair(ctx: CanvasRenderingContext2D, w: number, h: number): void {
-    const [hue, sat] = this.hexToHsl(this.bgColor);
-    const gradientH = h - this.GRAY_STRIP;
+    // Crosshair
+    const [hue, sat] = this.hexToHsl(colorHex);
     const cx = (hue / 360) * w;
     const cy = sat === 0 ? gradientH + this.GRAY_STRIP / 2 : ((100 - sat) / 100) * gradientH;
     ctx.strokeStyle = '#fff';
@@ -260,6 +259,16 @@ export class AdminComponent implements AfterViewChecked {
     ctx.beginPath();
     ctx.arc(cx, cy, 7, 0, Math.PI * 2);
     ctx.stroke();
+  }
+
+  private pickFromCanvas(canvas: HTMLCanvasElement, event: MouseEvent | Touch, lightness: number): { hue: number; sat: number; hex: string } {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+    const gradientH = rect.height * (canvas.height - this.GRAY_STRIP) / canvas.height;
+    const hue = (x / rect.width) * 360;
+    const sat = y >= gradientH ? 0 : 100 - (y / gradientH) * 100;
+    return { hue, sat, hex: this.hslToHex(hue, sat, lightness) };
   }
 
   private hexToHsl(hex: string): [number, number, number] {
@@ -290,47 +299,21 @@ export class AdminComponent implements AfterViewChecked {
     return `#${f(0)}${f(8)}${f(4)}`;
   }
 
-  private pickBgFromCanvas(event: MouseEvent | Touch): void {
+  // --- Background picker events ---
+
+  private pickBg(event: MouseEvent | Touch): void {
     const canvas = this.bgCanvasRef?.nativeElement;
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.max(0, Math.min(rect.width, (event.clientX - rect.left)));
-    const y = Math.max(0, Math.min(rect.height, (event.clientY - rect.top)));
-    const gradientH = rect.height * (canvas.height - this.GRAY_STRIP) / canvas.height;
-    const hue = (x / rect.width) * 360;
-    let sat: number;
-    if (y >= gradientH) {
-      sat = 0; // Gray strip
-    } else {
-      sat = 100 - (y / gradientH) * 100;
-    }
-    this.bgColor = this.hslToHex(hue, sat, this.bgLightness);
-    this.onConfigChange();
-    // Redraw crosshair
+    const result = this.pickFromCanvas(canvas, event, this.bgLightness);
+    this.bgColor = result.hex;
     this.bgCanvasDrawn = false;
+    this.onConfigChange();
   }
 
-  onBgCanvasMouseDown(event: MouseEvent): void {
-    this.bgDragging = true;
-    this.pickBgFromCanvas(event);
-  }
-
-  onBgCanvasDrag(event: MouseEvent): void {
-    if (!this.bgDragging) return;
-    this.pickBgFromCanvas(event);
-  }
-
-  onBgCanvasTouchStart(event: TouchEvent): void {
-    event.preventDefault();
-    this.bgDragging = true;
-    this.pickBgFromCanvas(event.touches[0]);
-  }
-
-  onBgCanvasTouchMove(event: TouchEvent): void {
-    event.preventDefault();
-    if (!this.bgDragging) return;
-    this.pickBgFromCanvas(event.touches[0]);
-  }
+  onBgCanvasMouseDown(event: MouseEvent): void { this.bgDragging = true; this.pickBg(event); }
+  onBgCanvasDrag(event: MouseEvent): void { if (this.bgDragging) this.pickBg(event); }
+  onBgCanvasTouchStart(event: TouchEvent): void { event.preventDefault(); this.bgDragging = true; this.pickBg(event.touches[0]); }
+  onBgCanvasTouchMove(event: TouchEvent): void { event.preventDefault(); if (this.bgDragging) this.pickBg(event.touches[0]); }
 
   onBgLightnessChange(): void {
     const [hue, sat] = this.hexToHsl(this.bgColor);
@@ -346,6 +329,36 @@ export class AdminComponent implements AfterViewChecked {
     this.onConfigChange();
   }
 
+  // --- Header color picker events ---
+
+  private pickHdr(event: MouseEvent | Touch): void {
+    const canvas = this.hdrCanvasRef?.nativeElement;
+    if (!canvas) return;
+    const result = this.pickFromCanvas(canvas, event, this.hdrLightness);
+    this.headerColor = result.hex;
+    this.hdrCanvasDrawn = false;
+    this.onConfigChange();
+  }
+
+  onHdrCanvasMouseDown(event: MouseEvent): void { this.hdrDragging = true; this.pickHdr(event); }
+  onHdrCanvasDrag(event: MouseEvent): void { if (this.hdrDragging) this.pickHdr(event); }
+  onHdrCanvasTouchStart(event: TouchEvent): void { event.preventDefault(); this.hdrDragging = true; this.pickHdr(event.touches[0]); }
+  onHdrCanvasTouchMove(event: TouchEvent): void { event.preventDefault(); if (this.hdrDragging) this.pickHdr(event.touches[0]); }
+
+  onHdrLightnessChange(): void {
+    const [hue, sat] = this.hexToHsl(this.headerColor);
+    this.headerColor = this.hslToHex(hue, sat, this.hdrLightness);
+    this.hdrCanvasDrawn = false;
+    this.onConfigChange();
+  }
+
+  onHdrColorInputChange(): void {
+    const [, , l] = this.hexToHsl(this.headerColor);
+    this.hdrLightness = Math.round(Math.max(20, Math.min(80, l)));
+    this.hdrCanvasDrawn = false;
+    this.onConfigChange();
+  }
+
   // --- Logo upload/remove ---
 
   uploadLogo(event: Event): void {
@@ -354,12 +367,12 @@ export class AdminComponent implements AfterViewChecked {
     if (!file) return;
     const fd = new FormData();
     fd.append('logo', file);
-    this.http.post<{ url: string }>('/api/logo', fd).subscribe({
+    this.http.post<{ url: string }>('/api/logo', fd).pipe(take(1)).subscribe({
       next: (res) => {
         this.siteLogo.set(res.url + '?t=' + Date.now());
         this.onConfigChange();
       },
-      error: (err) => this.error.set(err.error?.error || 'Logo upload failed'),
+      error: (err: unknown) => this.error.set((err as { error?: { error?: string } }).error?.error || 'Logo upload failed'),
     });
     input.value = '';
   }
@@ -367,7 +380,7 @@ export class AdminComponent implements AfterViewChecked {
   removeLogo(): void {
     this.siteLogo.set('');
     this.onConfigChange();
-    this.http.delete('/api/logo', { responseType: 'text' }).subscribe();
+    this.http.delete('/api/logo', { responseType: 'text' }).pipe(take(1)).subscribe();
   }
 
   // --- Favicon upload/remove ---
@@ -378,12 +391,12 @@ export class AdminComponent implements AfterViewChecked {
     if (!file) return;
     const fd = new FormData();
     fd.append('favicon', file);
-    this.http.post<{ url: string }>('/api/favicon', fd).subscribe({
+    this.http.post<{ url: string }>('/api/favicon', fd).pipe(take(1)).subscribe({
       next: (res) => {
         this.siteFavicon.set(res.url + '?t=' + Date.now());
         this.onConfigChange();
       },
-      error: (err) => this.error.set(err.error?.error || 'Favicon upload failed'),
+      error: (err: unknown) => this.error.set((err as { error?: { error?: string } }).error?.error || 'Favicon upload failed'),
     });
     input.value = '';
   }
@@ -391,7 +404,7 @@ export class AdminComponent implements AfterViewChecked {
   removeFavicon(): void {
     this.siteFavicon.set('');
     this.onConfigChange();
-    this.http.delete('/api/favicon', { responseType: 'text' }).subscribe();
+    this.http.delete('/api/favicon', { responseType: 'text' }).pipe(take(1)).subscribe();
   }
 
   // --- Watermark upload/remove ---
@@ -402,12 +415,12 @@ export class AdminComponent implements AfterViewChecked {
     if (!file) return;
     const fd = new FormData();
     fd.append('watermark', file);
-    this.http.post<{ url: string }>('/api/watermark', fd).subscribe({
+    this.http.post<{ url: string }>('/api/watermark', fd).pipe(take(1)).subscribe({
       next: (res) => {
         this.watermark.set(res.url + '?t=' + Date.now());
         this.onConfigChange();
       },
-      error: (err) => this.error.set(err.error?.error || 'Watermark upload failed'),
+      error: (err: unknown) => this.error.set((err as { error?: { error?: string } }).error?.error || 'Watermark upload failed'),
     });
     input.value = '';
   }
@@ -415,7 +428,7 @@ export class AdminComponent implements AfterViewChecked {
   removeWatermark(): void {
     this.watermark.set('');
     this.onConfigChange();
-    this.http.delete('/api/watermark', { responseType: 'text' }).subscribe();
+    this.http.delete('/api/watermark', { responseType: 'text' }).pipe(take(1)).subscribe();
   }
 
   // --- Image upload ---
@@ -453,10 +466,10 @@ export class AdminComponent implements AfterViewChecked {
     this.uploadingImages.set(true);
     this.uploadResult.set(null);
     const fd = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      fd.append('images[]', files[i]);
+    for (const file of Array.from(files)) {
+      fd.append('images[]', file);
     }
-    this.http.post<{ uploaded: string[]; errors: string[] }>('/api/upload', fd).subscribe({
+    this.http.post<{ uploaded: string[]; errors: string[] }>('/api/upload', fd).pipe(take(1)).subscribe({
       next: (res) => {
         this.uploadResult.set(res);
         this.uploadingImages.set(false);
@@ -517,11 +530,11 @@ export class AdminComponent implements AfterViewChecked {
   }
 
   private flush(): void {
+    this.saveStatus.set('Saving...');
     this.siteConfig.saveConfig({
       title: this.title,
       subtitle: this.subtitle,
       headerColor: this.headerColor,
-      paletteMode: this.paletteMode,
       bgColor: this.bgColor,
       fontBody: this.resolvedFontBody,
       nsfwBlurDefault: this.nsfwBlurDefault,
@@ -541,6 +554,9 @@ export class AdminComponent implements AfterViewChecked {
       watermark: this.watermark(),
       sortOrder: this.sortOrder,
     });
+    // Announce save completion (service is fire-and-forget)
+    setTimeout(() => this.saveStatus.set('Saved'), 500);
+    setTimeout(() => this.saveStatus.set(''), 2500);
   }
 
   setup(): void {
@@ -553,7 +569,7 @@ export class AdminComponent implements AfterViewChecked {
       this.error.set('Passwords do not match');
       return;
     }
-    this.http.post<{ success?: boolean; error?: string }>('/api/auth/setup', { password: this.password }).subscribe({
+    this.http.post<{ success?: boolean; error?: string }>('/api/auth/setup', { password: this.password }).pipe(take(1)).subscribe({
       next: (res) => {
         if (res.success) {
           this.authenticated.set(true);
@@ -566,13 +582,13 @@ export class AdminComponent implements AfterViewChecked {
           this.loadManifest();
         }
       },
-      error: (err) => this.error.set(err.error?.error || 'Setup failed'),
+      error: (err: unknown) => this.error.set((err as { error?: { error?: string } }).error?.error || 'Setup failed'),
     });
   }
 
   login(): void {
     this.error.set('');
-    this.http.post<{ success?: boolean; error?: string }>('/api/auth/login', { password: this.password }).subscribe({
+    this.http.post<{ success?: boolean; error?: string }>('/api/auth/login', { password: this.password }).pipe(take(1)).subscribe({
       next: (res) => {
         if (res.success) {
           this.authenticated.set(true);
@@ -582,7 +598,7 @@ export class AdminComponent implements AfterViewChecked {
           this.loadManifest();
         }
       },
-      error: (err) => this.error.set(err.error?.error || 'Login failed'),
+      error: (err: unknown) => this.error.set((err as { error?: { error?: string } }).error?.error || 'Login failed'),
     });
   }
 
