@@ -22,10 +22,10 @@
           [style.height.px]="card.h"
           [style.z-index]="card.zIndex"
           [style.transform]="'rotate(' + card.rotation + 'deg)'"
+          [attr.data-rotation]="card.rotation"
           [style.box-shadow]="card.shadow"
           (pointerdown)="onPointerDown($event)"
-          (pointermove)="onPointerMove()"
-          (pointerup)="onPointerUp($event, card, $index)"
+          (click)="onCardClick($event, card, $index)"
           (keydown.enter)="openLightbox(card, $index)"
           (keydown.space)="openLightbox(card, $index); $event.preventDefault()"
         >

@@ -215,7 +215,7 @@ const MOCK_CONFIG: SiteConfig = {
   enableDownload: true, enableQr: true, enableKiosk: true,
   flowDirection: 'rtl', flowSpeed: 'med', contactEmail: '',
   pageHeadTitle: '', description: '', siteLogo: '', siteFavicon: '',
-  watermark: '', sortOrder: 'random',
+  watermark: '', sortOrder: 'random', homepageUrl: '',
 };
 
 function makeTestEntry(id: string, overrides: Partial<ImageEntry> = {}): ImageEntry {
@@ -367,7 +367,7 @@ describe('GalleryComponent (DOM)', () => {
     expect().nothing();
   });
 
-  it('onPointerUp opens lightbox when pointer barely moved', () => {
+  it('onCardClick opens lightbox when pointer barely moved', () => {
     component.loading.set(false);
     const card = makeTestCard('a');
     component.cards.set([card]);
@@ -375,17 +375,17 @@ describe('GalleryComponent (DOM)', () => {
 
     component.onPointerDown(new PointerEvent('pointerdown', { clientX: 100, clientY: 100 }));
     spyOn(component, 'openLightbox');
-    component.onPointerUp(new PointerEvent('pointerup', { clientX: 105, clientY: 103 }), card, 0);
+    component.onCardClick(new MouseEvent('click', { clientX: 105, clientY: 103 }), card, 0);
     expect(component.openLightbox).toHaveBeenCalledWith(card, 0);
   });
 
-  it('onPointerUp does NOT open lightbox when pointer moved significantly (drag)', () => {
+  it('onCardClick does NOT open lightbox when pointer moved significantly (drag)', () => {
     const card = makeTestCard('a');
     component.cards.set([card]);
 
     component.onPointerDown(new PointerEvent('pointerdown', { clientX: 100, clientY: 100 }));
     spyOn(component, 'openLightbox');
-    component.onPointerUp(new PointerEvent('pointerup', { clientX: 150, clientY: 100 }), card, 0);
+    component.onCardClick(new MouseEvent('click', { clientX: 150, clientY: 100 }), card, 0);
     expect(component.openLightbox).not.toHaveBeenCalled();
   });
 
@@ -482,11 +482,6 @@ describe('GalleryComponent (DOM)', () => {
     });
   });
 
-  describe('onPointerMove', () => {
-    it('is a no-op', () => {
-      expect(() => component.onPointerMove()).not.toThrow();
-    });
-  });
 
   describe('lightbox class binding', () => {
     it('adds lightbox-active class when lightbox is open', () => {

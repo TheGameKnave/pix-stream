@@ -132,6 +132,7 @@ export class GalleryComponent {
   private displacedCards: { el: HTMLElement; dx: number; dy: number }[] = [];
   private lightboxOrder: { card: FloatingImage; cardIndex: number }[] = [];
   private lightboxOrderIdx = -1;
+  private preloadedImages: HTMLImageElement[] = []; // keep decoded images alive in memory
   private lightboxNavigating = false;
   private focusBeforeLightbox: HTMLElement | null = null;
   private boundTrapFocus: ((e: KeyboardEvent) => void) | null = null;
@@ -436,6 +437,34 @@ export class GalleryComponent {
 
     this.cards.set(initialCards);
     this.persistState();
+    this.preloadAllImages();
+  }
+
+  /** Preload all thumbnails and full images for offline use via the service worker cache. */
+  private preloadAllImages(): void {
+    // Prioritize visible cards' full images, then all remaining thumbs + fulls
+    const visibleFulls = this.cards().map(c => c.entry.full);
+    const allThumbs = this.allEntries.map(e => e.thumb);
+    const allFulls = this.allEntries.map(e => e.full);
+    const urls = [...visibleFulls, ...allThumbs, ...allFulls];
+    // Deduplicate while preserving priority order
+    const seen = new Set<string>();
+    const unique = urls.filter(u => { if (seen.has(u)) return false; seen.add(u); return true; });
+
+    let i = 0;
+    const loadNext = () => {
+      if (i >= unique.length) return;
+      const img = new Image();
+      img.onload = () => { this.preloadedImages.push(img); loadNext(); };
+      img.onerror = loadNext;
+      img.src = unique[i++];
+    };
+    // Start after the UI is idle, one at a time to avoid bandwidth contention
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(() => loadNext());
+    } else {
+      setTimeout(loadNext, 1000);
+    }
   }
 
   private startRiver(): void {
@@ -458,7 +487,11 @@ export class GalleryComponent {
       }
 
       // Add/remove columns as they scroll in/out of view
-      this.ensureColumns();
+      if (this.skipEnsureFrames > 0) {
+        this.skipEnsureFrames--;
+      } else {
+        this.ensureColumns();
+      }
 
       this.rafId = requestAnimationFrame(tick);
     };
@@ -638,11 +671,7 @@ export class GalleryComponent {
     this.pointerDownY = event.clientY;
   }
 
-  onPointerMove(): void {
-    // noop
-  }
-
-  onPointerUp(event: PointerEvent, image: FloatingImage, index: number): void {
+  onCardClick(event: MouseEvent, image: FloatingImage, index: number): void {
     const dx = Math.abs(event.clientX - this.pointerDownX);
     const dy = Math.abs(event.clientY - this.pointerDownY);
     // Only open lightbox if pointer barely moved (click, not drag)
@@ -693,6 +722,16 @@ export class GalleryComponent {
   openLightbox(image: FloatingImage, cardIndex: number): void {
     if (this.lightboxOpen()) return;
 
+    // Start curtain fade via CSS transition — takes effect immediately,
+    // not blocked by subsequent synchronous work
+    const el = this.canvas()?.nativeElement;
+    const curtain = el?.querySelector('.lightbox-curtain') as HTMLElement;
+    if (curtain) {
+      const dur = this.prefersReducedMotion ? 0 : 0.3;
+      curtain.style.transition = `opacity ${dur}s ease-out`;
+      curtain.style.opacity = '1';
+    }
+
     this.focusBeforeLightbox = document.activeElement as HTMLElement | null;
     this.lightboxImage.set(image);
     this.lightboxOpen.set(true);
@@ -731,11 +770,11 @@ export class GalleryComponent {
     }
   }
 
+
   private animateOpen(image: FloatingImage, cardIndex: number): void {
     const el = this.canvas()?.nativeElement;
     if (!el) return;
 
-    // Get the card's screen-space rect to animate from, and hide the original
     const cardEls = el.querySelectorAll('.river-inner .river-card');
     const cardEl = cardEls[cardIndex] as HTMLElement | undefined;
     const rect = cardEl?.getBoundingClientRect();
@@ -744,18 +783,42 @@ export class GalleryComponent {
       this.lightboxSourceCard = cardEl;
     }
 
-    // Push nearby cards away from the opened card
     this.displaceNeighbors(el, cardIndex, rect);
 
     const lbVw = window.innerWidth;
     const lbVh = window.innerHeight;
-
     const startX = rect ? rect.left : lbVw / 2 - image.w / 2;
     const startY = rect ? rect.top : lbVh / 2 - image.h / 2;
     const startW = rect ? rect.width : image.w;
     const startH = rect ? rect.height : image.h;
 
-    // Create a fixed overlay element that mimics the card
+    const pad = 16;
+    const maxW = lbVw - pad * 2;
+    const maxH = lbVh - pad * 2;
+    const aspect = image.entry.width && image.entry.height
+      ? image.entry.width / image.entry.height : 1;
+
+    let targetW: number, targetH: number;
+    if (maxW / maxH > aspect) {
+      targetH = Math.floor(maxH);
+      targetW = Math.floor(targetH * aspect);
+    } else {
+      targetW = Math.floor(maxW);
+      targetH = Math.floor(targetW / aspect);
+    }
+
+    const targetX = (lbVw - targetW) / 2;
+    const targetY = (lbVh - targetH) / 2;
+    const scaleX = startW / targetW;
+    const scaleY = startH / targetH;
+    const translateX = (startX + startW / 2) - (targetX + targetW / 2);
+    const translateY = (startY + startH / 2) - (targetY + targetH / 2);
+
+    const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
+    const bannerH = image.entry.bannerHeight || 0;
+    const duration = this.prefersReducedMotion ? 0 : 0.45;
+
+    // Build overlay at card position/size with the thumbnail
     const overlay = document.createElement('div');
     overlay.className = 'lightbox-zoom';
     overlay.setAttribute('role', 'dialog');
@@ -769,72 +832,75 @@ export class GalleryComponent {
       transform:rotate(${image.rotation}deg);
       box-shadow:${image.shadow};
     `;
-    const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
+
     const img = document.createElement('img');
     img.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb;
     img.draggable = false;
-    img.style.cssText = 'display:block; width:100%; height:100%; object-fit:cover;';
+    img.style.cssText = 'display:block; width:100%; height:100%; object-fit:fill;';
     overlay.appendChild(img);
-    overlay.addEventListener('click', () => this.closeLightbox());
-    this.attachSwipe(overlay);
+    const swipeState = this.attachSwipe(overlay, () => this.closeLightbox());
+    // Desktop click-to-close (touch uses tap handler in attachSwipe)
+    overlay.addEventListener('click', () => {
+      if (swipeState.scale <= 1) this.closeLightbox();
+    });
     el.appendChild(overlay);
     this.lightboxEl = overlay;
 
-    // Preload full image and swap when ready (skip for blurred NSFW — don't download unblurred content)
-    const bannerH = image.entry.bannerHeight || 0;
+    // Preload full image in background — swap only after animation completes
+    let decodedImg: HTMLImageElement | null = null;
+    let animDone = false;
+    const trySwap = () => {
+      if (!animDone || !decodedImg || this.lightboxEl !== overlay) return;
+      const fullEl = document.createElement('img');
+      fullEl.src = decodedImg.src;
+      fullEl.draggable = false;
+      if (bannerH > 0) {
+        // Width 100% with auto height — image scales to fill width,
+        // banner overflows below and gets clipped
+        fullEl.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:auto; display:block;';
+        overlay.style.overflow = 'hidden';
+      } else {
+        fullEl.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; display:block;';
+      }
+      fullEl.style.visibility = 'hidden';
+      overlay.appendChild(fullEl);
+      requestAnimationFrame(() => {
+        fullEl.style.visibility = '';
+        img.style.visibility = 'hidden';
+      });
+    };
     if (!isBlurred) {
       const fullImg = new Image();
-      fullImg.onload = () => {
-        img.src = image.entry.full;
-        if (bannerH > 0) {
-          // Scale the image so the visible portion (minus banner) fills the container,
-          // then clip the banner off the bottom with overflow:hidden
-          const visibleRatio = fullImg.naturalHeight / (fullImg.naturalHeight - bannerH);
-          img.style.objectFit = 'fill';
-          img.style.width = '100%';
-          img.style.height = (100 * visibleRatio) + '%';
-          overlay.style.overflow = 'hidden';
-        } else {
-          img.style.objectFit = 'contain';
-        }
-      };
       fullImg.src = image.entry.full;
+      fullImg.decode().then(() => { decodedImg = fullImg; trySwap(); }, () => {});
     }
 
-    // Calculate target: fill viewport, maintain aspect ratio (use original dimensions, not banner-extended)
-    const pad = 16;
-    const maxW = lbVw - pad * 2;
-    const maxH = lbVh - pad * 2;
-    const aspect = image.entry.width && image.entry.height
-      ? image.entry.width / image.entry.height : 1;
-
-    let targetW: number, targetH: number;
-    if (maxW / maxH > aspect) {
-      targetH = maxH;
-      targetW = targetH * aspect;
-    } else {
-      targetW = maxW;
-      targetH = targetW / aspect;
-    }
-
-    // Fade in curtain
-    const curtain = el.querySelector('.lightbox-curtain') as HTMLElement;
-    if (curtain) {
-      gsap.to(curtain, { opacity: 1, duration: this.prefersReducedMotion ? 0 : 0.4, ease: 'power2.out' });
-    }
-
-    // Animate overlay to center, then add controls
+    // Animate from card position to center
     gsap.to(overlay, {
-      left: (lbVw - targetW) / 2,
-      top: (lbVh - targetH) / 2,
+      left: targetX,
+      top: targetY,
       width: targetW,
       height: targetH,
       rotation: 0,
-      boxShadow: '0 0 0 0 rgba(0,0,0,0)',
       borderRadius: '0px',
-      duration: this.prefersReducedMotion ? 0 : 0.5,
+      boxShadow: '0 0 0 0 rgba(0,0,0,0)',
+      duration,
       ease: 'power2.out',
+      force3D: true,
       onComplete: () => {
+        // Remove GSAP's internal cache so manual style.transform (pinch zoom) works
+        gsap.killTweensOf(overlay);
+        delete (overlay as any)._gsap;
+        // Re-apply position without GSAP
+        overlay.style.left = targetX + 'px';
+        overlay.style.top = targetY + 'px';
+        overlay.style.width = targetW + 'px';
+        overlay.style.height = targetH + 'px';
+        overlay.style.transform = 'none';
+        overlay.style.borderRadius = '0';
+        overlay.style.boxShadow = 'none';
+        animDone = true;
+        trySwap();
         if (!isBlurred) this.addLightboxControls(el, image);
       },
     });
@@ -847,14 +913,18 @@ export class GalleryComponent {
 
     const controls = document.createElement('div');
     controls.className = 'lightbox-controls';
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     controls.style.cssText = `
-      position:fixed; z-index:1001; pointer-events:auto;
+      position:fixed; z-index:1001;
+      pointer-events:${isTouch ? 'none' : 'auto'};
       left:${lbRect.left}px; top:${lbRect.top}px;
       width:${lbRect.width}px; height:${lbRect.height}px;
     `;
-    controls.addEventListener('click', (e) => {
-      if (e.target === controls) this.closeLightbox();
-    });
+    if (!isTouch) {
+      controls.addEventListener('click', (e) => {
+        if (e.target === controls) this.closeLightbox();
+      });
+    }
 
     // Top-right actions (download + share + qr)
     const actions = document.createElement('div');
@@ -898,7 +968,21 @@ export class GalleryComponent {
     if (cfg?.enableShare !== false) actions.appendChild(shareBtn);
     if (cfg?.enableQr !== false) actions.appendChild(qrBtn);
     if (this.siteConfig.adminAuthenticated()) actions.appendChild(deleteBtn);
-    if (actions.childElementCount > 0) controls.appendChild(actions);
+    if (actions.childElementCount > 0) {
+      // Add toggle button for mobile — CSS media query hides/shows it
+      const toggle = document.createElement('button');
+      toggle.className = 'lb-btn lb-actions-toggle';
+      toggle.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>`;
+      toggle.title = 'Actions';
+      toggle.setAttribute('aria-label', 'Toggle actions');
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const expanded = actions.classList.toggle('lb-actions-expanded');
+        toggle.classList.toggle('lb-actions-toggle-active', expanded);
+      });
+      controls.appendChild(toggle);
+      controls.appendChild(actions);
+    }
 
     // Left chevron
     const hasLeft = this.lightboxOrderIdx > 0;
@@ -928,12 +1012,12 @@ export class GalleryComponent {
     // Fade controls on hover
     const show = () => { controls.classList.add('visible'); };
     const hide = () => { controls.classList.remove('visible'); };
-    controls.addEventListener('mouseenter', show);
-    controls.addEventListener('mouseleave', hide);
-    if (controls.matches(':hover')) show();
-    // Always visible on touch devices (no hover)
-    if ('ontouchstart' in window) {
+    if (isTouch) {
       controls.classList.add('visible');
+    } else {
+      controls.addEventListener('mouseenter', show);
+      controls.addEventListener('mouseleave', hide);
+      if (controls.matches(':hover')) show();
     }
 
     // Focus trap: keep Tab cycling within lightbox controls
@@ -1043,10 +1127,12 @@ export class GalleryComponent {
     const cy = sourceRect.top + sourceRect.height / 2;
     const radius = Math.max(sourceRect.width, sourceRect.height) * 2.5;
     this.displacedCards = [];
+    const dur = this.prefersReducedMotion ? '0s' : '0.4s';
 
     cardEls.forEach((el, i) => {
       if (i === cardIndex) return;
-      const r = (el as HTMLElement).getBoundingClientRect();
+      const card = el as HTMLElement;
+      const r = card.getBoundingClientRect();
       const ex = r.left + r.width / 2;
       const ey = r.top + r.height / 2;
       const dist = Math.hypot(ex - cx, ey - cy);
@@ -1057,25 +1143,23 @@ export class GalleryComponent {
       const push = strength * 60;
       const dx = Math.cos(angle) * push;
       const dy = Math.sin(angle) * push;
+      const rotation = card.dataset['rotation'] || '0';
 
-      this.displacedCards.push({ el: el as HTMLElement, dx, dy });
-      gsap.to(el, {
-        x: `+=${dx}`,
-        y: `+=${dy}`,
-        duration: this.prefersReducedMotion ? 0 : 0.4,
-        ease: 'power2.out',
-      });
+      this.displacedCards.push({ el: card, dx, dy });
+      card.style.transition = `transform ${dur} cubic-bezier(0.25,0.1,0.25,1)`;
+      card.style.transform = `translate(${dx}px, ${dy}px) rotate(${rotation}deg)`;
     });
   }
 
   private restoreNeighbors(): void {
-    for (const { el, dx, dy } of this.displacedCards) {
-      gsap.to(el, {
-        x: `-=${dx}`,
-        y: `-=${dy}`,
-        duration: this.prefersReducedMotion ? 0 : 0.35,
-        ease: 'power2.inOut',
-      });
+    const dur = this.prefersReducedMotion ? '0s' : '0.35s';
+    for (const { el } of this.displacedCards) {
+      const rotation = el.dataset['rotation'] || '0';
+      el.style.transition = `transform ${dur} cubic-bezier(0.42,0,0.58,1)`;
+      el.style.transform = `rotate(${rotation}deg)`;
+      el.addEventListener('transitionend', () => {
+        el.style.transition = '';
+      }, { once: true });
     }
     this.displacedCards = [];
   }
@@ -1122,11 +1206,14 @@ export class GalleryComponent {
       this.lightboxControls.classList.remove('visible');
     }
 
+    const closeDuration = this.prefersReducedMotion ? 0 : 0.35;
+
     // Fade out curtain (skip if navigating — curtain stays visible)
     if (!willReopen) {
       const curtain = el?.querySelector('.lightbox-curtain') as HTMLElement;
       if (curtain) {
-        gsap.to(curtain, { opacity: 0, duration: this.prefersReducedMotion ? 0 : 0.4, ease: 'power2.in' });
+        curtain.style.transition = `opacity ${closeDuration}s cubic-bezier(0.42,0,1,1)`;
+        curtain.style.opacity = '0';
       }
     }
 
@@ -1139,7 +1226,6 @@ export class GalleryComponent {
       }
       if (overlay) { overlay.remove(); }
       if (this.lightboxControls) { this.lightboxControls.remove(); this.lightboxControls = null; }
-      // Tear down focus trap
       if (this.boundTrapFocus) {
         document.removeEventListener('keydown', this.boundTrapFocus);
         this.boundTrapFocus = null;
@@ -1149,7 +1235,6 @@ export class GalleryComponent {
       this.lightboxImage.set(null);
       if (!willReopen) {
         this.resumeRiver();
-        // Restore focus to the element that opened the lightbox
         this.focusBeforeLightbox?.focus();
         this.focusBeforeLightbox = null;
       }
@@ -1160,49 +1245,44 @@ export class GalleryComponent {
       const img = overlay.querySelector('img') as HTMLImageElement;
       overlay.style.overflow = 'hidden';
 
-      // Animate back to the source card's actual screen position
       const sourceCard = this.lightboxSourceCard;
-      let targetX: number, targetY: number, targetW: number, targetH: number;
+      let cardX: number, cardY: number, cardW: number, cardH: number;
       if (sourceCard) {
         const rect = sourceCard.getBoundingClientRect();
-        targetX = rect.left;
-        targetY = rect.top;
-        targetW = rect.width;
-        targetH = rect.height;
+        cardX = rect.left;
+        cardY = rect.top;
+        cardW = rect.width;
+        cardH = rect.height;
       } else {
-        targetX = this.vertical ? image.x : image.x - this.offset;
-        targetY = this.vertical ? image.y - this.offset : image.y;
-        targetW = image.w;
-        targetH = image.h;
+        cardX = this.vertical ? image.x : image.x - this.offset;
+        cardY = this.vertical ? image.y - this.offset : image.y;
+        cardW = image.w;
+        cardH = image.h;
       }
 
-      // If the image has a banner, we need to cross-fade to avoid the banner flash.
-      // Create a thumbnail overlay on top, fade it in, then animate the shrink.
       const bannerH = image.entry.bannerHeight || 0;
       const startShrink = () => {
         gsap.to(overlay, {
-          left: targetX,
-          top: targetY,
-          width: targetW,
-          height: targetH,
+          left: cardX,
+          top: cardY,
+          width: cardW,
+          height: cardH,
           rotation: image.rotation,
           boxShadow: image.shadow,
           borderRadius: '4px',
-          duration: this.prefersReducedMotion ? 0 : 0.35,
+          duration: closeDuration,
           ease: 'power2.in',
+          force3D: true,
           onComplete: finish,
         });
       };
 
       if (bannerH > 0 && img) {
-        // Place a thumbnail img on top of the full image, then shrink
         const thumbImg = document.createElement('img');
         const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
         thumbImg.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb;
         thumbImg.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;';
-        overlay.style.position = overlay.style.position || 'fixed';
         overlay.appendChild(thumbImg);
-        // Wait one frame for the thumb to paint, then animate
         requestAnimationFrame(() => startShrink());
       } else {
         if (img) {
@@ -1232,16 +1312,19 @@ export class GalleryComponent {
 
     let targetW: number, targetH: number;
     if (maxW / maxH > aspect) {
-      targetH = maxH;
-      targetW = targetH * aspect;
+      targetH = Math.floor(maxH);
+      targetW = Math.floor(targetH * aspect);
     } else {
-      targetW = maxW;
-      targetH = targetW / aspect;
+      targetW = Math.floor(maxW);
+      targetH = Math.floor(targetW / aspect);
     }
 
     const l = (vw - targetW) / 2;
     const t = (vh - targetH) / 2;
-    gsap.set(overlay, { left: l, top: t, width: targetW, height: targetH });
+    overlay.style.left = l + 'px';
+    overlay.style.top = t + 'px';
+    overlay.style.width = targetW + 'px';
+    overlay.style.height = targetH + 'px';
 
     // Reposition controls to match
     if (this.lightboxControls) {
@@ -1255,9 +1338,13 @@ export class GalleryComponent {
   private resumeRiver(): void {
     if (!this.riverPaused) return;
     this.riverPaused = false;
+    // Skip column management for a few frames after resume to prevent stream jump
+    this.skipEnsureFrames = 10;
     this.observer?.enable();
     this.startRiver();
   }
+
+  private skipEnsureFrames = 0;
 
   /** If the URL is /photo/:id on load, open that image's lightbox. */
   private checkDeepLink(): void {
@@ -1289,41 +1376,182 @@ export class GalleryComponent {
     }
   }
 
-  private attachSwipe(target: HTMLElement): void {
+  private attachSwipe(target: HTMLElement, onClose?: () => void): { scale: number; resetZoom: () => void } {
     let startX = 0;
     let startY = 0;
     let startTime = 0;
-    let dragging = false;
     let didSwipe = false;
 
-    target.addEventListener('pointerdown', (e: PointerEvent) => {
-      startX = e.clientX;
-      startY = e.clientY;
-      startTime = Date.now();
-      dragging = true;
-      didSwipe = false;
-      target.setPointerCapture(e.pointerId);
-    });
-    target.addEventListener('pointermove', (e: PointerEvent) => {
-      if (!dragging) return;
-      e.preventDefault();
-    });
-    target.addEventListener('pointerup', (e: PointerEvent) => {
-      if (!dragging) return;
-      dragging = false;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      const elapsed = Date.now() - startTime;
-      // Require >100px horizontal movement, mostly horizontal, within 500ms
-      if (Math.abs(dx) > 100 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 500) {
-        didSwipe = true;
-        this.navigateLightbox(dx < 0 ? 1 : -1);
+    // Pinch-to-zoom + pan state
+    let initialPinchDist = 0;
+    let currentScale = 1;
+    let panX = 0;
+    let panY = 0;
+    let panStartX = 0;
+    let panStartY = 0;
+    let panStartPanX = 0;
+    let panStartPanY = 0;
+    let pinchActive = false;
+    let panning = false;
+
+    const applyTransform = (scale: number, x: number, y: number) => {
+      target.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    };
+
+    const updateControlsVisibility = () => {
+      const controls = this.lightboxControls;
+      if (!controls) return;
+      if (currentScale > 1) {
+        controls.style.opacity = '0';
+        controls.style.pointerEvents = 'none';
+      } else {
+        controls.style.opacity = '';
+        const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        controls.style.pointerEvents = isTouch ? 'none' : '';
+        if (isTouch) controls.classList.add('visible');
+      }
+    };
+
+    let animatingReset = false;
+
+    const state = {
+      get scale() { return currentScale; },
+      resetZoom: () => {
+        currentScale = 1;
+        panX = 0;
+        panY = 0;
+        animatingReset = true;
+        target.style.transition = 'transform 0.3s ease-out';
+        target.style.transform = 'none';
+        const onEnd = () => {
+          target.style.transition = '';
+          animatingReset = false;
+        };
+        target.addEventListener('transitionend', onEnd, { once: true });
+        // Safety: clear transition even if transitionend doesn't fire
+        setTimeout(onEnd, 350);
+        updateControlsVisibility();
+      },
+    };
+
+    target.addEventListener('touchstart', (e: TouchEvent) => {
+      if (animatingReset) {
+        target.style.transition = '';
+        animatingReset = false;
+      }
+
+      if (e.touches.length === 2) {
+        pinchActive = true;
+        panning = false;
+        initialPinchDist = Math.hypot(
+          e.touches[1].clientX - e.touches[0].clientX,
+          e.touches[1].clientY - e.touches[0].clientY,
+        );
+        panStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        panStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        panStartPanX = panX;
+        panStartPanY = panY;
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+        didSwipe = false;
+        if (currentScale > 1) {
+          panning = true;
+          panStartX = e.touches[0].clientX;
+          panStartY = e.touches[0].clientY;
+          panStartPanX = panX;
+          panStartPanY = panY;
+        }
+      }
+    }, { passive: false });
+
+    target.addEventListener('touchmove', (e: TouchEvent) => {
+      if (pinchActive && e.touches.length === 2) {
+        const dist = Math.hypot(
+          e.touches[1].clientX - e.touches[0].clientX,
+          e.touches[1].clientY - e.touches[0].clientY,
+        );
+        const scale = Math.max(1, Math.min(5, currentScale * (dist / initialPinchDist)));
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        panX = panStartPanX + (midX - panStartX);
+        panY = panStartPanY + (midY - panStartY);
+        applyTransform(scale, panX, panY);
+        e.preventDefault();
+      } else if (panning && e.touches.length === 1) {
+        const dx = e.touches[0].clientX - panStartX;
+        const dy = e.touches[0].clientY - panStartY;
+        panX = panStartPanX + dx;
+        panY = panStartPanY + dy;
+        applyTransform(currentScale, panX, panY);
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    target.addEventListener('touchend', (e: TouchEvent) => {
+      if (pinchActive) {
+        if (e.touches.length < 2) {
+          const transform = target.style.transform;
+          const match = transform.match(/scale\(([\d.]+)\)/);
+          currentScale = match ? parseFloat(match[1]) : 1;
+          if (currentScale <= 1.05) {
+            state.resetZoom();
+          } else {
+            updateControlsVisibility();
+          }
+          pinchActive = false;
+        }
+        return;
+      }
+
+      if (panning) {
+        const touch = e.changedTouches[0];
+        const dx = Math.abs(touch.clientX - startX);
+        const dy = Math.abs(touch.clientY - startY);
+        panning = false;
+        if (dx < 10 && dy < 10) {
+          state.resetZoom();
+        }
+        return;
+      }
+
+      if (e.changedTouches.length === 1 && currentScale <= 1) {
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        const elapsed = Date.now() - startTime;
+        if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 500) {
+          didSwipe = true;
+          this.navigateLightbox(dx < 0 ? 1 : -1);
+        } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && elapsed < 300) {
+          if (onClose) onClose();
+        } else {
+        }
+      } else {
       }
     });
+
     // Suppress click after swipe
     target.addEventListener('click', (e: MouseEvent) => {
       if (didSwipe) { e.stopImmediatePropagation(); didSwipe = false; }
     }, { capture: true });
+
+    // Reset zoom when this overlay is removed
+    const observer = new MutationObserver(() => {
+      if (!target.parentNode) {
+        currentScale = 1;
+        panX = 0;
+        panY = 0;
+        observer.disconnect();
+      }
+    });
+    if (target.parentNode) {
+      observer.observe(target.parentNode, { childList: true });
+    }
+
+    return state;
   }
 
   private listenKeyboard(): void {
