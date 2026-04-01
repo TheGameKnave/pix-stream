@@ -30,6 +30,7 @@ export interface SiteConfig {
   siteFavicon: string;
   watermark: string;
   sortOrder: 'date-desc' | 'date-asc' | 'random';
+  homepageUrl: string;
 }
 
 @Injectable({ providedIn: 'root' })

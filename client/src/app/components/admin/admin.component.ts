@@ -101,6 +101,11 @@ export class AdminComponent implements AfterViewChecked {
   readonly siteFavicon = signal('');
   readonly watermark = signal('');
   sortOrder: 'date-desc' | 'date-asc' | 'random' = 'random';
+  homepageUrl = '';
+
+  // Update from GitHub
+  readonly updateStatus = signal('');
+  readonly updateAvailable = signal(false);
 
   // Hidden images report
   private allImages: { id: string; tags: string[]; thumb: string }[] = [];
@@ -135,6 +140,7 @@ export class AdminComponent implements AfterViewChecked {
         if (res.authenticated) {
           this.loadConfig();
           this.loadManifest();
+          this.checkForUpdates();
         }
       },
       error: () => this.loading.set(false),
@@ -181,6 +187,7 @@ export class AdminComponent implements AfterViewChecked {
     this.siteFavicon.set(c.siteFavicon ?? '');
     this.watermark.set(c.watermark ?? '');
     this.sortOrder = c.sortOrder ?? 'random';
+    this.homepageUrl = c.homepageUrl ?? '';
 
     if (FONT_OPTIONS.includes(c.fontBody)) {
       this.fontBody = c.fontBody;
@@ -529,6 +536,35 @@ export class AdminComponent implements AfterViewChecked {
     this.saveTimer = setTimeout(() => this.flush(), 600);
   }
 
+  checkForUpdates(): void {
+    this.http.get<{ available: boolean; current: string; latest: string }>('/api/update?check=1')
+      .pipe(take(1))
+      .subscribe({
+        next: (res) => this.updateAvailable.set(res.available),
+        error: () => this.updateAvailable.set(false),
+      });
+  }
+
+  updateFromGitHub(): void {
+    this.updateStatus.set('Updating...');
+    this.http.post<{ success: boolean; message: string }>('/api/update', {})
+      .pipe(take(1))
+      .subscribe({
+        next: (res) => {
+          this.updateStatus.set(res.message || 'Updated!');
+          this.updateAvailable.set(false);
+          setTimeout(() => {
+            this.updateStatus.set('');
+            window.location.reload();
+          }, 2000);
+        },
+        error: (err) => {
+          this.updateStatus.set(err.error?.error || 'Update failed');
+          setTimeout(() => this.updateStatus.set(''), 5000);
+        },
+      });
+  }
+
   private flush(): void {
     this.saveStatus.set('Saving...');
     this.siteConfig.saveConfig({
@@ -553,6 +589,7 @@ export class AdminComponent implements AfterViewChecked {
       siteFavicon: this.siteFavicon(),
       watermark: this.watermark(),
       sortOrder: this.sortOrder,
+      homepageUrl: this.homepageUrl,
     });
     // Announce save completion (service is fire-and-forget)
     setTimeout(() => this.saveStatus.set('Saved'), 500);

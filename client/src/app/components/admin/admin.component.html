@@ -119,6 +119,11 @@
           <input id="cfg-email" type="email" [(ngModel)]="contactEmail" (ngModelChange)="onConfigChange()" placeholder="Optional — enables copyright banner on images" />
         </div>
         <div class="form-group">
+          <label for="cfg-homepage-url">Homepage URL</label>
+          <input id="cfg-homepage-url" type="url" [(ngModel)]="homepageUrl" (ngModelChange)="onConfigChange()" placeholder="https://example.com" />
+          <span class="admin-hint">When set, an X button appears in the header to navigate back to this URL.</span>
+        </div>
+        <div class="form-group">
           <label for="cfg-head-title">Browser Tab Title</label>
           <input id="cfg-head-title" type="text" [(ngModel)]="pageHeadTitle" (ngModelChange)="onConfigChange()" placeholder="Optional — shown after site name in browser tab" />
           <span class="admin-hint">{{ title || 'Pix Stream' }}{{ pageHeadTitle ? ' | ' + pageHeadTitle : '' }}</span>
@@ -479,6 +484,19 @@
             <p class="upload-error">{{ err }}</p>
           }
         </div>
+      }
+    </div>
+
+    <!-- Update -->
+    <div class="admin-update">
+      @if (updateAvailable()) {
+        <button class="admin-update-btn" (click)="updateFromGitHub()" [disabled]="updateStatus()">
+          {{ updateStatus() || 'Update Available' }}
+        </button>
+      } @else if (updateStatus()) {
+        <span class="admin-update-status">{{ updateStatus() }}</span>
+      } @else {
+        <button class="admin-update-btn admin-update-check" (click)="checkForUpdates()">Check for Updates</button>
       }
     </div>
 

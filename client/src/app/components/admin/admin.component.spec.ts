@@ -38,6 +38,7 @@ const MOCK_CONFIG: SiteConfig = {
   siteFavicon: '',
   watermark: '',
   sortOrder: 'random',
+  homepageUrl: '',
 };
 
 describe('AdminComponent', () => {
