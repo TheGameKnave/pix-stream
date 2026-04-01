@@ -175,6 +175,7 @@ export class GalleryComponent {
   // Each column's cards are stored contiguously: column col → cards at indices [col*rows .. col*rows+rows-1]
   private materializedCols = new Set<number>();
   private gridOrigin = 0; // world-x of column 0 center
+  private nextSeqIndex = 0; // sequential pick cursor for non-random sort orders
 
   // For distinguishing click from drag
   private pointerDownX = 0;
@@ -285,6 +286,7 @@ export class GalleryComponent {
 
   private applyFilter(): void {
     const prevEntryIds = this.entryIds;
+    this.nextSeqIndex = 0;
     this.entries = this.filterEntries(this.allEntries);
     this.entryIds = new Set(this.entries.map(e => e.id));
     this.empty.set(this.entries.length === 0);
@@ -371,13 +373,22 @@ export class GalleryComponent {
   }
 
   private pickEntry(excludeIds: Set<string>): ImageEntry {
-    const available = this.entries.filter(e => !excludeIds.has(e.id));
-    if (available.length > 0) {
-      const pick = available[Math.floor(Math.random() * available.length)];
-      excludeIds.add(pick.id);
-      return pick;
+    const isRandom = (this.siteConfig.config()?.sortOrder ?? 'random') === 'random';
+    if (isRandom) {
+      const available = this.entries.filter(e => !excludeIds.has(e.id));
+      if (available.length > 0) {
+        const pick = available[Math.floor(Math.random() * available.length)];
+        excludeIds.add(pick.id);
+        return pick;
+      }
+      return this.entries[Math.floor(Math.random() * this.entries.length)];
     }
-    return this.entries[Math.floor(Math.random() * this.entries.length)];
+    // Sequential: walk through the sorted array in order, wrapping around
+    const len = this.entries.length;
+    if (this.nextSeqIndex >= len) this.nextSeqIndex = 0;
+    const pick = this.entries[this.nextSeqIndex++];
+    excludeIds.add(pick.id);
+    return pick;
   }
 
   /** World-x of a column center */
@@ -415,6 +426,7 @@ export class GalleryComponent {
     this.offset = 0;
     this.materializedCols.clear();
     this.gridOrigin = 0;
+    this.nextSeqIndex = 0;
 
     this.recalcFillRatio();
     const cols = Math.max(1, Math.round((this.primaryLen * 2) / this.colSpacing));
@@ -798,6 +810,7 @@ export class GalleryComponent {
     const aspect = image.entry.width && image.entry.height
       ? image.entry.width / image.entry.height : 1;
 
+    const bannerH = image.entry.bannerHeight || 0;
     let targetW: number, targetH: number;
     if (maxW / maxH > aspect) {
       targetH = Math.floor(maxH);
@@ -806,6 +819,7 @@ export class GalleryComponent {
       targetW = Math.floor(maxW);
       targetH = Math.floor(targetW / aspect);
     }
+    if (bannerH > 0) targetH -= 1;
 
     const targetX = (lbVw - targetW) / 2;
     const targetY = (lbVh - targetH) / 2;
@@ -815,7 +829,6 @@ export class GalleryComponent {
     const translateY = (startY + startH / 2) - (targetY + targetH / 2);
 
     const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
-    const bannerH = image.entry.bannerHeight || 0;
     const duration = this.prefersReducedMotion ? 0 : 0.45;
 
     // Build overlay at card position/size with the thumbnail
@@ -836,7 +849,7 @@ export class GalleryComponent {
     const img = document.createElement('img');
     img.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb;
     img.draggable = false;
-    img.style.cssText = 'display:block; width:100%; height:100%; object-fit:fill;';
+    img.style.cssText = 'display:block; width:100%; height:auto;';
     overlay.appendChild(img);
     const swipeState = this.attachSwipe(overlay, () => this.closeLightbox());
     // Desktop click-to-close (touch uses tap handler in attachSwipe)
@@ -858,7 +871,6 @@ export class GalleryComponent {
         // Width 100% with auto height — image scales to fill width,
         // banner overflows below and gets clipped
         fullEl.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:auto; display:block;';
-        overlay.style.overflow = 'hidden';
       } else {
         fullEl.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; display:block;';
       }
@@ -1127,7 +1139,6 @@ export class GalleryComponent {
     const cy = sourceRect.top + sourceRect.height / 2;
     const radius = Math.max(sourceRect.width, sourceRect.height) * 2.5;
     this.displacedCards = [];
-    const dur = this.prefersReducedMotion ? '0s' : '0.4s';
 
     cardEls.forEach((el, i) => {
       if (i === cardIndex) return;
@@ -1143,20 +1154,26 @@ export class GalleryComponent {
       const push = strength * 60;
       const dx = Math.cos(angle) * push;
       const dy = Math.sin(angle) * push;
-      const rotation = card.dataset['rotation'] || '0';
 
       this.displacedCards.push({ el: card, dx, dy });
-      card.style.transition = `transform ${dur} cubic-bezier(0.25,0.1,0.25,1)`;
-      card.style.transform = `translate(${dx}px, ${dy}px) rotate(${rotation}deg)`;
+      // Use CSS custom properties — Angular's [style.transform] includes var(--dx, --dy)
+      // so this works with Angular's change detection, not against it
+      card.style.setProperty('--dx', `${dx}px`);
+      card.style.setProperty('--dy', `${dy}px`);
     });
   }
 
   private restoreNeighbors(onDone?: () => void): void {
+    if (this.displacedCards.length === 0) {
+      onDone?.();
+      return;
+    }
+
     const dur = this.prefersReducedMotion ? 0 : 0.35;
-    if (this.displacedCards.length === 0 || dur === 0) {
+    if (dur === 0) {
       for (const { el } of this.displacedCards) {
-        el.style.transition = '';
-        el.style.transform = `rotate(${el.dataset['rotation'] || '0'}deg)`;
+        el.style.removeProperty('--dx');
+        el.style.removeProperty('--dy');
       }
       this.displacedCards = [];
       onDone?.();
@@ -1165,9 +1182,9 @@ export class GalleryComponent {
 
     let remaining = this.displacedCards.length;
     for (const { el } of this.displacedCards) {
-      const rotation = el.dataset['rotation'] || '0';
       el.style.transition = `transform ${dur}s cubic-bezier(0.42,0,0.58,1)`;
-      el.style.transform = `rotate(${rotation}deg)`;
+      el.style.removeProperty('--dx');
+      el.style.removeProperty('--dy');
       const done = () => {
         el.style.transition = '';
         if (--remaining === 0) {
@@ -1176,7 +1193,6 @@ export class GalleryComponent {
         }
       };
       el.addEventListener('transitionend', done, { once: true });
-      // Safety timeout
       setTimeout(done, dur * 1000 + 50);
     }
   }
@@ -1330,6 +1346,7 @@ export class GalleryComponent {
     const aspect = image.entry.width && image.entry.height
       ? image.entry.width / image.entry.height : 1;
 
+    const bannerH = image.entry.bannerHeight || 0;
     let targetW: number, targetH: number;
     if (maxW / maxH > aspect) {
       targetH = Math.floor(maxH);
@@ -1338,6 +1355,7 @@ export class GalleryComponent {
       targetW = Math.floor(maxW);
       targetH = Math.floor(targetW / aspect);
     }
+    if (bannerH > 0) targetH -= 1;
 
     const l = (vw - targetW) / 2;
     const t = (vh - targetH) / 2;

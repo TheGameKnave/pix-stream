@@ -4,24 +4,24 @@
 // =============================================================================
 :root {
   // Brand / accent (overridden by server config)
-  --color-header: #e2d6bb;
-  --color-accent: #01ddb1;
-  --color-accent-text: #222;
-  --color-accent-link: #01ddb1;
+  --color-header: #dddddd;
+  --color-accent: hsl(180, 0%, 45%);
+  --color-accent-text: #fafafa;
+  --color-accent-link: hsl(180, 0%, 13%);
   --color-accent-glow: none;
 
   // Backgrounds
-  --color-bg: #808080;
+  --color-bg: hsl(0, 0%, 50%);
   --color-bg-surface: #242424;
   --color-bg-overlay: rgba(0, 0, 0, 0.7);
 
   // Text
-  --color-text: #f0f0f0;
+  --color-text: #fafafa;
   --color-text-muted: #999;
-  --color-header-text: #fafafa;
+  --color-header-text: #222;
   --color-header-glow: none;
   --color-header-icon-shadow: none;
-  --color-text-shadow: none;
+  --color-text-shadow: 1px 0 4px rgba(0,0,0,0.8), -1px 0 4px rgba(0,0,0,0.8), 0 1px 4px rgba(0,0,0,0.8), 0 -1px 4px rgba(0,0,0,0.8);
 
   // Borders
   --color-border: #333;
