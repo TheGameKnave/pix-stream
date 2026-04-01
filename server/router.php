@@ -19,6 +19,7 @@ $routes = [
     '/api/favicon'    => '/api/favicon.php',
     '/api/watermark'  => '/api/watermark.php',
     '/api/delete'     => '/api/delete.php',
+    '/api/update'     => '/api/update.php',
 ];
 
 // Exact match

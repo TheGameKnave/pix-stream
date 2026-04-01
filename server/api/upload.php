@@ -19,13 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/storage.php';
 requireAuth();
 
-$uploadDir = realpath(__DIR__ . '/../../storage/originals');
-if (!$uploadDir) {
-    $uploadDir = __DIR__ . '/../../storage/originals';
-    mkdir($uploadDir, 0755, true);
-}
+$uploadDir = storagePath('originals');
 
 $uploaded = [];
 $errors = [];

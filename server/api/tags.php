@@ -7,8 +7,9 @@ header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
 require_once __DIR__ . '/../lib/scanner.php';
+require_once __DIR__ . '/../lib/storage.php';
 
-$originalsDir = realpath(__DIR__ . '/../../storage/originals');
+$originalsDir = storagePath('originals');
 
 $tags = getAllTags($originalsDir ?: '');
 echo json_encode($tags);

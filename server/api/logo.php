@@ -15,9 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/storage.php';
 requireAuth();
 
-$storageDir = realpath(__DIR__ . '/../../storage') ?: __DIR__ . '/../../storage';
+$storageDir = storagePath();
 $logoDir = $storageDir . '/logo';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

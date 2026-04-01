@@ -9,15 +9,19 @@
 // Suppress warnings so they don't corrupt JSON output
 error_reporting(E_ERROR);
 
+// Allow long processing time for thumbnail/image generation
+set_time_limit(300);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
 require_once __DIR__ . '/../lib/scanner.php';
 require_once __DIR__ . '/../lib/image.php';
+require_once __DIR__ . '/../lib/storage.php';
 
-$storageDir   = realpath(__DIR__ . '/../../storage/originals');
-$thumbDir     = realpath(__DIR__ . '/../../storage/thumbnails');
-$processedDir = realpath(__DIR__ . '/../../storage/processed');
+$storageDir   = storagePath('originals');
+$thumbDir     = storagePath('thumbnails');
+$processedDir = storagePath('processed');
 $configPath   = __DIR__ . '/../config/site.json';
 
 if (!$storageDir) {
@@ -36,13 +40,14 @@ if ($contactEmail) {
         'subtitle' => $siteConfig['subtitle'] ?? '',
         'fontBody' => $siteConfig['fontBody'] ?? 'Raleway',
         'siteLogo' => $siteConfig['siteLogo'] ?? '',
+        'headerColor' => $siteConfig['headerColor'] ?? '#dddddd',
     ];
     // Track banner config hash — if it changes, nuke processed images to regenerate
     $bannerHash = md5(json_encode($bannerConfig));
     $bannerHashFile = $processedDir . '/.banner_hash';
     $oldHash = file_exists($bannerHashFile) ? trim(file_get_contents($bannerHashFile)) : '';
     if ($bannerHash !== $oldHash) {
-        // Config changed — clear all processed images so they regenerate with new banner
+        // Config changed — clear processed images to regenerate with new banner
         $existing = @scandir($processedDir);
         if ($existing) {
             foreach ($existing as $f) {
@@ -143,12 +148,16 @@ foreach ($images as $image) {
         }
     }
 
+    // Cache-bust URLs with file modification time
+    $thumbMtime = @filemtime($thumbDir . '/' . $thumbFilename) ?: 0;
+    $procMtime = @filemtime($processedDir . '/' . $procFilename) ?: 0;
+
     $entry = [
         'id' => $image['id'],
         'filename' => $image['filename'],
         'type' => $image['type'],
-        'thumb' => '/api/image/thumb/' . rawurlencode($thumbFilename),
-        'full' => '/api/image/full/' . rawurlencode($procFilename),
+        'thumb' => '/api/image/thumb/' . rawurlencode($thumbFilename) . '?v=' . $thumbMtime,
+        'full' => '/api/image/full/' . rawurlencode($procFilename) . '?v=' . $procMtime,
         'tags' => $image['tags'],
         'width' => $image['width'],
         'height' => $image['height'],
@@ -159,7 +168,8 @@ foreach ($images as $image) {
         'title' => $image['title'] ?? '',
     ];
     if ($blurFilename) {
-        $entry['thumbBlur'] = '/api/image/thumb/' . rawurlencode($blurFilename);
+        $blurMtime = @filemtime($thumbDir . '/' . $blurFilename) ?: 0;
+        $entry['thumbBlur'] = '/api/image/thumb/' . rawurlencode($blurFilename) . '?v=' . $blurMtime;
     }
     $manifest[] = $entry;
 }
