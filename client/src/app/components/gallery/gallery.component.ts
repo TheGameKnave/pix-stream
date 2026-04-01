@@ -1151,17 +1151,34 @@ export class GalleryComponent {
     });
   }
 
-  private restoreNeighbors(): void {
-    const dur = this.prefersReducedMotion ? '0s' : '0.35s';
+  private restoreNeighbors(onDone?: () => void): void {
+    const dur = this.prefersReducedMotion ? 0 : 0.35;
+    if (this.displacedCards.length === 0 || dur === 0) {
+      for (const { el } of this.displacedCards) {
+        el.style.transition = '';
+        el.style.transform = `rotate(${el.dataset['rotation'] || '0'}deg)`;
+      }
+      this.displacedCards = [];
+      onDone?.();
+      return;
+    }
+
+    let remaining = this.displacedCards.length;
     for (const { el } of this.displacedCards) {
       const rotation = el.dataset['rotation'] || '0';
-      el.style.transition = `transform ${dur} cubic-bezier(0.42,0,0.58,1)`;
+      el.style.transition = `transform ${dur}s cubic-bezier(0.42,0,0.58,1)`;
       el.style.transform = `rotate(${rotation}deg)`;
-      el.addEventListener('transitionend', () => {
+      const done = () => {
         el.style.transition = '';
-      }, { once: true });
+        if (--remaining === 0) {
+          this.displacedCards = [];
+          onDone?.();
+        }
+      };
+      el.addEventListener('transitionend', done, { once: true });
+      // Safety timeout
+      setTimeout(done, dur * 1000 + 50);
     }
-    this.displacedCards = [];
   }
 
   navigateLightbox(dir: -1 | 1): void {
@@ -1217,7 +1234,17 @@ export class GalleryComponent {
       }
     }
 
-    this.restoreNeighbors();
+    // Restore neighbors — delay Angular state changes until transitions complete
+    // to prevent Angular's [style.transform] binding from snapping cards mid-transition
+    this.restoreNeighbors(() => {
+      this.lightboxOpen.set(false);
+      this.lightboxImage.set(null);
+      if (!willReopen) {
+        this.resumeRiver();
+        this.focusBeforeLightbox?.focus();
+        this.focusBeforeLightbox = null;
+      }
+    });
 
     const finish = () => {
       if (this.lightboxSourceCard) {
@@ -1231,13 +1258,6 @@ export class GalleryComponent {
         this.boundTrapFocus = null;
       }
       this.lightboxEl = null;
-      this.lightboxOpen.set(false);
-      this.lightboxImage.set(null);
-      if (!willReopen) {
-        this.resumeRiver();
-        this.focusBeforeLightbox?.focus();
-        this.focusBeforeLightbox = null;
-      }
       onDone?.();
     };
 
