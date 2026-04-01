@@ -114,8 +114,8 @@ function generatePngThumbnail(string $sourcePath, string $destPath): string|fals
         return $ok ? $destPath : false;
     }
 
-    $newW = (int)($origW * $ratio);
-    $newH = (int)($origH * $ratio);
+    $newW = (int)round($origW * $ratio);
+    $newH = (int)round($origH * $ratio);
 
     $thumb = imagecreatetruecolor($newW, $newH);
     // Preserve alpha in the new canvas
@@ -176,8 +176,8 @@ function generateGifThumbnail(string $sourcePath, string $destPath): string|fals
         return copy($sourcePath, $destPath) ? $destPath : false;
     }
 
-    $newW = (int)($origW * $ratio);
-    $newH = (int)($origH * $ratio);
+    $newW = (int)round($origW * $ratio);
+    $newH = (int)round($origH * $ratio);
     $thumb = imagecreatetruecolor($newW, $newH);
     imagecopyresampled($thumb, $source, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
 
@@ -206,8 +206,8 @@ function generateResized(string $sourcePath, string $destPath, int $maxW, int $m
         return $save ? $destPath : false;
     }
 
-    $newW = (int)($origW * $ratio);
-    $newH = (int)($origH * $ratio);
+    $newW = (int)round($origW * $ratio);
+    $newH = (int)round($origH * $ratio);
 
     $dest = imagecreatetruecolor($newW, $newH);
     if ($format === 'png') {
@@ -251,6 +251,7 @@ function generateProcessed(string $sourcePath, string $destBase, array $bannerCo
 
     if ($result && !empty($bannerConfig['email'])) {
         $result = composeBanner($result, $bannerConfig, $format);
+    } else {
     }
 
     return $result;
@@ -301,8 +302,8 @@ function generateGifResized(string $sourcePath, string $destPath, int $maxW, int
         return copy($sourcePath, $destPath) ? $destPath : false;
     }
 
-    $newW = (int)($origW * $ratio);
-    $newH = (int)($origH * $ratio);
+    $newW = (int)round($origW * $ratio);
+    $newH = (int)round($origH * $ratio);
     $dest = imagecreatetruecolor($newW, $newH);
     imagecopyresampled($dest, $source, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
 
@@ -379,7 +380,9 @@ function generateBlurredThumbnail(string $thumbPath, string $destPath): string|f
  */
 function resolveBannerFonts(array $bannerConfig): ?array {
     $fontName = $bannerConfig['fontBody'] ?? 'Raleway';
-    $fontsDir = realpath(__DIR__ . '/../../client/src/assets/fonts');
+    // Prod: public_html/assets/fonts; Dev: client/src/assets/fonts
+    $fontsDir = realpath(__DIR__ . '/../assets/fonts')
+             ?: realpath(__DIR__ . '/../../client/src/assets/fonts');
     if (!$fontsDir) return null;
 
     $regular = null;
@@ -429,8 +432,9 @@ function loadBannerLogo(array $bannerConfig): ?\GdImage {
     // Strip query string (cache busters like ?t=123) before resolving filesystem path
     $logoPath = strtok($logoPath, '?');
 
-    // Resolve relative /storage/ path to absolute
-    $absPath = realpath(__DIR__ . '/../../' . ltrim($logoPath, '/'));
+    // Resolve relative /storage/ path to absolute (try prod then dev layout)
+    $absPath = realpath(__DIR__ . '/../' . ltrim($logoPath, '/'))
+            ?: realpath(__DIR__ . '/../../' . ltrim($logoPath, '/'));
     if (!$absPath || !file_exists($absPath)) return null;
 
     $ext = strtolower(pathinfo($absPath, PATHINFO_EXTENSION));
@@ -473,13 +477,77 @@ function loadBannerLogo(array $bannerConfig): ?\GdImage {
  * $bannerConfig keys: email, title, description, copyright, fontBody, siteLogo
  * Modifies the file in place, returns the path or false on failure.
  */
+function hexToRgb(string $hex): array {
+    $hex = ltrim($hex, '#');
+    return [hexdec(substr($hex, 0, 2)), hexdec(substr($hex, 2, 2)), hexdec(substr($hex, 4, 2))];
+}
+
+function hexToHsl(string $hex): array {
+    [$r, $g, $b] = hexToRgb($hex);
+    $r /= 255; $g /= 255; $b /= 255;
+    $max = max($r, $g, $b); $min = min($r, $g, $b);
+    $l = ($max + $min) / 2;
+    if ($max === $min) return [0, 0, $l * 100];
+    $d = $max - $min;
+    $s = $l > 0.5 ? $d / (2 - $max - $min) : $d / ($max + $min);
+    $h = match ($max) {
+        $r => (($g - $b) / $d + ($g < $b ? 6 : 0)) * 60,
+        $g => (($b - $r) / $d + 2) * 60,
+        default => (($r - $g) / $d + 4) * 60,
+    };
+    return [$h, $s * 100, $l * 100];
+}
+
+function hslToRgb(float $h, float $s, float $l): array {
+    $s /= 100; $l /= 100;
+    $c = (1 - abs(2 * $l - 1)) * $s;
+    $x = $c * (1 - abs(fmod($h / 60, 2) - 1));
+    $m = $l - $c / 2;
+    [$r, $g, $b] = match (true) {
+        $h < 60 => [$c, $x, 0],
+        $h < 120 => [$x, $c, 0],
+        $h < 180 => [0, $c, $x],
+        $h < 240 => [0, $x, $c],
+        $h < 300 => [$x, 0, $c],
+        default => [$c, 0, $x],
+    };
+    return [(int)round(($r + $m) * 255), (int)round(($g + $m) * 255), (int)round(($b + $m) * 255)];
+}
+
+/** Contrast text color: dark for light backgrounds, light for dark.
+ *  For mid-lightness backgrounds, uses high-contrast black or white. */
+function contrastTextRgb(string $hex): array {
+    [, , $l] = hexToHsl($hex);
+    if ($l > 65) return [30, 30, 30];
+    if ($l < 35) return [245, 245, 245];
+    // Mid-lightness: use full black or white for maximum contrast
+    return $l > 50 ? [0, 0, 0] : [255, 255, 255];
+}
+
+/** Returns true if the background is mid-lightness and text needs a glow for readability. */
+function needsTextGlow(string $hex): bool {
+    [, , $l] = hexToHsl($hex);
+    return $l >= 35 && $l <= 65;
+}
+
+/** Glow color: opposite of text (light glow for dark text, dark glow for light text). */
+function textGlowRgb(string $hex): array {
+    [, , $l] = hexToHsl($hex);
+    return $l > 50 ? [255, 255, 255] : [0, 0, 0];
+}
+
+/** Link color: opposite hue of header, inverted lightness. */
+function accentLinkRgb(string $hex): array {
+    [$h, $s, $l] = hexToHsl($hex);
+    return hslToRgb(fmod($h + 180, 360), $s, 100 - $l);
+}
+
 function composeBanner(string $imagePath, array $bannerConfig, string $format): string|false {
     $ext = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));
     $source = match ($ext) {
         'jpg', 'jpeg' => @imagecreatefromjpeg($imagePath),
         default => @imagecreatefrompng($imagePath),
     };
-    if (!$source) return false;
 
     $origW = imagesx($source);
     $origH = imagesy($source);
@@ -488,22 +556,39 @@ function composeBanner(string $imagePath, array $bannerConfig, string $format): 
     $canvas = imagecreatetruecolor($origW, $newH);
     imagealphablending($canvas, true);
 
-    // Banner background: light warm grey
-    $bannerBg = imagecolorallocate($canvas, 240, 238, 234);
+    // Helper: draw TTF text with optional glow for mid-lightness backgrounds
+    $glowNeeded = needsTextGlow($bannerConfig['headerColor'] ?? '#dddddd');
+    $drawText = function($canvas, $size, $x, $y, $color, $font, $text) use ($glowNeeded, &$bannerConfig) {
+        if ($glowNeeded) {
+            [$gr, $gg, $gb] = textGlowRgb($bannerConfig['headerColor'] ?? '#dddddd');
+            $glow = imagecolorallocatealpha($canvas, $gr, $gg, $gb, 60);
+            imagettftext($canvas, $size, 0, $x - 1, $y, $glow, $font, $text);
+            imagettftext($canvas, $size, 0, $x + 1, $y, $glow, $font, $text);
+            imagettftext($canvas, $size, 0, $x, $y - 1, $glow, $font, $text);
+            imagettftext($canvas, $size, 0, $x, $y + 1, $glow, $font, $text);
+        }
+        imagettftext($canvas, $size, 0, $x, $y, $color, $font, $text);
+    };
+
+    // Banner background: matches header color
+    $headerHex = $bannerConfig['headerColor'] ?? '#dddddd';
+    [$bgR, $bgG, $bgB] = hexToRgb($headerHex);
+    $bannerBg = imagecolorallocate($canvas, $bgR, $bgG, $bgB);
     imagefilledrectangle($canvas, 0, 0, $origW - 1, $newH - 1, $bannerBg);
 
     // Copy original image onto the top portion
     imagecopy($canvas, $source, 0, 0, 0, 0, $origW, $origH);
     imagedestroy($source);
 
-    // Text colors: black/white for readability
-    $blackColor = imagecolorallocate($canvas, 30, 30, 30);
-    $darkColor = imagecolorallocate($canvas, 80, 78, 74);
-    $blueColor = imagecolorallocate($canvas, 30, 50, 140);
+    // Text colors derived from header
+    [$txtR, $txtG, $txtB] = contrastTextRgb($headerHex);
+    $blackColor = imagecolorallocate($canvas, $txtR, $txtG, $txtB);
+    $darkColor = imagecolorallocate($canvas, $txtR, $txtG, $txtB);
+    [$linkR, $linkG, $linkB] = accentLinkRgb($headerHex);
+    $blueColor = imagecolorallocate($canvas, $linkR, $linkG, $linkB);
     $redColor = imagecolorallocate($canvas, 180, 30, 30);
-    // © watermark: very faint, drawn behind everything else
-    // GD alpha: 0=opaque, 127=fully transparent — 112 is ~12% visible
-    $copyrightColor = imagecolorallocatealpha($canvas, 170, 168, 162, 112);
+    // © watermark: very faint, derived from text color
+    $copyrightColor = imagecolorallocatealpha($canvas, $txtR, $txtG, $txtB, 112);
 
     $fonts = resolveBannerFonts($bannerConfig);
     $bannerY = $origH;
@@ -554,13 +639,13 @@ function composeBanner(string $imagePath, array $bannerConfig, string $format): 
             $topOffset = (int)((BANNER_HEIGHT - $blockH) / 2);
             $titleY = $bannerY + $topOffset + $titleH;
             $taglineY = $titleY + $gap + $tagH;
-            imagettftext($canvas, $titleSize, 0, $leftX, $titleY, $blackColor, $fontPath, $title);
-            imagettftext($canvas, $taglineSize, 0, $leftX, $taglineY, $darkColor, $italicPath, $tagline);
+            $drawText($canvas, $titleSize, $leftX, $titleY, $blackColor, $fontPath, $title);
+            $drawText($canvas, $taglineSize, $leftX, $taglineY, $darkColor, $italicPath, $tagline);
         } else {
             $titleBox = imagettfbbox($titleSize, 0, $fontPath, $title);
             $titleH = abs($titleBox[7] - $titleBox[1]);
             $titleY = $bannerY + (int)((BANNER_HEIGHT + $titleH) / 2);
-            imagettftext($canvas, $titleSize, 0, $leftX, $titleY, $blackColor, $fontPath, $title);
+            $drawText($canvas, $titleSize, $leftX, $titleY, $blackColor, $fontPath, $title);
         }
 
         // Right side
@@ -598,18 +683,18 @@ function composeBanner(string $imagePath, array $bannerConfig, string $format): 
 
             // Right-align each line
             $l1X = $origW - $line1TotalW - $margin;
-            imagettftext($canvas, $bodySize, 0, $l1X, $line1Y, $blackColor, $fontPath, $line1Pre);
-            imagettftext($canvas, $bodySize, 0, $l1X + $preW, $line1Y, $redColor, $fontPath, $line1Word);
-            imagettftext($canvas, $bodySize, 0, $l1X + $preW + $wordW, $line1Y, $blackColor, $fontPath, $line1Post);
+            $drawText($canvas, $bodySize, $l1X, $line1Y, $blackColor, $fontPath, $line1Pre);
+            $drawText($canvas, $bodySize, $l1X + $preW, $line1Y, $redColor, $fontPath, $line1Word);
+            $drawText($canvas, $bodySize, $l1X + $preW + $wordW, $line1Y, $blackColor, $fontPath, $line1Post);
 
             $l2X = $origW - $line2W - $margin;
-            imagettftext($canvas, $bodySize, 0, $l2X, $line2Y, $blackColor, $fontPath, $line2);
+            $drawText($canvas, $bodySize, $l2X, $line2Y, $blackColor, $fontPath, $line2);
 
             $l3X = $origW - $emailDotW - $margin;
             $emailOnlyBox = imagettfbbox($bodySize, 0, $fontPath, $email);
             $emailOnlyW = abs($emailOnlyBox[2] - $emailOnlyBox[0]);
-            imagettftext($canvas, $bodySize, 0, $l3X, $line3Y, $blueColor, $fontPath, $email);
-            imagettftext($canvas, $bodySize, 0, $l3X + $emailOnlyW, $line3Y, $blackColor, $fontPath, '.');
+            $drawText($canvas, $bodySize, $l3X, $line3Y, $blueColor, $fontPath, $email);
+            $drawText($canvas, $bodySize, $l3X + $emailOnlyW, $line3Y, $blackColor, $fontPath, '.');
         } else {
             // No copyright: "Image created by <email>"
             $preText = 'Image created by ';
@@ -621,12 +706,12 @@ function composeBanner(string $imagePath, array $bannerConfig, string $format): 
 
             $rightX = $origW - $totalW - $margin;
             $textYPos = $bannerY + (int)(BANNER_HEIGHT * 0.5) + (int)($bodySize * 0.35);
-            imagettftext($canvas, $bodySize, 0, $rightX, $textYPos, $blackColor, $fontPath, $preText);
-            imagettftext($canvas, $bodySize, 0, $rightX + $preW, $textYPos, $blueColor, $fontPath, $email);
+            $drawText($canvas, $bodySize, $rightX, $textYPos, $blackColor, $fontPath, $preText);
+            $drawText($canvas, $bodySize, $rightX + $preW, $textYPos, $blueColor, $fontPath, $email);
         }
     } else {
         // Fallback: no TTF font available — use built-in bitmap fonts
-        $textColor = imagecolorallocate($canvas, 30, 30, 30);
+        $textColor = imagecolorallocate($canvas, $txtR, $txtG, $txtB);
         $leftX = 12;
         $titleY = $bannerY + (int)(BANNER_HEIGHT / 2) - 7;
         imagestring($canvas, 4, $leftX, $titleY, $title, $textColor);
@@ -676,16 +761,22 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
 
         // Load logo once (Imagick version — composite from file)
         $logoPath = strtok($bannerConfig['siteLogo'] ?? '', '?') ?: '';
-        $logoAbsPath = $logoPath ? realpath(__DIR__ . '/../../' . ltrim($logoPath, '/')) : null;
+        $logoAbsPath = $logoPath
+            ? (realpath(__DIR__ . '/../' . ltrim($logoPath, '/')) ?: realpath(__DIR__ . '/../../' . ltrim($logoPath, '/')))
+            : null;
         $hasLogo = $logoAbsPath && file_exists($logoAbsPath);
 
         foreach ($im as $frame) {
             $frame->setImagePage($origW, $newH, 0, 0);
             $frame->extentImage($origW, $newH, 0, 0);
 
-            // Banner background
+            // Banner background — matches header color
+            $headerHex = $bannerConfig['headerColor'] ?? '#dddddd';
+            [$bgR, $bgG, $bgB] = hexToRgb($headerHex);
+            [$txtR, $txtG, $txtB] = contrastTextRgb($headerHex);
+            [$linkR, $linkG, $linkB] = accentLinkRgb($headerHex);
             $draw = new ImagickDraw();
-            $draw->setFillColor(new ImagickPixel('#f0eeea'));
+            $draw->setFillColor(new ImagickPixel("rgb($bgR,$bgG,$bgB)"));
             $draw->rectangle(0, $origH, $origW, $newH);
             $frame->drawImage($draw);
 
@@ -696,7 +787,7 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                 // © watermark FIRST — very faint (~12% visible), behind logo/text
                 $draw = new ImagickDraw();
                 if ($fontPath) $draw->setFont($fontPath);
-                $draw->setFillColor(new ImagickPixel('rgba(170, 168, 162, 0.12)'));
+                $draw->setFillColor(new ImagickPixel("rgba($txtR,$txtG,$txtB,0.12)"));
                 $draw->setFontSize($copyrightSymbolSize);
                 $metrics = $frame->queryFontMetrics($draw, '©');
                 $symbolW = (int)($metrics['textWidth'] ?? 20);
@@ -727,14 +818,14 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                     // Measure and center the title+tagline block vertically
                     $draw = new ImagickDraw();
                     if ($fontPath) $draw->setFont($fontPath);
-                    $draw->setFillColor(new ImagickPixel('#1e1e1e'));
+                    $draw->setFillColor(new ImagickPixel("rgb($txtR,$txtG,$txtB)"));
                     $draw->setFontSize($titleSize);
                     $titleM = $frame->queryFontMetrics($draw, $title);
                     $titleH = $titleM['ascender'] ?? $titleSize;
 
                     $drawTag = new ImagickDraw();
                     if ($italicPath) $drawTag->setFont($italicPath);
-                    $drawTag->setFillColor(new ImagickPixel('#504e4a'));
+                    $drawTag->setFillColor(new ImagickPixel("rgb($txtR,$txtG,$txtB)"));
                     $drawTag->setFontSize($taglineSize);
                     $tagM = $frame->queryFontMetrics($drawTag, $tagline);
                     $tagH = $tagM['ascender'] ?? $taglineSize;
@@ -750,7 +841,7 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                 } else {
                     $draw = new ImagickDraw();
                     if ($fontPath) $draw->setFont($fontPath);
-                    $draw->setFillColor(new ImagickPixel('#1e1e1e'));
+                    $draw->setFillColor(new ImagickPixel("rgb($txtR,$txtG,$txtB)"));
                     $draw->setFontSize($titleSize);
                     $titleM = $frame->queryFontMetrics($draw, $title);
                     $titleH = $titleM['ascender'] ?? $titleSize;
@@ -769,7 +860,7 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                 $copWord = 'copyrighted';
                 $postText = '.';
 
-                $draw->setFillColor(new ImagickPixel('#1e1e1e'));
+                $draw->setFillColor(new ImagickPixel("rgb($txtR,$txtG,$txtB)"));
                 $preM = $frame->queryFontMetrics($draw, $preText);
                 $copM = $frame->queryFontMetrics($draw, $copWord);
                 $postM = $frame->queryFontMetrics($draw, $postText);
@@ -808,7 +899,7 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                 $draw3 = new ImagickDraw();
                 if ($fontPath) $draw3->setFont($fontPath);
                 $draw3->setFontSize($bodySize);
-                $draw3->setFillColor(new ImagickPixel('#1e1e1e'));
+                $draw3->setFillColor(new ImagickPixel("rgb($txtR,$txtG,$txtB)"));
                 $frame->annotateImage($draw3, max(0, $l1X + ($preM['textWidth'] ?? 0) + ($copM['textWidth'] ?? 0)), $line1Y, 0, $postText);
 
                 $l2X = $origW - $line2W - $margin;
@@ -818,13 +909,13 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                 $draw4 = new ImagickDraw();
                 if ($fontPath) $draw4->setFont($fontPath);
                 $draw4->setFontSize($bodySize);
-                $draw4->setFillColor(new ImagickPixel('#1e328c'));
+                $draw4->setFillColor(new ImagickPixel("rgb($linkR,$linkG,$linkB)"));
                 $frame->annotateImage($draw4, max(0, $l3X), $line3Y, 0, $email);
 
                 $draw5 = new ImagickDraw();
                 if ($fontPath) $draw5->setFont($fontPath);
                 $draw5->setFontSize($bodySize);
-                $draw5->setFillColor(new ImagickPixel('#1e1e1e'));
+                $draw5->setFillColor(new ImagickPixel("rgb($txtR,$txtG,$txtB)"));
                 $frame->annotateImage($draw5, max(0, $l3X + $emailW), $line3Y, 0, '.');
             } else {
                 $draw = new ImagickDraw();
@@ -832,7 +923,7 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                 $draw->setFontSize($bodySize);
 
                 $preText = 'Image created by ';
-                $draw->setFillColor(new ImagickPixel('#1e1e1e'));
+                $draw->setFillColor(new ImagickPixel("rgb($txtR,$txtG,$txtB)"));
                 $preM = $frame->queryFontMetrics($draw, $preText);
                 $emailM = $frame->queryFontMetrics($draw, $email);
                 $totalW = ($preM['textWidth'] ?? 0) + ($emailM['textWidth'] ?? 0);
@@ -844,7 +935,7 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
                 $draw2 = new ImagickDraw();
                 if ($fontPath) $draw2->setFont($fontPath);
                 $draw2->setFontSize($bodySize);
-                $draw2->setFillColor(new ImagickPixel('#1e328c'));
+                $draw2->setFillColor(new ImagickPixel("rgb($linkR,$linkG,$linkB)"));
                 $frame->annotateImage($draw2, max(0, $rX + ($preM['textWidth'] ?? 0)), $rY, 0, $email);
             }
         }
