@@ -253,6 +253,26 @@ button {
   }
 }
 
+.header-close-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-header-text);
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+  filter: var(--color-header-icon-shadow);
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
 .info-overlay {
   position: fixed;
   inset: 0;
@@ -506,6 +526,7 @@ button {
   background: rgba(0, 0, 0, 0.85);
   opacity: 0;
   cursor: pointer;
+  touch-action: none;
 }
 
 // =============================================================================
@@ -517,6 +538,12 @@ button {
 
   &.visible {
     opacity: 1;
+  }
+
+  .lb-actions,
+  .lb-chevron,
+  .lb-actions-toggle {
+    pointer-events: auto;
   }
 }
 
@@ -552,6 +579,39 @@ button {
 
     &:hover {
       color: rgba(224, 85, 85, 1);
+    }
+  }
+}
+
+// Desktop: hide toggle, show actions directly
+.lb-actions-toggle {
+  display: none;
+}
+
+// Mobile: toggle-driven actions
+@media (hover: none), (pointer: coarse) {
+  .lb-actions-toggle {
+    display: flex;
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1002;
+  }
+
+  .lb-actions-toggle-active {
+    color: rgba(255, 255, 255, 1);
+  }
+
+  .lb-actions {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+
+    &.lb-actions-expanded {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
     }
   }
 }
@@ -1357,6 +1417,39 @@ button {
     }
   }
 
+  .admin-update {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+    text-align: center;
+  }
+
+  .admin-update-btn {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--color-accent);
+    color: var(--color-accent-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:hover { opacity: 0.85; }
+    &:disabled { opacity: 0.5; cursor: wait; }
+  }
+
+  .admin-update-check {
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    font-size: 0.75rem;
+  }
+
+  .admin-update-status {
+    font-size: 0.8rem;
+    color: var(--color-accent);
+  }
+
   .admin-link-btn {
     font-size: 0.7rem;
     color: var(--color-accent);
@@ -1579,6 +1672,13 @@ button {
 // =============================================================================
 // Reduced motion — respect user preference
 // =============================================================================
+// Hide chevrons on touch devices — swipe handles navigation
+@media (hover: none), (pointer: coarse) {
+  .lb-chevron {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

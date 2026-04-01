@@ -5,8 +5,7 @@
     "bgColor": "#808080",
     "fontBody": "Roboto",
     "nsfwBlurDefault": true,
-    "enabledTags": [
-    ],
+    "enabledTags": [],
     "tagDisplayMode": "dropdown",
     "enableShare": true,
     "enableDownload": true,

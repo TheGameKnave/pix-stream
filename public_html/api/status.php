@@ -6,8 +6,10 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-$origDir = realpath(__DIR__ . '/../../storage/originals');
-$thumbDir = realpath(__DIR__ . '/../../storage/thumbnails');
+require_once __DIR__ . '/../lib/storage.php';
+
+$origDir = storagePath('originals');
+$thumbDir = storagePath('thumbnails');
 
 $imageCount = 0;
 if ($origDir) {

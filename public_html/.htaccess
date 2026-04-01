@@ -12,13 +12,17 @@ RewriteRule ^api/logo$ api/logo.php [L,QSA]
 RewriteRule ^api/favicon$ api/favicon.php [L,QSA]
 RewriteRule ^api/watermark$ api/watermark.php [L,QSA]
 RewriteRule ^api/delete$ api/delete.php [L,QSA]
+RewriteRule ^api/update$ api/update.php [L,QSA]
 
 # Serve images from storage (with .gif.jpg static fallback for thumbnails)
-RewriteCond %{DOCUMENT_ROOT}/../storage/thumbnails/$1 -f
-RewriteRule ^api/image/thumb/(.*)$ ../storage/thumbnails/$1 [L]
-RewriteCond %{DOCUMENT_ROOT}/../storage/thumbnails/$1.jpg -f
-RewriteRule ^api/image/thumb/(.*)$ ../storage/thumbnails/$1.jpg [L]
-RewriteRule ^api/image/full/(.*)$ ../storage/originals/$1 [L]
+RewriteCond %{DOCUMENT_ROOT}/storage/thumbnails/$1 -f
+RewriteRule ^api/image/thumb/(.*)$ /storage/thumbnails/$1 [L]
+RewriteCond %{DOCUMENT_ROOT}/storage/thumbnails/$1.jpg -f
+RewriteRule ^api/image/thumb/(.*)$ /storage/thumbnails/$1.jpg [L]
+# Try processed first (has banner/resize), fall back to originals
+RewriteCond %{DOCUMENT_ROOT}/storage/processed/$1 -f
+RewriteRule ^api/image/full/(.*)$ /storage/processed/$1 [L]
+RewriteRule ^api/image/full/(.*)$ /storage/originals/$1 [L]
 
 # Serve favicon at domain root (browsers request this automatically for every page)
 RewriteRule ^favicon\.(ico|svg)$ api/serve-favicon.php [L]

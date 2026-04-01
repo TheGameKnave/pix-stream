@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
 }
 
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/storage.php';
 requireAuth();
 
 $id = $_GET['id'] ?? '';
@@ -30,7 +31,7 @@ if (!$id) {
 
 // Sanitize — only allow safe filename characters
 $id = basename($id);
-$storageDir = realpath(__DIR__ . '/../../storage');
+$storageDir = storagePath();
 if (!$storageDir) {
     http_response_code(500);
     echo json_encode(['error' => 'Storage directory not found']);
