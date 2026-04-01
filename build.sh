@@ -27,10 +27,6 @@ echo "==> Assembling public_html/..."
 rm -rf public_html
 mkdir -p public_html
 
-echo "==> Ensuring storage directories exist (originals/processed/thumbnails)..."
-mkdir -p storage/originals storage/processed storage/thumbnails
-chmod 755 storage storage/originals storage/processed storage/thumbnails
-
 # Server files (skip dev-only files)
 cp server/.htaccess public_html/
 cp -r server/api public_html/
@@ -57,12 +53,11 @@ fi
 rm -f public_html/server.mjs public_html/main.server.mjs
 rm -f public_html/index.server.html
 
+# Write version stamp from git
+if command -v git &>/dev/null && git rev-parse --git-dir &>/dev/null; then
+  git rev-parse --short HEAD > public_html/config/.version
+fi
+
 echo ""
-echo "Done! Upload the public_html/ directory to your web host."
-echo ""
-echo "Remember to create a storage/ directory as a SIBLING of public_html/:"
-echo "  storage/originals/"
-echo "  storage/processed/"
-echo "  storage/thumbnails/"
-echo ""
-echo "Make storage/ writable by the web server (chmod 755 or 775)."
+echo "Done! Upload the contents of public_html/ to your web host."
+echo "Storage directories are created automatically on first upload."
