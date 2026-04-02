@@ -134,6 +134,7 @@ export class GalleryComponent {
   private lightboxOrderIdx = -1;
   private preloadedImages: HTMLImageElement[] = []; // keep decoded images alive in memory
   private lightboxNavigating = false;
+  private lightboxAnimatingOpen = false;
   private focusBeforeLightbox: HTMLElement | null = null;
   private boundTrapFocus: ((e: KeyboardEvent) => void) | null = null;
 
@@ -959,7 +960,7 @@ export class GalleryComponent {
     const swipeState = this.attachSwipe(overlay, () => this.closeLightbox());
     // Desktop click-to-close (touch uses tap handler in attachSwipe)
     overlay.addEventListener('click', () => {
-      if (swipeState.scale <= 1) this.closeLightbox();
+      if (!this.lightboxAnimatingOpen && swipeState.scale <= 1) this.closeLightbox();
     });
     el.appendChild(overlay);
     this.lightboxEl = overlay;
@@ -993,6 +994,7 @@ export class GalleryComponent {
     }
 
     // Animate from card position to center
+    this.lightboxAnimatingOpen = true;
     gsap.to(overlay, {
       left: targetX,
       top: targetY,
@@ -1005,6 +1007,7 @@ export class GalleryComponent {
       ease: 'power2.out',
       force3D: true,
       onComplete: () => {
+        this.lightboxAnimatingOpen = false;
         // Remove GSAP's internal cache so manual style.transform (pinch zoom) works
         gsap.killTweensOf(overlay);
         delete (overlay as any)._gsap;
@@ -1315,8 +1318,11 @@ export class GalleryComponent {
     const image = this.lightboxImage();
     if (!image) return;
 
+    // If the open animation is still running, kill it before closing
+    this.lightboxAnimatingOpen = false;
     const el = this.canvas()?.nativeElement;
     const overlay = this.lightboxEl;
+    if (overlay) gsap.killTweensOf(overlay);
     const willReopen = !!onDone;
 
     // Restore URL (skip if navigating to next image)
@@ -1621,6 +1627,9 @@ export class GalleryComponent {
     }, { passive: false });
 
     target.addEventListener('touchend', (e: TouchEvent) => {
+      // Ignore gestures while the open animation is still running
+      if (this.lightboxAnimatingOpen) return;
+
       if (pinchActive) {
         if (e.touches.length < 2) {
           const transform = target.style.transform;
