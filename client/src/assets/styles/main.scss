@@ -271,8 +271,6 @@ button {
   z-index: 300;
   background: rgba(0, 0, 0, 0.6);
   overflow-y: auto;
-  display: flex;
-  justify-content: center;
   padding: 2rem 0;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
@@ -287,11 +285,10 @@ button {
   padding: 2rem;
   max-width: 400px;
   width: 90%;
-  margin: auto;
+  margin: 0 auto;
   text-align: center;
   text-shadow: var(--color-header-glow);
   overflow: hidden;
-  flex-shrink: 0;
 
   &[data-watermark]::before {
     content: "";
@@ -1632,7 +1629,6 @@ button {
   position: sticky;
   bottom: 0;
   left: 0;
-  width: 100%;
   height: 0;
   pointer-events: none;
   z-index: 50;
