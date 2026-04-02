@@ -50,6 +50,8 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
       border: 1px solid var(--color-accent);
       border-radius: 0 0 6px 6px;
       min-height: 100px;
+      max-height: 40vh;
+      overflow-y: auto;
       padding: 0.5rem;
       font-size: 0.85rem;
       line-height: 1.5;
