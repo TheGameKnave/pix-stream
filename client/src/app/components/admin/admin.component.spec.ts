@@ -48,12 +48,13 @@ describe('AdminComponent', () => {
   let siteConfigService: jasmine.SpyObj<SiteConfigService>;
 
   beforeEach(async () => {
-    const siteConfigSpy = jasmine.createSpyObj('SiteConfigService', ['saveConfig'], {
+    const siteConfigSpy = jasmine.createSpyObj('SiteConfigService', ['saveConfig', 'pageTitle'], {
       config: signal(MOCK_CONFIG),
       allTags: signal(['nature', 'portrait', 'bw']),
       adminSetupRequired: signal(false),
       adminAuthenticated: signal(false),
     });
+    siteConfigSpy.pageTitle.and.returnValue('Test Gallery | Admin');
 
     await TestBed.configureTestingModule({
       imports: [

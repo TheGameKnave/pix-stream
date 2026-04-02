@@ -30,7 +30,7 @@ describe('GalleryStateService', () => {
     const entry: ImageEntry = {
       id: 'test', filename: 'test.jpg', type: 'image/jpeg',
       thumb: '/t.jpg', full: '/f.jpg', tags: [], width: 100, height: 100,
-      nsfw: false, copyright: '', bannerHeight: 0, captureDate: '', title: '',
+      nsfw: false, copyright: '', bannerHeight: 0, captureDate: '', title: '', description: '',
     };
     const card: FloatingImage = {
       uid: 1, entry, x: 10, y: 20, w: 100, h: 100,

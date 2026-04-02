@@ -109,19 +109,24 @@ describe('SiteConfigService', () => {
       expect(service.pageTitle()).toBe('Test Gallery | Portfolio');
     });
 
-    it('appends additional segments', () => {
+    it('appends context before pageHeadTitle', () => {
       service.config.set(MOCK_CONFIG);
-      expect(service.pageTitle('Photo 1')).toBe('Test Gallery | Photo 1');
+      expect(service.pageTitle('About')).toBe('Test Gallery | About');
     });
 
-    it('appends pageHeadTitle and segments', () => {
+    it('appends context and pageHeadTitle', () => {
       service.config.set({ ...MOCK_CONFIG, pageHeadTitle: 'Portfolio' });
-      expect(service.pageTitle('Photo 1')).toBe('Test Gallery | Portfolio | Photo 1');
+      expect(service.pageTitle('Landscape')).toBe('Test Gallery | Landscape | Portfolio');
     });
 
-    it('filters out empty segments', () => {
-      service.config.set(MOCK_CONFIG);
-      expect(service.pageTitle('', 'Photo 1', '')).toBe('Test Gallery | Photo 1');
+    it('appends photo after pageHeadTitle', () => {
+      service.config.set({ ...MOCK_CONFIG, pageHeadTitle: 'Portfolio' });
+      expect(service.pageTitle(undefined, 'sunset.jpg')).toBe('Test Gallery | Portfolio | sunset.jpg');
+    });
+
+    it('includes context and photo together', () => {
+      service.config.set({ ...MOCK_CONFIG, pageHeadTitle: 'Portfolio' });
+      expect(service.pageTitle('Admin', 'sunset.jpg')).toBe('Test Gallery | Admin | Portfolio | sunset.jpg');
     });
   });
 
@@ -297,8 +302,8 @@ describe('SiteConfigService', () => {
       loadWithConfig(service, httpMock, { bgColor: '#000000' });
       const bg = document.documentElement.style.getPropertyValue('--color-bg');
       expect(bg).toContain('hsl');
-      // Black (#000) should be clamped to at least 40% lightness
-      expect(bg).toContain('40%');
+      // Black (#000) should be clamped to at least 20% lightness
+      expect(bg).toContain('20%');
     });
 
     it('applies header glow for mid-lightness header', () => {
