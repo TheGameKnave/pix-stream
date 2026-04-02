@@ -15,6 +15,7 @@ export interface ImageEntry {
   bannerHeight: number;
   captureDate: string;
   title: string;
+  description: string;
 }
 
 export interface ManifestResponse {

@@ -66,6 +66,7 @@ function scanImages(string $dir): array {
             'copyright' => $canReadExif ? readExifCopyright($file) : '',
             'captureDate' => $canReadExif ? readExifDate($file) : '',
             'title' => $canReadExif ? readExifTitle($file) : '',
+            'description' => $canReadExif ? readExifDescription($file) : '',
         ];
     }
 
@@ -100,7 +101,6 @@ function readExifDate(string $file): string {
 }
 
 function readExifTitle(string $file): string {
-    $iptc = [];
     getimagesize($file, $info);
     if (!empty($info['APP13'])) {
         $iptcData = iptcparse($info['APP13']);
@@ -108,12 +108,22 @@ function readExifTitle(string $file): string {
         if (isset($iptcData['2#005'][0])) {
             return trim($iptcData['2#005'][0]);
         }
-        // 2#120 = Caption
+    }
+    return '';
+}
+
+function readExifDescription(string $file): string {
+    getimagesize($file, $info);
+    if (!empty($info['APP13'])) {
+        $iptcData = iptcparse($info['APP13']);
+        // 2#120 = Caption/Abstract (Description)
         if (isset($iptcData['2#120'][0])) {
             return trim($iptcData['2#120'][0]);
         }
     }
-    return '';
+    // Fall back to EXIF ImageDescription
+    $exif = @exif_read_data($file, 'IFD0');
+    return $exif['ImageDescription'] ?? '';
 }
 
 function getAllTags(string $originalsDir): array {

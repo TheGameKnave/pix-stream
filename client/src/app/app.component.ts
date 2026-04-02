@@ -1,6 +1,7 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, isDevMode, PLATFORM_ID, signal, viewChild } from '@angular/core';
 import { isPlatformBrowser, Location } from '@angular/common';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { UpdateService } from '@app/services/update.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 import { SiteConfigService, slugify } from '@app/services/site-config.service';
@@ -23,6 +24,7 @@ export class AppComponent {
   protected readonly isDevMode = isDevMode();
   protected readonly siteConfig = inject(SiteConfigService);
   protected readonly showHeader = signal(true);
+  protected readonly onAdminPage = signal(false);
   protected readonly showInfo = this.siteConfig.aboutOpen;
   protected readonly tagDropdownOpen = signal(false);
   protected readonly aboutDescription = computed(() => {
@@ -45,6 +47,7 @@ export class AppComponent {
   private readonly http = inject(HttpClient);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly titleService = inject(Title);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly headerRef = viewChild<ElementRef<HTMLElement>>('headerEl');
   private headerRo?: ResizeObserver;
@@ -55,6 +58,7 @@ export class AppComponent {
 
     const updateFromUrl = (url: string) => {
       this.showHeader.set(!url.startsWith('/kiosk'));
+      this.onAdminPage.set(url.startsWith('/admin'));
       this.siteConfig.aboutOpen.set(url === '/about');
       if (url.startsWith('/admin')) {
         this.siteConfig.activeTags.set([]);
@@ -156,12 +160,15 @@ export class AppComponent {
     this.urlBeforeAbout = this.location.path() || '/';
     this.location.replaceState('/about');
     this.showInfo.set(true);
+    this.titleService.setTitle(this.siteConfig.pageTitle('About'));
   }
 
   closeAbout(): void {
     const restoreTo = this.urlBeforeAbout || '/';
     this.showInfo.set(false);
     this.location.replaceState(restoreTo);
+    const tags = this.siteConfig.activeTags();
+    this.titleService.setTitle(this.siteConfig.pageTitle(tags.length ? tags.join(' + ') : undefined));
   }
 
   async shareSite(): Promise<void> {

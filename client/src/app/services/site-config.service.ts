@@ -135,12 +135,17 @@ export class SiteConfigService {
     this.tags.set(enabled.length > 0 ? allTags.filter(t => enabled.includes(t)) : allTags);
   }
 
-  /** Build a page title: SiteName | pageHeadTitle | imageSlug */
-  pageTitle(...segments: string[]): string {
+  /**
+   * Build a page title: SiteName [| context] [| pageHeadTitle] [| photo]
+   * @param context  Middle segment: "Admin", "About", filter tags, etc. Omit for homepage/photo.
+   * @param photo    Trailing segment: photo title or filename for lightbox view.
+   */
+  pageTitle(context?: string, photo?: string): string {
     const c = this.config();
     const parts = [c?.title || 'Pix Stream'];
+    if (context) parts.push(context);
     if (c?.pageHeadTitle) parts.push(c.pageHeadTitle);
-    parts.push(...segments.filter(Boolean));
+    if (photo) parts.push(photo);
     return parts.join(' | ');
   }
 

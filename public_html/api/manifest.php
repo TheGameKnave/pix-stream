@@ -179,6 +179,7 @@ foreach ($images as $image) {
         'copyright' => $image['copyright'],
         'captureDate' => $image['captureDate'] ?? '',
         'title' => $image['title'] ?? '',
+        'description' => $image['description'] ?? '',
     ];
     if ($blurFilename) {
         $blurMtime = @filemtime($thumbDir . '/' . $blurFilename) ?: 0;

@@ -197,11 +197,13 @@ export class GalleryComponent {
         const slugs = tagsParam.split('+').map(t => decodeURIComponent(t));
         this.siteConfig.setActiveFromSlugs(slugs);
         this.location.replaceState('/' + slugs.join('+'));
+        this.seo.updateTags({ title: this.siteConfig.pageTitle(slugs.join(' + ')) });
       } else if (!tagsParam) {
         // Navigated to root — clear tags
         if (this.siteConfig.activeTags().length > 0) {
           this.siteConfig.activeTags.set([]);
         }
+        this.seo.updateTags({ title: this.siteConfig.pageTitle() });
       }
     });
 
@@ -873,7 +875,7 @@ export class GalleryComponent {
 
     // SEO meta
     this.seo.updateTags({
-      title: this.siteConfig.pageTitle(image.entry.title || image.entry.id),
+      title: this.siteConfig.pageTitle(undefined, image.entry.title || image.entry.id),
       image: image.entry.full,
     });
     if (image.entry.tags.length > 0) {
@@ -1126,6 +1128,31 @@ export class GalleryComponent {
       controls.appendChild(right);
     }
 
+    // Info tray (title + description) at bottom of lightbox
+    const hasTitle = image.entry.title && image.entry.title !== image.entry.id;
+    const hasDesc = !!image.entry.description;
+    if (hasTitle || hasDesc) {
+      const tray = document.createElement('div');
+      tray.className = 'lb-info-tray';
+      if (hasTitle) {
+        const titleEl = document.createElement('div');
+        titleEl.className = 'lb-info-title';
+        titleEl.textContent = image.entry.title;
+        tray.appendChild(titleEl);
+      }
+      if (hasDesc) {
+        const descEl = document.createElement('div');
+        descEl.className = 'lb-info-desc';
+        descEl.textContent = image.entry.description;
+        tray.appendChild(descEl);
+      }
+      tray.addEventListener('click', (e) => {
+        e.stopPropagation();
+        tray.classList.toggle('lb-info-expanded');
+      });
+      controls.appendChild(tray);
+    }
+
     canvas.appendChild(controls);
     this.lightboxControls = controls;
 
@@ -1328,7 +1355,8 @@ export class GalleryComponent {
     // Restore URL (skip if navigating to next image)
     if (!willReopen) {
       this.location.replaceState(this.urlBeforeLightbox);
-      this.seo.updateTags({ title: this.siteConfig.pageTitle() });
+      const tags = this.siteConfig.activeTags();
+      this.seo.updateTags({ title: this.siteConfig.pageTitle(tags.length ? tags.join(' + ') : undefined) });
       this.seo.clearKeywords();
     }
 

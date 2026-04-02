@@ -58,6 +58,7 @@ describe('makeCard', () => {
     bannerHeight: 0,
     captureDate: '',
     title: '',
+    description: '',
   };
 
   it('returns a FloatingImage with correct entry reference', () => {
@@ -138,7 +139,7 @@ describe('nearbyIds', () => {
   function fakeCard(id: string, x: number): FloatingImage {
     return {
       uid: 0,
-      entry: { id, filename: '', type: '', thumb: '', full: '', tags: [], width: 100, height: 100, nsfw: false, copyright: '', bannerHeight: 0, captureDate: '', title: '' },
+      entry: { id, filename: '', type: '', thumb: '', full: '', tags: [], width: 100, height: 100, nsfw: false, copyright: '', bannerHeight: 0, captureDate: '', title: '', description: '' },
       x, y: 0, w: 100, h: 100, rotation: 0, z: 0.5, zIndex: 50, shadow: '',
     };
   }
@@ -223,7 +224,7 @@ function makeTestEntry(id: string, overrides: Partial<ImageEntry> = {}): ImageEn
     id, filename: `${id}.jpg`, type: 'image/jpeg',
     thumb: `/thumb/${id}.jpg`, full: `/full/${id}.jpg`, tags: [],
     width: 800, height: 600, nsfw: false, copyright: '',
-    bannerHeight: 0, captureDate: '', title: '', ...overrides,
+    bannerHeight: 0, captureDate: '', title: '', description: '', ...overrides,
   };
 }
 
@@ -264,7 +265,7 @@ describe('GalleryComponent (DOM)', () => {
             hasNsfw: signal(false),
             aboutOpen: signal(false),
             adminAuthenticated: signal(false),
-            pageTitle: (...s: string[]) => ['Test', ...s].join(' | '),
+            pageTitle: (ctx?: string, photo?: string) => ['Test', ctx, photo].filter(Boolean).join(' | '),
             setActiveFromSlugs: () => {},
             toggleNsfw: () => {},
             saveConfig: () => {},
@@ -566,11 +567,11 @@ describe('GalleryComponent (DOM)', () => {
         const siteConfig = TestBed.inject(SiteConfigService);
         (siteConfig.config as any).set({ ...MOCK_CONFIG, flowDirection: 'ltr', flowSpeed: 'med' });
         comp().initMetrics();
-        expect(comp().baseSpeed).toBeGreaterThan(0); // ltr = positive
+        expect(comp().baseSpeed).toBeLessThan(0); // ltr = negative (scrolls left)
 
         (siteConfig.config as any).set({ ...MOCK_CONFIG, flowDirection: 'rtl', flowSpeed: 'med' });
         comp().initMetrics();
-        expect(comp().baseSpeed).toBeLessThan(0); // rtl = negative
+        expect(comp().baseSpeed).toBeGreaterThan(0); // rtl = positive (scrolls right-to-left)
       });
 
       it('sets vertical flag for ttb/btt', () => {
