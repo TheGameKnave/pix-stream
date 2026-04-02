@@ -9,8 +9,9 @@
 // Suppress warnings so they don't corrupt JSON output
 error_reporting(E_ERROR);
 
-// Allow long processing time for thumbnail/image generation
+// Allow long processing time and sufficient memory for thumbnail/image generation
 set_time_limit(300);
+ini_set('memory_limit', '512M');
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -77,6 +78,13 @@ $manifest = [];
 $validThumbFiles = [];
 $validProcessedFiles = [];
 
+// Acquire a processing lock so only one request generates images at a time.
+// Non-blocking: if another request is already processing, skip generation
+// to avoid concurrent writes that corrupt output files.
+$lockFile = $storageDir . '/.manifest_lock';
+$lockFp = fopen($lockFile, 'c');
+$hasLock = $lockFp && flock($lockFp, LOCK_EX | LOCK_NB);
+
 foreach ($images as $image) {
     if ($image['width'] <= 0 || $image['height'] <= 0) continue;
 
@@ -95,10 +103,13 @@ foreach ($images as $image) {
 
     $thumbExists = file_exists($expectedThumb) || $fallbackThumb;
 
-    if (!$thumbExists) {
+    if (!$thumbExists && $hasLock) {
         $result = generateThumbnail($image['path'], $thumbBase);
         if (!$result) continue;
         $validThumbFiles[] = basename($result);
+    } else if (!$thumbExists) {
+        // Another request is processing — skip this image for now
+        continue;
     } else {
         if (file_exists($expectedThumb)) $validThumbFiles[] = basename($expectedThumb);
         if ($fallbackThumb) $validThumbFiles[] = basename($fallbackThumb);
@@ -117,7 +128,7 @@ foreach ($images as $image) {
 
     $procExists = file_exists($expectedProc) || $fallbackProc;
 
-    if (!$procExists) {
+    if (!$procExists && $hasLock) {
         $imgBanner = $bannerConfig;
         if ($imgBanner && $image['copyright']) {
             $imgBanner['copyright'] = $image['copyright'];
@@ -126,6 +137,8 @@ foreach ($images as $image) {
         if ($result) {
             $validProcessedFiles[] = basename($result);
         }
+    } else if (!$procExists) {
+        // No lock — use original as fallback
     } else {
         if (file_exists($expectedProc)) $validProcessedFiles[] = basename($expectedProc);
         if ($fallbackProc) $validProcessedFiles[] = basename($fallbackProc);
@@ -139,7 +152,7 @@ foreach ($images as $image) {
         $blurBase = $thumbDir . '/' . $image['id'] . '_blur';
         $blurExt = pathinfo($thumbFilename, PATHINFO_EXTENSION);
         $blurPath = $blurBase . '.' . $blurExt;
-        if (!file_exists($blurPath)) {
+        if (!file_exists($blurPath) && $hasLock) {
             generateBlurredThumbnail($thumbPath, $blurPath);
         }
         if (file_exists($blurPath)) {
@@ -174,8 +187,8 @@ foreach ($images as $image) {
     $manifest[] = $entry;
 }
 
-// Clean up stale thumbnails
-if ($thumbDir) {
+// Only clean up stale files when we hold the processing lock
+if ($hasLock && $thumbDir) {
     $thumbFiles = @scandir($thumbDir);
     if ($thumbFiles) {
         foreach ($thumbFiles as $f) {
@@ -187,8 +200,7 @@ if ($thumbDir) {
     }
 }
 
-// Clean up stale processed images
-if ($processedDir) {
+if ($hasLock && $processedDir) {
     $procFiles = @scandir($processedDir);
     if ($procFiles) {
         foreach ($procFiles as $f) {
@@ -198,6 +210,12 @@ if ($processedDir) {
             }
         }
     }
+}
+
+// Release processing lock
+if ($lockFp) {
+    if ($hasLock) flock($lockFp, LOCK_UN);
+    fclose($lockFp);
 }
 
 // Version hash so the client can detect manifest changes
