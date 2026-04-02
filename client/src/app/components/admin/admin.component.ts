@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, HostListener, ViewChild
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { take } from 'rxjs';
+import { Title } from '@angular/platform-browser';
 import { SiteConfigService, SiteConfig } from '@app/services/site-config.service';
 import { ScrollIndicatorDirective } from '@app/directives/scroll-indicator.directive';
 import { MarkdownEditorComponent } from '@app/directives/markdown-editor.directive';
@@ -115,7 +116,10 @@ export class AdminComponent implements AfterViewChecked {
   readonly totalImageCount = signal(0);
   readonly showHidden = signal(false);
 
+  private readonly titleService = inject(Title);
+
   constructor() {
+    this.titleService.setTitle(this.siteConfig.pageTitle('Admin'));
     this.checkStatus();
   }
 
