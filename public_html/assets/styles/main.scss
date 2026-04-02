@@ -270,9 +270,10 @@ button {
   inset: 0;
   z-index: 300;
   background: rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
   display: flex;
-  align-items: center;
   justify-content: center;
+  padding: 2rem 0;
 }
 
 .info-panel {
@@ -283,12 +284,12 @@ button {
   border-radius: 8px;
   padding: 2rem;
   max-width: 400px;
-  max-height: 90vh;
   width: 90%;
+  margin: auto;
   text-align: center;
   text-shadow: var(--color-header-glow);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  flex-shrink: 0;
 
   &[data-watermark]::before {
     content: "";

@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1775166130035,
+  "timestamp": 1775166265727,
   "index": "/index.csr.html",
   "assetGroups": [
     {
@@ -19,7 +19,7 @@
         "/chunk-ZYJTWGXP.js",
         "/main-MOMDV3IR.js",
         "/manifest.webmanifest",
-        "/styles-XL6SA7ZU.css"
+        "/styles-SBC6ZQDG.css"
       ],
       "patterns": []
     },
@@ -105,7 +105,7 @@
     "/chunk-ZYJTWGXP.js": "708530d76ed78d036a6a924d814a8fd3733a9965",
     "/main-MOMDV3IR.js": "105a23764ebed045a1d7ed33aeba2f476e241451",
     "/manifest.webmanifest": "9c03128e4da0464a675b1ff29b33952ba910aeb5",
-    "/styles-XL6SA7ZU.css": "94947664fea87f49185ac82a5a46509693ab98c6"
+    "/styles-SBC6ZQDG.css": "1c24a8c6e56d00b933ab138e9e0dcc0a0bcac2ca"
   },
   "navigationUrls": [
     {
