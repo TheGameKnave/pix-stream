@@ -11,7 +11,7 @@
     "enableDownload": true,
     "enableQr": true,
     "enableKiosk": true,
-    "flowDirection": "rtl",
+    "flowDirection": "ltr",
     "flowSpeed": "med",
     "contactEmail": "",
     "pageHeadTitle": "",
@@ -19,5 +19,6 @@
     "siteLogo": "",
     "siteFavicon": "",
     "watermark": "",
-    "sortOrder": "random"
+    "sortOrder": "random",
+    "homepageUrl": ""
 }
