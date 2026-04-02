@@ -489,6 +489,9 @@
 
     <!-- Update -->
     <div class="admin-update">
+      @if (siteVersion()) {
+        <span class="admin-version">Version: {{ siteVersion() }}</span>
+      }
       @if (updateAvailable()) {
         <button class="admin-update-btn" (click)="updateFromGitHub()" [disabled]="updateStatus()">
           {{ updateStatus() || 'Update Available' }}

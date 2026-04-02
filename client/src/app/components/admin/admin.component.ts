@@ -106,6 +106,7 @@ export class AdminComponent implements AfterViewChecked {
   // Update from GitHub
   readonly updateStatus = signal('');
   readonly updateAvailable = signal(false);
+  readonly siteVersion = signal('');
 
   // Hidden images report
   private allImages: { id: string; tags: string[]; thumb: string }[] = [];
@@ -540,7 +541,10 @@ export class AdminComponent implements AfterViewChecked {
     this.http.get<{ available: boolean; current: string; latest: string }>('/api/update?check=1')
       .pipe(take(1))
       .subscribe({
-        next: (res) => this.updateAvailable.set(res.available),
+        next: (res) => {
+          this.updateAvailable.set(res.available);
+          if (res.current) this.siteVersion.set(res.current);
+        },
         error: () => this.updateAvailable.set(false),
       });
   }
