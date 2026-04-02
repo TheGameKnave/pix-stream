@@ -1,5 +1,5 @@
 @if (showHeader()) {
-<header class="app-header" #headerEl>
+<header class="app-header" #headerEl [style.visibility]="siteConfig.config() ? 'visible' : 'hidden'">
   <a class="logo" (click)="goHome()" (keydown.enter)="goHome()" tabindex="0">
     @if (siteConfig.config()?.siteLogo) {
       <img [src]="siteConfig.config()!.siteLogo" [alt]="(siteConfig.config()?.title || 'Pix Stream') + (siteConfig.config()?.subtitle ? ' — ' + siteConfig.config()!.subtitle : '')" class="logo-image" />
@@ -78,7 +78,7 @@
       </button>
     }
     @if (siteConfig.config()?.enableKiosk !== false) {
-      <a class="header-icon-btn" href="/kiosk" title="Kiosk Mode" aria-label="Enter kiosk mode">
+      <a class="header-icon-btn" routerLink="/kiosk" title="Kiosk Mode" aria-label="Enter kiosk mode">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       </a>
     }
@@ -125,7 +125,7 @@
         <markdown [data]="instructionsMd()"></markdown>
       </div>
       <p class="info-credits">
-        Built with <a href="https://github.com/TheGameKnave/pix-stream" target="_blank" rel="noopener">Pix Stream <svg class="external-link-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span class="sr-only"> (opens in new tab)</span></a>
+        Built with <a href="https://github.com/TheGameKnave/pix-stream/blob/main/README.md" target="_blank" rel="noopener">Pix Stream <svg class="external-link-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg><span class="sr-only"> (opens in new tab)</span></a>
       </p>
     </div>
   </div>

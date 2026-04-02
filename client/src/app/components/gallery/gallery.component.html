@@ -43,7 +43,7 @@
   @if (nsfwPromptOpen()) {
     <div class="nsfw-prompt-overlay" (click)="dismissNsfwPrompt()" (keydown.enter)="dismissNsfwPrompt()" tabindex="0" role="dialog" aria-modal="true" aria-label="Content warning">
       <div class="nsfw-prompt" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()" tabindex="-1">
-        <p>This image is marked NSFW.</p>
+        <p>This image is marked Not Work-Safe.</p>
         <div class="nsfw-prompt-actions">
           <button class="nsfw-prompt-btn primary" (click)="disableNsfwAndOpen()">Disable Work-Safe &amp; View</button>
           <button class="nsfw-prompt-btn" (click)="dismissNsfwPrompt()">Cancel</button>

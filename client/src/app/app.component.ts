@@ -97,6 +97,17 @@ export class AppComponent {
           document.documentElement.style.setProperty('--header-height', '0px');
         }
       });
+
+      // Scroll active nav tag into view when tags render
+      effect(() => {
+        const tags = this.siteConfig.activeTags();
+        if (!tags.length) return;
+        // Defer to allow DOM to render
+        requestAnimationFrame(() => {
+          const active = document.querySelector('.tag-nav .tag-filter.active') as HTMLElement;
+          active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+      });
     }
   }
 
@@ -107,7 +118,7 @@ export class AppComponent {
   /** Nav mode: singular select — click swaps the active tag */
   selectNavTag(tag: string): void {
     const current = this.siteConfig.activeTags();
-    const onGallery = ['/', ''].includes(this.router.url) || this.router.url.startsWith('/kiosk') || !this.router.url.startsWith('/admin');
+    const onGallery = !this.router.url.startsWith('/admin');
     if (current.includes(tag)) {
       this.siteConfig.activeTags.set([]);
       if (onGallery) this.location.replaceState('/');

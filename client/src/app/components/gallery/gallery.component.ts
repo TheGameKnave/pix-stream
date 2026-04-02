@@ -897,7 +897,7 @@ export class GalleryComponent {
     const cardEl = cardEls[cardIndex] as HTMLElement | undefined;
     const rect = cardEl?.getBoundingClientRect();
     if (cardEl) {
-      cardEl.style.visibility = 'hidden';
+      cardEl.style.opacity = '0';
       this.lightboxSourceCard = cardEl;
     }
 
@@ -1362,7 +1362,7 @@ export class GalleryComponent {
 
     const finish = () => {
       if (this.lightboxSourceCard) {
-        this.lightboxSourceCard.style.visibility = '';
+        this.lightboxSourceCard.style.opacity = '';
         this.lightboxSourceCard = null;
       }
       if (overlay) { overlay.remove(); }

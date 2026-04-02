@@ -32,6 +32,7 @@
 
   // Layout
   --header-height: 0px;
+  --header-shadow: none;
 }
 
 // =============================================================================
@@ -151,6 +152,7 @@ button {
   text-shadow: var(--color-header-glow);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--header-shadow);
 
   @media (max-width: 640px) {
     .tag-nav {
@@ -209,16 +211,21 @@ button {
   display: flex;
   gap: 0.25rem 1.25rem;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   padding: 0 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
 .app-header .actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.25rem;
   align-items: center;
-  padding: 0 0.75rem;
+  padding: 0 0.25rem;
 }
 
 .nsfw-btn {
@@ -226,10 +233,14 @@ button {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-header-text);
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease;
   white-space: nowrap;
+
+  &:hover {
+    opacity: 1;
+  }
 
   &.active {
     opacity: 1;
@@ -244,7 +255,7 @@ button {
   height: 2rem;
   border-radius: 50%;
   color: var(--color-header-text);
-  opacity: 0.7;
+  opacity: 0.5;
   transition: opacity 0.2s ease;
   filter: var(--color-header-icon-shadow);
 
@@ -671,6 +682,8 @@ button {
   filter: blur(0.7px);
   opacity: 0.6;
   transition: all 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 
   &:hover {
     filter: blur(0);

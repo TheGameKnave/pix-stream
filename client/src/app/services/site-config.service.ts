@@ -159,6 +159,7 @@ export class SiteConfigService {
     root.setProperty('--color-accent-link', accentLink);
     root.setProperty('--color-bg', this.clampBgLightness(config.bgColor));
     this.applyTextColor(config.bgColor, root);
+    this.applyHeaderShadow(config.headerColor, config.bgColor, root);
     const font = `'${config.fontBody}', sans-serif`;
     root.setProperty('--font-display', font);
     root.setProperty('--font-body', font);
@@ -193,11 +194,11 @@ export class SiteConfigService {
   /** Set text color based on background lightness. Near-middle gets a glow (inverse of font color). */
   private applyTextColor(bgHex: string, root: CSSStyleDeclaration): void {
     const [, , l] = this.hexToHsl(bgHex);
-    const cl = Math.max(40, Math.min(60, l)); // clamped lightness matches clampBgLightness
-    const dark = cl <= 50;
+    const cl = Math.max(20, Math.min(85, l)); // clamped lightness matches clampBgLightness
+    const dark = cl <= 55;
     root.setProperty('--color-text', dark ? '#fafafa' : '#222');
     root.setProperty('--color-text-muted', dark ? '#999' : '#555');
-    if (cl > 43 && cl < 57) {
+    if (cl > 35 && cl < 65) {
       const glow = dark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)';
       root.setProperty('--color-text-shadow',
         `1px 0 4px ${glow}, -1px 0 4px ${glow}, 0 1px 4px ${glow}, 0 -1px 4px ${glow}`);
@@ -221,6 +222,21 @@ export class SiteConfigService {
     }
   }
 
+  /** Add a subtle shadow below the header when its lightness is close to the background's. */
+  private applyHeaderShadow(headerHex: string, bgHex: string, root: CSSStyleDeclaration): void {
+    const [, , hL] = this.hexToHsl(headerHex);
+    const [, , bL] = this.hexToHsl(bgHex);
+    const clampedBL = Math.max(20, Math.min(85, bL)); // matches clampBgLightness
+    const diff = Math.abs(hL - clampedBL);
+    if (diff < 15) {
+      const dark = clampedBL <= 50;
+      const shadowColor = dark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.15)';
+      root.setProperty('--header-shadow', `0 2px 8px ${shadowColor}`);
+    } else {
+      root.setProperty('--header-shadow', 'none');
+    }
+  }
+
   private hexToHsl(hex: string): [number, number, number] {
     const r = parseInt(hex.slice(1, 3), 16) / 255;
     const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -240,10 +256,10 @@ export class SiteConfigService {
     return [h * 360, s * 100, l * 100];
   }
 
-  /** Clamp a hex color's HSL lightness to 40-60% so the bg stays mid-tone. */
+  /** Clamp a hex color's HSL lightness to 20-85% so extreme values are tamed. */
   private clampBgLightness(hex: string): string {
     const [h, s, l] = this.hexToHsl(hex);
-    const cl = Math.max(40, Math.min(60, l));
+    const cl = Math.max(20, Math.min(85, l));
     return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(cl)}%)`;
   }
 
