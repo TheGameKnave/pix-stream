@@ -9,12 +9,13 @@ import { filter, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import QRCode from 'qrcode';
 import { MarkdownComponent } from 'ngx-markdown';
+import { ScrollIndicatorDirective } from '@app/directives/scroll-indicator.directive';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterModule, MarkdownComponent],
+  imports: [RouterModule, MarkdownComponent, ScrollIndicatorDirective],
 })
 export class AppComponent {
   readonly updateService = inject(UpdateService);

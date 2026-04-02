@@ -101,7 +101,7 @@
 </header>
 }
 @if (showInfo()) {
-  <div class="info-overlay" (click)="closeAbout()" (keydown.enter)="closeAbout()" tabindex="0" role="dialog" aria-modal="true" aria-label="About">
+  <div class="info-overlay" appScrollIndicator (click)="closeAbout()" (keydown.enter)="closeAbout()" tabindex="0" role="dialog" aria-modal="true" aria-label="About">
     <div class="info-panel" [attr.data-watermark]="siteConfig.config()?.watermark || null" [style.--watermark-url]="siteConfig.config()?.watermark ? 'url(' + siteConfig.config()!.watermark + ')' : 'none'" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()" tabindex="-1">
       <button class="info-close" (click)="closeAbout()" aria-label="Close">&times;</button>
       @if (siteConfig.config()?.siteLogo) {
