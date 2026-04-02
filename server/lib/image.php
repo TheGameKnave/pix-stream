@@ -23,6 +23,38 @@ function ensureDir(string $path): void {
 }
 
 /**
+ * Atomic copy: copy to temp file then rename, preventing concurrent corruption.
+ */
+function atomicCopy(string $src, string $dest): bool {
+    ensureDir($dest);
+    $tmp = $dest . '.tmp.' . getmypid();
+    if (copy($src, $tmp)) {
+        return rename($tmp, $dest);
+    }
+    @unlink($tmp);
+    return false;
+}
+
+/**
+ * Atomic Imagick write: write to temp file then rename.
+ */
+function atomicImagickWrite(\Imagick $im, string $dest, bool $adjoin = false): bool {
+    ensureDir($dest);
+    $tmp = $dest . '.tmp.' . getmypid();
+    try {
+        if ($adjoin) {
+            $im->writeImages($tmp, true);
+        } else {
+            $im->writeImage($tmp);
+        }
+        return rename($tmp, $dest);
+    } catch (\Exception $e) {
+        @unlink($tmp);
+        return false;
+    }
+}
+
+/**
  * Load any supported image format into a GD resource.
  * For formats GD can't handle natively (PSD, TIFF), falls back to Imagick.
  * Returns the GD resource or false on failure.
@@ -64,20 +96,34 @@ function loadImage(string $sourcePath): \GdImage|false {
 
 /**
  * Save a GD resource as PNG with alpha preservation.
+ * Uses atomic write (temp file + rename) to prevent corruption from concurrent requests.
  */
 function savePng(\GdImage $img, string $destPath): bool {
     ensureDir($destPath);
     imagealphablending($img, false);
     imagesavealpha($img, true);
-    return imagepng($img, $destPath, PNG_COMPRESSION);
+    $tmp = $destPath . '.tmp.' . getmypid();
+    $ok = imagepng($img, $tmp, PNG_COMPRESSION);
+    if ($ok) {
+        return rename($tmp, $destPath);
+    }
+    @unlink($tmp);
+    return false;
 }
 
 /**
  * Save a GD resource as JPEG.
+ * Uses atomic write (temp file + rename) to prevent corruption from concurrent requests.
  */
 function saveJpeg(\GdImage $img, string $destPath): bool {
     ensureDir($destPath);
-    return imagejpeg($img, $destPath, JPEG_QUALITY);
+    $tmp = $destPath . '.tmp.' . getmypid();
+    $ok = imagejpeg($img, $tmp, JPEG_QUALITY);
+    if ($ok) {
+        return rename($tmp, $destPath);
+    }
+    @unlink($tmp);
+    return false;
 }
 
 /**
@@ -141,8 +187,7 @@ function generateGifThumbnail(string $sourcePath, string $destPath): string|fals
     $ratio = min(THUMB_MAX_WIDTH / $origW, THUMB_MAX_HEIGHT / $origH);
 
     if ($ratio >= 1) {
-        ensureDir($destPath);
-        return copy($sourcePath, $destPath) ? $destPath : false;
+        return atomicCopy($sourcePath, $destPath) ? $destPath : false;
     }
 
     // Imagick: resize all frames preserving animation
@@ -160,11 +205,10 @@ function generateGifThumbnail(string $sourcePath, string $destPath): string|fals
                 $frame->setImagePage(0, 0, 0, 0);
             }
             $im = $im->deconstructImages();
-            ensureDir($destPath);
-            $im->writeImages($destPath, true);
+            $ok = atomicImagickWrite($im, $destPath, true);
             $im->clear();
             $im->destroy();
-            return $destPath;
+            return $ok ? $destPath : false;
         } catch (Exception $e) {}
     }
 
@@ -172,8 +216,7 @@ function generateGifThumbnail(string $sourcePath, string $destPath): string|fals
     $pngDest = preg_replace('/\.gif$/', '.png', $destPath);
     $source = @imagecreatefromgif($sourcePath);
     if (!$source) {
-        ensureDir($destPath);
-        return copy($sourcePath, $destPath) ? $destPath : false;
+        return atomicCopy($sourcePath, $destPath) ? $destPath : false;
     }
 
     $newW = (int)round($origW * $ratio);
@@ -268,8 +311,7 @@ function generateGifResized(string $sourcePath, string $destPath, int $maxW, int
     $ratio = min($maxW / $origW, $maxH / $origH);
 
     if ($ratio >= 1) {
-        ensureDir($destPath);
-        return copy($sourcePath, $destPath) ? $destPath : false;
+        return atomicCopy($sourcePath, $destPath) ? $destPath : false;
     }
 
     if (extension_loaded('imagick')) {
@@ -286,11 +328,10 @@ function generateGifResized(string $sourcePath, string $destPath, int $maxW, int
                 $frame->setImagePage(0, 0, 0, 0);
             }
             $im = $im->deconstructImages();
-            ensureDir($destPath);
-            $im->writeImages($destPath, true);
+            $ok = atomicImagickWrite($im, $destPath, true);
             $im->clear();
             $im->destroy();
-            return $destPath;
+            return $ok ? $destPath : false;
         } catch (Exception $e) {}
     }
 
@@ -298,8 +339,7 @@ function generateGifResized(string $sourcePath, string $destPath, int $maxW, int
     $pngDest = preg_replace('/\.gif$/', '.png', $destPath);
     $source = @imagecreatefromgif($sourcePath);
     if (!$source) {
-        ensureDir($destPath);
-        return copy($sourcePath, $destPath) ? $destPath : false;
+        return atomicCopy($sourcePath, $destPath) ? $destPath : false;
     }
 
     $newW = (int)round($origW * $ratio);
@@ -331,16 +371,14 @@ function generateBlurredThumbnail(string $thumbPath, string $destPath): string|f
                     $frame->blurImage(NSFW_BLUR_RADIUS, NSFW_BLUR_RADIUS / 2);
                 }
                 $im = $im->deconstructImages();
-                ensureDir($destPath);
-                $im->writeImages($destPath, true);
+                $ok = atomicImagickWrite($im, $destPath, true);
             } else {
                 $im->blurImage(NSFW_BLUR_RADIUS, NSFW_BLUR_RADIUS / 2);
-                ensureDir($destPath);
-                $im->writeImage($destPath);
+                $ok = atomicImagickWrite($im, $destPath, false);
             }
             $im->clear();
             $im->destroy();
-            return $destPath;
+            return $ok ? $destPath : false;
         } catch (Exception $e) {}
     }
 
@@ -941,10 +979,10 @@ function composeGifBanner(string $gifPath, array $bannerConfig): string|false {
         }
 
         $im = $im->deconstructImages();
-        $im->writeImages($gifPath, true);
+        $ok = atomicImagickWrite($im, $gifPath, true);
         $im->clear();
         $im->destroy();
-        return $gifPath;
+        return $ok ? $gifPath : false;
     } catch (Exception $e) {
         return $gifPath; // Return unbannered if Imagick fails
     }
