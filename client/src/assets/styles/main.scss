@@ -283,10 +283,12 @@ button {
   border-radius: 8px;
   padding: 2rem;
   max-width: 400px;
+  max-height: 90vh;
   width: 90%;
   text-align: center;
   text-shadow: var(--color-header-glow);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   &[data-watermark]::before {
     content: "";
