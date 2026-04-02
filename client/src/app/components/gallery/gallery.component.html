@@ -21,7 +21,7 @@
           [style.width.px]="card.w"
           [style.height.px]="card.h"
           [style.z-index]="card.zIndex"
-          [style.transform]="'rotate(' + card.rotation + 'deg)'"
+          [style.transform]="'translate(var(--dx,0px),var(--dy,0px)) rotate(' + card.rotation + 'deg)'"
           [attr.data-rotation]="card.rotation"
           [style.box-shadow]="card.shadow"
           (pointerdown)="onPointerDown($event)"

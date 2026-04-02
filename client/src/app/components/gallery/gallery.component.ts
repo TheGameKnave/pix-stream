@@ -175,7 +175,10 @@ export class GalleryComponent {
   // Each column's cards are stored contiguously: column col → cards at indices [col*rows .. col*rows+rows-1]
   private materializedCols = new Set<number>();
   private gridOrigin = 0; // world-x of column 0 center
-  private nextSeqIndex = 0; // sequential pick cursor for non-random sort orders
+  private nextSeqIndex = 0; // sequential pick cursor for front (new content direction)
+  private nextSeqIndexBack = 0; // sequential pick cursor for back (opposite scroll direction)
+  private initialColMin = 0; // track initial column range to know front vs back
+  private initialColMax = 0;
 
   // For distinguishing click from drag
   private pointerDownX = 0;
@@ -284,6 +287,8 @@ export class GalleryComponent {
     return result;
   }
 
+
+
   private applyFilter(): void {
     const prevEntryIds = this.entryIds;
     this.nextSeqIndex = 0;
@@ -320,7 +325,7 @@ export class GalleryComponent {
     this.vertical = flow === 'ttb' || flow === 'btt';
     const speedMap: Record<string, number> = { off: 0, low: 0.2, med: 0.5, high: 1.2 };
     const magnitude = speedMap[this.siteConfig.config()?.flowSpeed ?? 'med'] ?? 0.5;
-    this.baseSpeed = (flow === 'ltr' || flow === 'btt') ? magnitude : -magnitude;
+    this.baseSpeed = (flow === 'rtl' || flow === 'ttb') ? magnitude : -magnitude;
 
     // Primary axis = scroll direction, cross axis = lanes
     this.primaryLen = this.vertical ? this.vh : this.vw;
@@ -372,7 +377,7 @@ export class GalleryComponent {
       });
   }
 
-  private pickEntry(excludeIds: Set<string>): ImageEntry {
+  private pickEntry(excludeIds: Set<string>, reverse = false): ImageEntry {
     const isRandom = (this.siteConfig.config()?.sortOrder ?? 'random') === 'random';
     if (isRandom) {
       const available = this.entries.filter(e => !excludeIds.has(e.id));
@@ -383,12 +388,31 @@ export class GalleryComponent {
       }
       return this.entries[Math.floor(Math.random() * this.entries.length)];
     }
-    // Sequential: walk through the sorted array in order, wrapping around
     const len = this.entries.length;
+    if (reverse) {
+      // Walk backwards through sorted entries
+      for (let attempts = 0; attempts < len; attempts++) {
+        if (this.nextSeqIndexBack < 0) this.nextSeqIndexBack = len - 1;
+        const pick = this.entries[this.nextSeqIndexBack--];
+        if (!excludeIds.has(pick.id)) {
+          excludeIds.add(pick.id);
+          return pick;
+        }
+      }
+      if (this.nextSeqIndexBack < 0) this.nextSeqIndexBack = len - 1;
+      return this.entries[this.nextSeqIndexBack--];
+    }
+    // Forward: walk through sorted entries
+    for (let attempts = 0; attempts < len; attempts++) {
+      if (this.nextSeqIndex >= len) this.nextSeqIndex = 0;
+      const pick = this.entries[this.nextSeqIndex++];
+      if (!excludeIds.has(pick.id)) {
+        excludeIds.add(pick.id);
+        return pick;
+      }
+    }
     if (this.nextSeqIndex >= len) this.nextSeqIndex = 0;
-    const pick = this.entries[this.nextSeqIndex++];
-    excludeIds.add(pick.id);
-    return pick;
+    return this.entries[this.nextSeqIndex++];
   }
 
   /** World-x of a column center */
@@ -403,9 +427,18 @@ export class GalleryComponent {
 
   /** Build all cards for a single column, skipping slots per fillRatio. */
   private buildColumn(col: number, allCards: FloatingImage[]): FloatingImage[] {
-    // Proximity covers the full visible viewport width to minimize duplicates on screen
     const visCols = Math.ceil(this.primaryLen / this.colSpacing);
     const usedIds = nearbyIds(allCards, col, this.gridOrigin, this.colSpacing, Math.max(2, visCols), this.vertical);
+    const isRandom = (this.siteConfig.config()?.sortOrder ?? 'random') === 'random';
+    const flow = this.siteConfig.config()?.flowDirection ?? 'rtl';
+    const originIsRight = flow === 'rtl' || flow === 'ttb';
+
+    if (!isRandom) {
+      // New columns on the origin side (where images come from) continue
+      // the sequence forward; columns on the destination side get tail picks.
+      const isFront = originIsRight ? col > this.initialColMax : col < this.initialColMin;
+      return this.buildSeqColumn(col, usedIds, !isFront);
+    }
 
     const colCards: FloatingImage[] = [];
     for (let row = 0; row < this.rows; row++) {
@@ -422,10 +455,32 @@ export class GalleryComponent {
     this.fillRatio = Math.min(1, (this.entries.length * 0.6) / slotsPerScreen);
   }
 
+  private buildSeqColumn(col: number, usedIds: Set<string>, reverse: boolean): FloatingImage[] {
+    const cards: FloatingImage[] = [];
+    const activeRows: number[] = [];
+    for (let row = 0; row < this.rows; row++) {
+      if (Math.random() > this.fillRatio) continue;
+      activeRows.push(row);
+    }
+    const colEntries: ImageEntry[] = [];
+    for (let r = 0; r < activeRows.length; r++) {
+      colEntries.push(this.pickEntry(usedIds, reverse));
+    }
+    // Shuffle row assignments for visual variety
+    for (let r = activeRows.length - 1; r > 0; r--) {
+      const j = Math.floor(Math.random() * (r + 1));
+      [activeRows[r], activeRows[j]] = [activeRows[j], activeRows[r]];
+    }
+    for (let r = 0; r < colEntries.length; r++) {
+      cards.push(this.makeCardInCell(colEntries[r], this.colCenterX(col), activeRows[r], this.colSpacing));
+    }
+    return cards;
+  }
+
   private initCards(entries: ImageEntry[]): void {
     this.offset = 0;
     this.materializedCols.clear();
-    this.gridOrigin = 0;
+    this.gridOrigin = this.colSpacing / 2;
     this.nextSeqIndex = 0;
 
     this.recalcFillRatio();
@@ -433,18 +488,68 @@ export class GalleryComponent {
 
     const initialCards: FloatingImage[] = [];
     const usedIds = new Set<string>();
+    const isRandom = (this.siteConfig.config()?.sortOrder ?? 'random') === 'random';
 
-    for (let col = 0; col < cols; col++) {
-      this.materializedCols.add(col);
-      for (let row = 0; row < this.rows; row++) {
-        if (Math.random() > this.fillRatio) continue;
-        const entry = this.pickEntry(usedIds);
-        initialCards.push(this.makeCardInCell(entry, this.colCenterX(col), row, this.colSpacing));
+    if (isRandom) {
+      for (let col = 0; col < cols; col++) {
+        this.materializedCols.add(col);
       }
-      // Reset used IDs periodically so the pool doesn't exhaust — but keep a rolling window
-      if (usedIds.size > entries.length * 0.7) {
-        usedIds.clear();
+      for (let col = 0; col < cols; col++) {
+        for (let row = 0; row < this.rows; row++) {
+          if (Math.random() > this.fillRatio) continue;
+          const entry = this.pickEntry(usedIds);
+          initialCards.push(this.makeCardInCell(entry, this.colCenterX(col), row, this.colSpacing));
+        }
+        if (usedIds.size > entries.length * 0.7) {
+          usedIds.clear();
+        }
       }
+    } else {
+      // How many columns fit on screen
+      const visCols = Math.ceil(this.primaryLen / this.colSpacing);
+      const flow = this.siteConfig.config()?.flowDirection ?? 'rtl';
+      const tailCount = 3;
+      // Three zones on initial load:
+      //   dest-side off-screen: tail entries (z y x) — wrap-around illusion
+      //   visible:              newest-first at dest side (d c b a)
+      //   origin-side off-screen: continues sequence (e f g)
+      //
+      // ltr (→): dest=RIGHT, origin=LEFT  → layout: g f e | d c b a | z y x
+      // rtl (←): dest=LEFT,  origin=RIGHT → layout: x y z | a b c d | e f g
+      const destIsRight = flow === 'ltr' || flow === 'btt';
+
+      const visCols_arr: number[] = [];  // visible, filled dest→origin
+      const originCols: number[] = [];   // off-screen origin side, forward seq
+      const tailCols: number[] = [];     // off-screen dest side, tail entries
+
+      if (destIsRight) {
+        // ltr: visible rightmost first (gets a), origin off-screen left, tail off-screen right
+        for (let col = visCols - 1; col >= 0; col--) visCols_arr.push(col);
+        for (let i = 1; i <= tailCount; i++) originCols.push(-i);
+        for (let i = 0; i < tailCount; i++) tailCols.push(visCols + i);
+      } else {
+        // rtl: visible leftmost first (gets a), origin off-screen right, tail off-screen left
+        for (let col = 0; col < visCols; col++) visCols_arr.push(col);
+        for (let i = 0; i < tailCount; i++) originCols.push(visCols + i);
+        for (let i = 1; i <= tailCount; i++) tailCols.push(-i);
+      }
+
+      const allInitCols = [...visCols_arr, ...originCols, ...tailCols];
+      for (const col of allInitCols) this.materializedCols.add(col);
+
+      // Visible + origin columns: forward through sorted list
+      for (const col of [...visCols_arr, ...originCols]) {
+        initialCards.push(...this.buildSeqColumn(col, usedIds, false));
+      }
+
+      // Tail columns: reverse from end of sorted list
+      this.nextSeqIndexBack = this.entries.length - 1;
+      for (const col of tailCols) {
+        initialCards.push(...this.buildSeqColumn(col, usedIds, true));
+      }
+
+      this.initialColMin = Math.min(...allInitCols);
+      this.initialColMax = Math.max(...allInitCols);
     }
 
     this.cards.set(initialCards);
@@ -1139,6 +1244,7 @@ export class GalleryComponent {
     const cy = sourceRect.top + sourceRect.height / 2;
     const radius = Math.max(sourceRect.width, sourceRect.height) * 2.5;
     this.displacedCards = [];
+    const dur = this.prefersReducedMotion ? 0 : 0.35;
 
     cardEls.forEach((el, i) => {
       if (i === cardIndex) return;
@@ -1156,10 +1262,7 @@ export class GalleryComponent {
       const dy = Math.sin(angle) * push;
 
       this.displacedCards.push({ el: card, dx, dy });
-      // Use CSS custom properties — Angular's [style.transform] includes var(--dx, --dy)
-      // so this works with Angular's change detection, not against it
-      card.style.setProperty('--dx', `${dx}px`);
-      card.style.setProperty('--dy', `${dy}px`);
+      gsap.to(card, { '--dx': `${dx}px`, '--dy': `${dy}px`, duration: dur, ease: 'power2.out' });
     });
   }
 
@@ -1170,30 +1273,19 @@ export class GalleryComponent {
     }
 
     const dur = this.prefersReducedMotion ? 0 : 0.35;
-    if (dur === 0) {
-      for (const { el } of this.displacedCards) {
-        el.style.removeProperty('--dx');
-        el.style.removeProperty('--dy');
-      }
-      this.displacedCards = [];
-      onDone?.();
-      return;
-    }
-
     let remaining = this.displacedCards.length;
     for (const { el } of this.displacedCards) {
-      el.style.transition = `transform ${dur}s cubic-bezier(0.42,0,0.58,1)`;
-      el.style.removeProperty('--dx');
-      el.style.removeProperty('--dy');
-      const done = () => {
-        el.style.transition = '';
-        if (--remaining === 0) {
-          this.displacedCards = [];
-          onDone?.();
-        }
-      };
-      el.addEventListener('transitionend', done, { once: true });
-      setTimeout(done, dur * 1000 + 50);
+      gsap.to(el, {
+        '--dx': '0px', '--dy': '0px', duration: dur, ease: 'power2.inOut',
+        onComplete: () => {
+          el.style.removeProperty('--dx');
+          el.style.removeProperty('--dy');
+          if (--remaining === 0) {
+            this.displacedCards = [];
+            onDone?.();
+          }
+        },
+      });
     }
   }
 
