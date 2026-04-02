@@ -274,6 +274,8 @@ button {
   display: flex;
   justify-content: center;
   padding: 2rem 0;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
 .info-panel {
