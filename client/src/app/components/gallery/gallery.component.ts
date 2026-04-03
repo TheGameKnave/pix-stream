@@ -723,11 +723,31 @@ export class GalleryComponent {
       }
 
       const el = this.canvas()?.nativeElement;
+      const newVw = el?.clientWidth ?? window.innerWidth;
+      const newVh = el?.clientHeight ?? window.innerHeight;
       const density = this.siteConfig.config()?.density ?? 'med';
-      const newRows = laneCount(el?.clientWidth ?? window.innerWidth, el?.clientHeight ?? window.innerHeight, density);
+      const newRows = laneCount(newVw, newVh, density);
       if (newRows !== this.rows && this.entries.length > 0) {
         this.initMetrics();
         this.initCards(this.entries);
+      } else {
+        // Row count unchanged — rescale cross-axis positions and card sizes only
+        const crossLen = this.vertical ? newVw : newVh;
+        const newCellH = crossLen / this.rows;
+        if (this.cellH > 0 && Math.abs(newCellH - this.cellH) > 0.5) {
+          const scale = newCellH / this.cellH;
+          this.cellH = newCellH;
+          this.vw = newVw;
+          this.vh = newVh;
+          this.primaryLen = this.vertical ? this.vh : this.vw;
+          const cards = this.cards();
+          for (const card of cards) {
+            if (this.vertical) { card.x *= scale; } else { card.y *= scale; }
+            card.w *= scale;
+            card.h *= scale;
+          }
+          this.cards.set([...cards]);
+        }
       }
     };
     window.addEventListener('resize', onResize);
