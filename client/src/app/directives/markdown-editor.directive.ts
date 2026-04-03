@@ -57,6 +57,11 @@ import { TiptapEditorDirective } from 'ngx-tiptap';
       line-height: 1.5;
       background: color-mix(in srgb, var(--color-accent) 5%, transparent);
       transition: background 0.15s ease;
+      scrollbar-color: var(--color-accent) transparent;
+    }
+    .md-content::-webkit-scrollbar-thumb {
+      background: var(--color-accent);
+      border-radius: 3px;
     }
     .md-content:focus-within {
       background: color-mix(in srgb, var(--color-accent) 12%, transparent);

@@ -621,41 +621,48 @@ button {
 }
 
 // =============================================================================
-// Lightbox info tray (title + description)
+// Lightbox info hint + tray (title + description)
 // =============================================================================
-.lb-info-tray {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 0.75rem 1rem;
-  background: color-mix(in srgb, var(--color-header) 70%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+
+// Wrapper: bottom-anchored below photo. overflow:hidden clips upward.
+// At rest: 16px tall (arrow at bottom of panel visible). Grows upward on hover.
+.lb-info-wrapper {
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+  height: 16px;
+  transition: height 0.3s ease;
+  border-radius: 0 0 1.4rem 1.4rem;
+}
+
+// Panel: title + desc content below the arrow.
+.lb-info-panel {
+  padding: 0.25rem 1rem 0.75rem;
+  background: color-mix(in srgb, var(--color-header) 45%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: var(--color-header-text);
   text-shadow: var(--color-header-glow);
-  pointer-events: auto;
-  transform: translateY(100%);
+}
+
+// Arrow: compact hint bar, 16px tall with background
+.lb-info-arrow-wrap {
+  display: flex;
+  justify-content: center;
+  height: 16px;
+  align-items: center;
+  background: color-mix(in srgb, var(--color-header) 45%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.lb-info-arrow {
+  color: var(--color-header-text);
   transition: transform 0.3s ease;
 }
 
-.lightbox-controls.visible .lb-info-tray {
-  transform: translateY(0);
-}
-
-// On touch devices, tray peeks up and swipes fully open
-@media (hover: none), (pointer: coarse) {
-  .lb-info-tray {
-    transform: translateY(calc(100% - 2rem));
-  }
-
-  .lightbox-controls.visible .lb-info-tray {
-    transform: translateY(calc(100% - 2rem));
-  }
-
-  .lb-info-tray.lb-info-expanded {
-    transform: translateY(0) !important;
-  }
+.lb-info-wrapper.lb-info-expanded .lb-info-arrow {
+  transform: rotate(180deg);
 }
 
 .lb-info-title {
