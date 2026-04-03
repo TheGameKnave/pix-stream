@@ -107,7 +107,7 @@ export class AdminComponent implements AfterViewChecked {
 
   // Update from GitHub
   readonly updateStatus = signal('');
-  readonly updateAvailable = signal(false);
+  readonly updateAvailable = this.siteConfig.updateAvailable;
   readonly siteVersion = signal('');
 
   // Hidden images report

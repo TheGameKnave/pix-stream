@@ -899,6 +899,7 @@ describe('GalleryComponent (DOM)', () => {
 
     describe('restoreNeighbors', () => {
       it('clears displacedCards array via callback', (done) => {
+        comp().prefersReducedMotion = true;
         comp().displacedCards = [
           { el: document.createElement('div'), dx: 10, dy: 5 },
           { el: document.createElement('div'), dx: -10, dy: -5 },

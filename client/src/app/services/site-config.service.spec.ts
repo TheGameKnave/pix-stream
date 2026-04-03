@@ -143,6 +143,10 @@ describe('SiteConfigService', () => {
       tagsReq.flush(['nature', 'portrait']);
       authReq.flush({ setupRequired: false, authenticated: true });
 
+      // Authenticated triggers an update check
+      const updateReq = httpMock.expectOne('/api/update?check=1');
+      updateReq.flush({ available: false });
+
       expect(service.config()).toEqual(MOCK_CONFIG);
       expect(service.allTags()).toEqual(['nature', 'portrait']);
       expect(service.adminAuthenticated()).toBeTrue();

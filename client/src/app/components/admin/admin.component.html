@@ -67,6 +67,20 @@
   } @else {
     <!-- Authenticated — Config Editor -->
     <h2 class="admin-title">Site Configuration <span class="admin-save-status" aria-live="polite">{{ saveStatus() }}</span></h2>
+    <div class="admin-update-row">
+      @if (updateAvailable()) {
+        <button class="admin-update-btn" (click)="updateFromGitHub()" [disabled]="updateStatus()">
+          {{ updateStatus() || 'Update Available' }}
+        </button>
+      } @else if (updateStatus()) {
+        <span class="admin-update-status">{{ updateStatus() }}</span>
+      } @else {
+        <button class="admin-update-btn admin-update-check" (click)="checkForUpdates()">Check for Updates</button>
+      }
+      @if (siteVersion()) {
+        <span class="admin-version">{{ siteVersion() }}</span>
+      }
+    </div>
 
     <!-- Identity -->
     <div class="admin-section" [class.open]="accordionIdentity()">
@@ -503,21 +517,6 @@
       }
     </div>
 
-    <!-- Update -->
-    <div class="admin-update">
-      @if (siteVersion()) {
-        <span class="admin-version">Version: {{ siteVersion() }}</span>
-      }
-      @if (updateAvailable()) {
-        <button class="admin-update-btn" (click)="updateFromGitHub()" [disabled]="updateStatus()">
-          {{ updateStatus() || 'Update Available' }}
-        </button>
-      } @else if (updateStatus()) {
-        <span class="admin-update-status">{{ updateStatus() }}</span>
-      } @else {
-        <button class="admin-update-btn admin-update-check" (click)="checkForUpdates()">Check for Updates</button>
-      }
-    </div>
 
   }
 </div>

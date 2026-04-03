@@ -50,6 +50,7 @@ export class SiteConfigService {
   readonly aboutOpen = signal(false);
   readonly adminSetupRequired = signal(false);
   readonly adminAuthenticated = signal(false);
+  readonly updateAvailable = signal(false);
   private pendingSlugs: string[] = [];
 
   load(): void {
@@ -90,6 +91,11 @@ export class SiteConfigService {
       next: (res) => {
         this.adminSetupRequired.set(res.setupRequired);
         this.adminAuthenticated.set(res.authenticated);
+        if (res.authenticated) {
+          this.http.get<{ available: boolean }>('/api/update?check=1').pipe(take(1), catchError(() => EMPTY)).subscribe({
+            next: (r) => this.updateAvailable.set(r.available),
+          });
+        }
       },
     });
   }

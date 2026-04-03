@@ -1380,6 +1380,15 @@ export class GalleryComponent {
     }
 
     const dur = this.prefersReducedMotion ? 0 : 0.35;
+    if (dur === 0) {
+      for (const { el } of this.displacedCards) {
+        el.style.removeProperty('--dx');
+        el.style.removeProperty('--dy');
+      }
+      this.displacedCards = [];
+      onDone?.();
+      return;
+    }
     let remaining = this.displacedCards.length;
     for (const { el } of this.displacedCards) {
       gsap.to(el, {
