@@ -2,7 +2,7 @@ import { Injectable, inject, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Meta, Title } from '@angular/platform-browser';
-import { take } from 'rxjs';
+import { take, catchError, EMPTY } from 'rxjs';
 
 export function slugify(tag: string): string {
   return tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -53,7 +53,7 @@ export class SiteConfigService {
   private pendingSlugs: string[] = [];
 
   load(): void {
-    this.http.get<SiteConfig>('/api/config').pipe(take(1)).subscribe({
+    this.http.get<SiteConfig>('/api/config').pipe(take(1), catchError(() => EMPTY)).subscribe({
       next: (config) => {
         this.config.set(config);
         if (!this.isBrowser || localStorage.getItem('nsfw-blur') === null) {
@@ -75,7 +75,7 @@ export class SiteConfigService {
       },
     });
 
-    this.http.get<string[]>('/api/tags').pipe(take(1)).subscribe({
+    this.http.get<string[]>('/api/tags').pipe(take(1), catchError(() => EMPTY)).subscribe({
       next: (tags) => {
         this.allTags.set(tags);
         this.applyTagFilter(tags);
@@ -86,7 +86,7 @@ export class SiteConfigService {
       },
     });
 
-    this.http.get<{ setupRequired: boolean; authenticated: boolean }>('/api/auth/status').pipe(take(1)).subscribe({
+    this.http.get<{ setupRequired: boolean; authenticated: boolean }>('/api/auth/status').pipe(take(1), catchError(() => EMPTY)).subscribe({
       next: (res) => {
         this.adminSetupRequired.set(res.setupRequired);
         this.adminAuthenticated.set(res.authenticated);
