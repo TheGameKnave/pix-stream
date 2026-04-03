@@ -12,7 +12,7 @@
         "pictorial",
         "glamour"
     ],
-    "tagDisplayMode": "nav",
+    "tagDisplayMode": "dropdown",
     "enableShare": true,
     "enableDownload": true,
     "enableQr": true,
@@ -27,5 +27,5 @@
     "watermark": "",
     "sortOrder": "random",
     "homepageUrl": "",
-    "density": "med"
+    "density": "high"
 }
