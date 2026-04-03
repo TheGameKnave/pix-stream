@@ -219,7 +219,9 @@ if ($lockFp) {
     fclose($lockFp);
 }
 
-// Version hash so the client can detect manifest changes
-$version = md5(json_encode(array_column($manifest, 'id')));
+// Version hash — includes IDs and image URLs so reprocessing triggers cache busts
+$version = md5(json_encode(array_map(function ($img) {
+    return $img['id'] . $img['thumb'] . $img['full'];
+}, $manifest)));
 
 echo json_encode(['version' => $version, 'images' => $manifest]);
