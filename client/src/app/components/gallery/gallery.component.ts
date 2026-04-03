@@ -938,7 +938,7 @@ export class GalleryComponent {
       targetW = Math.floor(maxW);
       targetH = Math.floor(targetW / aspect);
     }
-    if (bannerH > 0) targetH -= 1;
+    if (bannerH > 0) targetH -= 2;
 
     const targetX = (lbVw - targetW) / 2;
     const targetY = (lbVh - targetH) / 2;
@@ -1552,7 +1552,7 @@ export class GalleryComponent {
       targetW = Math.floor(maxW);
       targetH = Math.floor(targetW / aspect);
     }
-    if (bannerH > 0) targetH -= 1;
+    if (bannerH > 0) targetH -= 2;
 
     const l = (vw - targetW) / 2;
     const t = (vh - targetH) / 2;
