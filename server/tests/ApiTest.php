@@ -16,12 +16,16 @@ class ApiTest extends TestCase
     {
         self::$port = 9100 + (getmypid() % 900);
 
-        // Create a test image in the real storage dir (we'll clean it up)
-        $originals = realpath(__DIR__ . '/../../storage/originals');
-        if ($originals && !file_exists($originals . '/_apitest.jpg')) {
+        // Create storage dirs and test image if needed
+        $originals = __DIR__ . '/../../storage/originals';
+        $thumbnails = __DIR__ . '/../../storage/thumbnails';
+        if (!is_dir($originals)) mkdir($originals, 0755, true);
+        if (!is_dir($thumbnails)) mkdir($thumbnails, 0755, true);
+        $originals = realpath($originals);
+        if (!file_exists($originals . '/_apitest.jpg')) {
             $img = imagecreatetruecolor(200, 150);
             imagejpeg($img, $originals . '/_apitest.jpg');
-            unset($img);
+            imagedestroy($img);
         }
 
         $projectRoot = realpath(__DIR__ . '/../..');
@@ -63,11 +67,12 @@ class ApiTest extends TestCase
             proc_close(self::$serverProc);
         }
         // Clean up test image
-        $testImg = realpath(__DIR__ . '/../../storage/originals') . '/_apitest.jpg';
+        $originals = __DIR__ . '/../../storage/originals';
+        $testImg = $originals . '/_apitest.jpg';
         if (file_exists($testImg)) @unlink($testImg);
         // Clean up its thumbnail
-        $thumbDir = realpath(__DIR__ . '/../../storage/thumbnails');
-        if ($thumbDir) @unlink($thumbDir . '/_apitest.png');
+        $thumbDir = __DIR__ . '/../../storage/thumbnails';
+        if (is_dir($thumbDir)) @unlink($thumbDir . '/_apitest.png');
     }
 
     private function get(string $path): array
