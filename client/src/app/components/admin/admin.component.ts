@@ -103,6 +103,7 @@ export class AdminComponent implements AfterViewChecked {
   readonly watermark = signal('');
   sortOrder: 'date-desc' | 'date-asc' | 'random' = 'random';
   homepageUrl = '';
+  density: 'low' | 'med' | 'high' = 'med';
 
   // Update from GitHub
   readonly updateStatus = signal('');
@@ -193,6 +194,7 @@ export class AdminComponent implements AfterViewChecked {
     this.watermark.set(c.watermark ?? '');
     this.sortOrder = c.sortOrder ?? 'random';
     this.homepageUrl = c.homepageUrl ?? '';
+    this.density = c.density ?? 'med';
 
     if (FONT_OPTIONS.includes(c.fontBody)) {
       this.fontBody = c.fontBody;
@@ -598,6 +600,7 @@ export class AdminComponent implements AfterViewChecked {
       watermark: this.watermark(),
       sortOrder: this.sortOrder,
       homepageUrl: this.homepageUrl,
+      density: this.density,
     });
     // Announce save completion (service is fire-and-forget)
     setTimeout(() => this.saveStatus.set('Saved'), 500);

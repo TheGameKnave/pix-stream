@@ -397,6 +397,23 @@
           </div>
         </div>
         <div class="form-group">
+          <span class="form-label">Density</span>
+          <div class="flow-picker">
+            <label class="flow-option" [class.active]="density === 'low'">
+              <input type="radio" name="density" value="low" [(ngModel)]="density" (ngModelChange)="onConfigChange()" />
+              <span>Low</span>
+            </label>
+            <label class="flow-option" [class.active]="density === 'med'">
+              <input type="radio" name="density" value="med" [(ngModel)]="density" (ngModelChange)="onConfigChange()" />
+              <span>Medium</span>
+            </label>
+            <label class="flow-option" [class.active]="density === 'high'">
+              <input type="radio" name="density" value="high" [(ngModel)]="density" (ngModelChange)="onConfigChange()" />
+              <span>High</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
           <span class="form-label">Speed</span>
           <div class="flow-picker">
             <label class="flow-option" [class.active]="flowSpeed === 'off'">

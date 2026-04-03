@@ -64,12 +64,16 @@ export function nearbyIds(
   return ids;
 }
 
-/** Determine cross-axis lane count based on aspect ratio of the viewport. */
-export function laneCount(vw: number, vh: number): number {
+/** Determine cross-axis lane count based on viewport aspect ratio and density setting. */
+export function laneCount(vw: number, vh: number, density: 'low' | 'med' | 'high' = 'med'): number {
   const ratio = vw / vh;
-  if (ratio > 1.3) return 5;  // wide / landscape monitor
-  if (ratio > 0.8) return 7;  // roughly square
-  return 9;                    // tall / portrait
+  //                wide(>1.3)  square(>0.8)  tall
+  // low:            4            5             6
+  // med (default):  5            6             7
+  // high:           6            7             8
+  const base = ratio > 1.3 ? 4 : ratio > 0.8 ? 5 : 6;
+  const offset = density === 'low' ? 0 : density === 'high' ? 2 : 1;
+  return base + offset;
 }
 
 export function buildShadow(z: number): string {
@@ -334,11 +338,11 @@ export class GalleryComponent {
     this.primaryLen = this.vertical ? this.vh : this.vw;
     const crossLen = this.vertical ? this.vw : this.vh;
 
-    this.rows = laneCount(this.vw, this.vh);
+    const density = this.siteConfig.config()?.density ?? 'med';
+    this.rows = laneCount(this.vw, this.vh, density);
     // For vertical flow, lanes run horizontally so use vw-based count
     if (this.vertical) {
-      const ratio = this.vh / this.vw;
-      this.rows = ratio > 1.3 ? 5 : ratio > 0.8 ? 7 : 9;
+      this.rows = laneCount(this.vh, this.vw, density);
     }
 
     this.cellH = crossLen / this.rows;

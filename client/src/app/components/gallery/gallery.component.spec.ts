@@ -11,19 +11,22 @@ import { SeoService } from '@app/services/seo.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 
 describe('laneCount', () => {
-  it('returns 5 for wide/landscape viewports (ratio > 1.3)', () => {
+  it('defaults to medium density', () => {
     expect(laneCount(1920, 1080)).toBe(5);
-    expect(laneCount(2560, 1440)).toBe(5);
+    expect(laneCount(1024, 1024)).toBe(6);
+    expect(laneCount(400, 800)).toBe(7);
   });
 
-  it('returns 7 for roughly square viewports (0.8 < ratio <= 1.3)', () => {
-    expect(laneCount(1024, 1024)).toBe(7);
-    expect(laneCount(1200, 1000)).toBe(7);
+  it('returns fewer rows for low density', () => {
+    expect(laneCount(1920, 1080, 'low')).toBe(4);
+    expect(laneCount(1024, 1024, 'low')).toBe(5);
+    expect(laneCount(400, 800, 'low')).toBe(6);
   });
 
-  it('returns 9 for tall/portrait viewports (ratio <= 0.8)', () => {
-    expect(laneCount(768, 1024)).toBe(9);
-    expect(laneCount(400, 800)).toBe(9);
+  it('returns more rows for high density', () => {
+    expect(laneCount(1920, 1080, 'high')).toBe(6);
+    expect(laneCount(1024, 1024, 'high')).toBe(7);
+    expect(laneCount(400, 800, 'high')).toBe(8);
   });
 });
 
@@ -216,7 +219,7 @@ const MOCK_CONFIG: SiteConfig = {
   enableDownload: true, enableQr: true, enableKiosk: true,
   flowDirection: 'rtl', flowSpeed: 'med', contactEmail: '',
   pageHeadTitle: '', description: '', siteLogo: '', siteFavicon: '',
-  watermark: '', sortOrder: 'random', homepageUrl: '',
+  watermark: '', sortOrder: 'random', homepageUrl: '', density: 'med',
 };
 
 function makeTestEntry(id: string, overrides: Partial<ImageEntry> = {}): ImageEntry {

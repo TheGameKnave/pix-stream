@@ -28,6 +28,7 @@ const MOCK_CONFIG: SiteConfig = {
   watermark: '',
   sortOrder: 'random',
   homepageUrl: '',
+  density: 'med',
 };
 
 describe('slugify', () => {

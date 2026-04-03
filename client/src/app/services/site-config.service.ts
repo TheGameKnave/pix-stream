@@ -31,6 +31,7 @@ export interface SiteConfig {
   watermark: string;
   sortOrder: 'date-desc' | 'date-asc' | 'random';
   homepageUrl: string;
+  density: 'low' | 'med' | 'high';
 }
 
 @Injectable({ providedIn: 'root' })
