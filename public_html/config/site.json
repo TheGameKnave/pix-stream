@@ -5,13 +5,7 @@
     "bgColor": "#808080",
     "fontBody": "Roboto",
     "nsfwBlurDefault": true,
-    "enabledTags": [
-        "editorial",
-        "fashion",
-        "portrait",
-        "pictorial",
-        "glamour"
-    ],
+    "enabledTags": [],
     "tagDisplayMode": "dropdown",
     "enableShare": true,
     "enableDownload": true,
@@ -27,5 +21,5 @@
     "watermark": "",
     "sortOrder": "random",
     "homepageUrl": "",
-    "density": "high"
+    "density": "med"
 }
