@@ -631,7 +631,7 @@ button {
   pointer-events: auto;
   cursor: pointer;
   height: 16px;
-  transition: height 0.3s ease;
+  transition: height 0.15s ease, top 0.15s ease;
   border-radius: 0 0 1.4rem 1.4rem;
 }
 

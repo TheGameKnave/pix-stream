@@ -959,6 +959,7 @@ export class GalleryComponent {
     img.draggable = false;
     img.style.cssText = 'display:block; width:100%; height:auto;';
     overlay.appendChild(img);
+
     const swipeState = this.attachSwipe(overlay, () => this.closeLightbox());
     // Desktop click-to-close (touch uses tap handler in attachSwipe)
     overlay.addEventListener('click', () => {
@@ -1133,12 +1134,13 @@ export class GalleryComponent {
     if (hasDesc) {
       const hasTitle = image.entry.title && image.entry.title !== image.entry.id;
 
-      // Wrapper: bottom anchored 28px below photo. overflow:hidden clips panel.
-      // At rest: 28px tall (just arrow visible). Expands upward on hover.
+      // Wrapper: bottom anchored below photo. overflow:hidden clips panel.
+      // Slides out from behind the image, then expands upward on hover.
       const wrapper = document.createElement('div');
       wrapper.className = 'lb-info-wrapper';
-      // Bottom anchored at photo bottom + 16px (lightbox padding). Grows upward.
-      wrapper.style.cssText = `position:fixed; z-index:1002; left:${lbRect.left}px; bottom:${window.innerHeight - lbRect.bottom - 16}px; width:${lbRect.width}px;`;
+      wrapper.style.cssText = `position:fixed; z-index:1002; left:${lbRect.left}px; top:${lbRect.bottom}px; width:${lbRect.width}px; height:0px;`;
+      // Slide in after a frame so the transition kicks in
+      requestAnimationFrame(() => { wrapper.style.height = '16px'; });
 
       // Arrow hint: 16px tall, always visible at top of wrapper
       const arrowWrap = document.createElement('div');
@@ -1164,14 +1166,19 @@ export class GalleryComponent {
       wrapper.appendChild(panel);
       canvas.appendChild(wrapper);
 
+      wrapper.dataset['baseTop'] = String(lbRect.bottom);
       const expand = () => {
         wrapper.classList.add('lb-info-expanded');
-        // 16px arrow + panel height + 16px bottom margin
-        wrapper.style.height = (16 + panel.scrollHeight + 16) + 'px';
+        const bt = parseFloat(wrapper.dataset['baseTop']!);
+        const expandH = 16 + panel.scrollHeight + 16;
+        wrapper.style.height = expandH + 'px';
+        wrapper.style.top = (bt - (expandH - 16)) + 'px';
       };
       const collapse = () => {
         wrapper.classList.remove('lb-info-expanded');
-        wrapper.style.height = '16px';  // matches lightbox padding
+        const bt = parseFloat(wrapper.dataset['baseTop']!);
+        wrapper.style.height = '16px';
+        wrapper.style.top = bt + 'px';
       };
 
       // Desktop: hover on wrapper expands, leave collapses
@@ -1399,9 +1406,15 @@ export class GalleryComponent {
       this.seo.clearKeywords();
     }
 
-    // Immediately fade out controls
+    // Immediately fade out controls and slide info wrapper closed
     if (this.lightboxControls) {
       this.lightboxControls.classList.remove('visible');
+    }
+    const infoWrapper = el?.querySelector('.lb-info-wrapper') as HTMLElement | null;
+    if (infoWrapper) {
+      infoWrapper.classList.remove('lb-info-expanded');
+      infoWrapper.classList.add('lb-info-closing');
+      infoWrapper.style.height = '0px';
     }
 
     const closeDuration = this.prefersReducedMotion ? 0 : 0.35;
@@ -1429,7 +1442,11 @@ export class GalleryComponent {
 
     const finish = () => {
       if (this.lightboxSourceCard) {
+        this.lightboxSourceCard.style.transition = 'none';
         this.lightboxSourceCard.style.opacity = '';
+        // Force reflow so the card appears instantly, then restore CSS transition
+        this.lightboxSourceCard.offsetHeight;
+        this.lightboxSourceCard.style.transition = '';
         this.lightboxSourceCard = null;
       }
       if (overlay) { overlay.remove(); }
@@ -1446,7 +1463,6 @@ export class GalleryComponent {
     };
 
     if (overlay) {
-      const img = overlay.querySelector('img') as HTMLImageElement;
       overlay.style.overflow = 'hidden';
 
       const sourceCard = this.lightboxSourceCard;
@@ -1464,7 +1480,6 @@ export class GalleryComponent {
         cardH = image.h;
       }
 
-      const bannerH = image.entry.bannerHeight || 0;
       const startShrink = () => {
         gsap.to(overlay, {
           left: cardX,
@@ -1481,19 +1496,22 @@ export class GalleryComponent {
         });
       };
 
-      if (bannerH > 0 && img) {
-        const thumbImg = document.createElement('img');
-        const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
-        thumbImg.src = isBlurred ? image.entry.thumbBlur! : image.entry.thumb;
-        thumbImg.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;';
-        overlay.appendChild(thumbImg);
-        requestAnimationFrame(() => startShrink());
+      // Swap back to thumbnail for the shrink animation: show the original
+      // thumb (hidden during open) and hide the full-res image so the
+      // thumbnail's object-fit:cover crops correctly as the overlay shrinks.
+      const imgs = overlay.querySelectorAll('img');
+      const thumb = imgs[0] as HTMLImageElement | undefined;
+      if (thumb) {
+        thumb.style.cssText = 'display:block; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;';
+      }
+      // Hide full-res image (if swapped in)
+      for (let i = 1; i < imgs.length; i++) {
+        (imgs[i] as HTMLElement).style.visibility = 'hidden';
+      }
+      // Delay shrink so the info hint retracts first
+      if (infoWrapper) {
+        setTimeout(startShrink, 100);
       } else {
-        if (img) {
-          img.style.objectFit = 'cover';
-          img.style.width = '100%';
-          img.style.height = '100%';
-        }
         startShrink();
       }
     } else {
@@ -1540,12 +1558,14 @@ export class GalleryComponent {
       this.lightboxControls.style.height = targetH + 'px';
     }
 
-    // Reposition info wrapper (bottom-anchored below photo)
+    // Reposition info wrapper (top-anchored at photo bottom)
     const canvas = this.canvas()?.nativeElement;
     const wrapperEl = canvas?.querySelector('.lb-info-wrapper') as HTMLElement | null;
     if (wrapperEl) {
+      const newBaseTop = t + targetH;
+      wrapperEl.dataset['baseTop'] = String(newBaseTop);
       wrapperEl.style.left = l + 'px';
-      wrapperEl.style.bottom = (vh - t - targetH - 16) + 'px';
+      wrapperEl.style.top = newBaseTop + 'px';
       wrapperEl.style.width = targetW + 'px';
     }
   }
