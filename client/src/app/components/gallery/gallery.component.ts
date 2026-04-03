@@ -723,7 +723,8 @@ export class GalleryComponent {
       }
 
       const el = this.canvas()?.nativeElement;
-      const newRows = laneCount(el?.clientWidth ?? window.innerWidth, el?.clientHeight ?? window.innerHeight);
+      const density = this.siteConfig.config()?.density ?? 'med';
+      const newRows = laneCount(el?.clientWidth ?? window.innerWidth, el?.clientHeight ?? window.innerHeight, density);
       if (newRows !== this.rows && this.entries.length > 0) {
         this.initMetrics();
         this.initCards(this.entries);
