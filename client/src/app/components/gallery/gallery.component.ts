@@ -918,6 +918,11 @@ export class GalleryComponent {
     // Show NSFW prompt over the blurred lightbox
     if (image.entry.nsfw && this.siteConfig.nsfwBlur() && image.entry.thumbBlur) {
       this.nsfwPromptOpen.set(true);
+      // Attach swipe to the NSFW overlay so users can swipe past NSFW images
+      requestAnimationFrame(() => {
+        const nsfwOverlay = el?.querySelector('.nsfw-prompt-overlay') as HTMLElement;
+        if (nsfwOverlay) this.attachSwipe(nsfwOverlay, () => this.dismissNsfwPrompt());
+      });
     }
   }
 
@@ -992,6 +997,9 @@ export class GalleryComponent {
     overlay.appendChild(img);
 
     const swipeState = this.attachSwipe(overlay, () => this.closeLightbox());
+    // Also handle swipe on the curtain (dark area around the image)
+    const curtain = el.querySelector('.lightbox-curtain') as HTMLElement;
+    if (curtain) this.attachSwipe(curtain, () => this.closeLightbox());
     // Desktop click-to-close (touch uses tap handler in attachSwipe)
     overlay.addEventListener('click', () => {
       if (!this.lightboxAnimatingOpen && swipeState.scale <= 1) this.closeLightbox();
