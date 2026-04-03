@@ -5,8 +5,14 @@
     "bgColor": "#808080",
     "fontBody": "Roboto",
     "nsfwBlurDefault": true,
-    "enabledTags": [],
-    "tagDisplayMode": "dropdown",
+    "enabledTags": [
+        "editorial",
+        "fashion",
+        "portrait",
+        "pictorial",
+        "glamour"
+    ],
+    "tagDisplayMode": "nav",
     "enableShare": true,
     "enableDownload": true,
     "enableQr": true,

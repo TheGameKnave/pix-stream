@@ -771,6 +771,11 @@ button {
 // =============================================================================
 .tag-dropdown {
   position: relative;
+
+  &.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+  }
 }
 
 .tag-dropdown-toggle {
