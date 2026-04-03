@@ -1128,29 +1128,68 @@ export class GalleryComponent {
       controls.appendChild(right);
     }
 
-    // Info tray (title + description) at bottom of lightbox
-    const hasTitle = image.entry.title && image.entry.title !== image.entry.id;
+    // Info tray (title + description) — only when description exists
     const hasDesc = !!image.entry.description;
-    if (hasTitle || hasDesc) {
-      const tray = document.createElement('div');
-      tray.className = 'lb-info-tray';
+    if (hasDesc) {
+      const hasTitle = image.entry.title && image.entry.title !== image.entry.id;
+
+      // Wrapper: bottom anchored 28px below photo. overflow:hidden clips panel.
+      // At rest: 28px tall (just arrow visible). Expands upward on hover.
+      const wrapper = document.createElement('div');
+      wrapper.className = 'lb-info-wrapper';
+      // Bottom anchored at photo bottom + 16px (lightbox padding). Grows upward.
+      wrapper.style.cssText = `position:fixed; z-index:1002; left:${lbRect.left}px; bottom:${window.innerHeight - lbRect.bottom - 16}px; width:${lbRect.width}px;`;
+
+      // Arrow hint: 16px tall, always visible at top of wrapper
+      const arrowWrap = document.createElement('div');
+      arrowWrap.className = 'lb-info-arrow-wrap';
+      arrowWrap.innerHTML = `<svg class="lb-info-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`;
+      wrapper.appendChild(arrowWrap);
+
+      // Panel: title + desc, below the arrow
+      const panel = document.createElement('div');
+      panel.className = 'lb-info-panel';
+
       if (hasTitle) {
         const titleEl = document.createElement('div');
         titleEl.className = 'lb-info-title';
         titleEl.textContent = image.entry.title;
-        tray.appendChild(titleEl);
+        panel.appendChild(titleEl);
       }
-      if (hasDesc) {
-        const descEl = document.createElement('div');
-        descEl.className = 'lb-info-desc';
-        descEl.textContent = image.entry.description;
-        tray.appendChild(descEl);
-      }
-      tray.addEventListener('click', (e) => {
-        e.stopPropagation();
-        tray.classList.toggle('lb-info-expanded');
+      const descEl = document.createElement('div');
+      descEl.className = 'lb-info-desc';
+      descEl.textContent = image.entry.description;
+      panel.appendChild(descEl);
+
+      wrapper.appendChild(panel);
+      canvas.appendChild(wrapper);
+
+      const expand = () => {
+        wrapper.classList.add('lb-info-expanded');
+        // 16px arrow + panel height + 16px bottom margin
+        wrapper.style.height = (16 + panel.scrollHeight + 16) + 'px';
+      };
+      const collapse = () => {
+        wrapper.classList.remove('lb-info-expanded');
+        wrapper.style.height = '16px';  // matches lightbox padding
+      };
+
+      // Desktop: hover on wrapper expands, leave collapses
+      wrapper.addEventListener('mouseenter', expand);
+      wrapper.addEventListener('mouseleave', collapse);
+
+      // Mobile: swipe or tap to toggle
+      let touchStartY = 0;
+      let touchMoved = false;
+      wrapper.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; touchMoved = false; }, { passive: true });
+      wrapper.addEventListener('touchmove', () => { touchMoved = true; }, { passive: true });
+      wrapper.addEventListener('touchend', (e) => {
+        const dy = touchStartY - e.changedTouches[0].clientY;
+        if (dy > 20) expand();
+        else if (dy < -20) collapse();
+        else if (!touchMoved) { wrapper.classList.contains('lb-info-expanded') ? collapse() : expand(); }
       });
-      controls.appendChild(tray);
+      wrapper.addEventListener('click', (e) => { e.stopPropagation(); });
     }
 
     canvas.appendChild(controls);
@@ -1395,6 +1434,9 @@ export class GalleryComponent {
       }
       if (overlay) { overlay.remove(); }
       if (this.lightboxControls) { this.lightboxControls.remove(); this.lightboxControls = null; }
+      // Clean up info wrapper (appended to canvas, not controls)
+      const canvas = this.canvas()?.nativeElement;
+      canvas?.querySelector('.lb-info-wrapper')?.remove();
       if (this.boundTrapFocus) {
         document.removeEventListener('keydown', this.boundTrapFocus);
         this.boundTrapFocus = null;
@@ -1496,6 +1538,15 @@ export class GalleryComponent {
       this.lightboxControls.style.top = t + 'px';
       this.lightboxControls.style.width = targetW + 'px';
       this.lightboxControls.style.height = targetH + 'px';
+    }
+
+    // Reposition info wrapper (bottom-anchored below photo)
+    const canvas = this.canvas()?.nativeElement;
+    const wrapperEl = canvas?.querySelector('.lb-info-wrapper') as HTMLElement | null;
+    if (wrapperEl) {
+      wrapperEl.style.left = l + 'px';
+      wrapperEl.style.bottom = (vh - t - targetH - 16) + 'px';
+      wrapperEl.style.width = targetW + 'px';
     }
   }
 
