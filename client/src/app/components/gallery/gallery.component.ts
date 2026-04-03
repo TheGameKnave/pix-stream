@@ -1459,30 +1459,18 @@ export class GalleryComponent {
       }
     }
 
-    // Restore neighbors — delay Angular state changes until transitions complete
-    // to prevent Angular's [style.transform] binding from snapping cards mid-transition
-    this.restoreNeighbors(() => {
-      this.lightboxOpen.set(false);
-      this.lightboxImage.set(null);
-      if (!willReopen) {
-        this.resumeRiver();
-        this.focusBeforeLightbox?.focus();
-        this.focusBeforeLightbox = null;
-      }
-    });
+    // Start restoring neighbors (may complete instantly if none displaced)
+    this.restoreNeighbors();
 
     const finish = () => {
       if (this.lightboxSourceCard) {
         this.lightboxSourceCard.style.transition = 'none';
         this.lightboxSourceCard.style.opacity = '';
-        // Force reflow so the card appears instantly, then restore CSS transition
         this.lightboxSourceCard.offsetHeight;
         this.lightboxSourceCard.style.transition = '';
         this.lightboxSourceCard = null;
       }
-      if (overlay) { overlay.remove(); }
       if (this.lightboxControls) { this.lightboxControls.remove(); this.lightboxControls = null; }
-      // Clean up info wrapper (appended to canvas, not controls)
       const canvas = this.canvas()?.nativeElement;
       canvas?.querySelector('.lb-info-wrapper')?.remove();
       if (this.boundTrapFocus) {
@@ -1490,6 +1478,14 @@ export class GalleryComponent {
         this.boundTrapFocus = null;
       }
       this.lightboxEl = null;
+      if (overlay) { overlay.remove(); }
+      this.lightboxOpen.set(false);
+      this.lightboxImage.set(null);
+      if (!willReopen) {
+        this.resumeRiver();
+        this.focusBeforeLightbox?.focus();
+        this.focusBeforeLightbox = null;
+      }
       onDone?.();
     };
 
