@@ -85,6 +85,11 @@ $lockFile = $storageDir . '/.manifest_lock';
 $lockFp = fopen($lockFile, 'c');
 $hasLock = $lockFp && flock($lockFp, LOCK_EX | LOCK_NB);
 
+// Batch limit: only process a few images per request to avoid memory/timeout crashes.
+// Unprocessed images are served with originals as fallback; next poll picks up the rest.
+$BATCH_LIMIT = 5;
+$batchCount = 0;
+
 foreach ($images as $image) {
     if ($image['width'] <= 0 || $image['height'] <= 0) continue;
 
@@ -103,12 +108,13 @@ foreach ($images as $image) {
 
     $thumbExists = file_exists($expectedThumb) || $fallbackThumb;
 
-    if (!$thumbExists && $hasLock) {
+    if (!$thumbExists && $hasLock && $batchCount < $BATCH_LIMIT) {
         $result = generateThumbnail($image['path'], $thumbBase);
         if (!$result) continue;
         $validThumbFiles[] = basename($result);
+        $batchCount++;
     } else if (!$thumbExists) {
-        // Another request is processing — skip this image for now
+        // No lock or batch limit reached — skip this image for now
         continue;
     } else {
         if (file_exists($expectedThumb)) $validThumbFiles[] = basename($expectedThumb);
@@ -128,7 +134,7 @@ foreach ($images as $image) {
 
     $procExists = file_exists($expectedProc) || $fallbackProc;
 
-    if (!$procExists && $hasLock) {
+    if (!$procExists && $hasLock && $batchCount < $BATCH_LIMIT) {
         $imgBanner = $bannerConfig;
         if ($imgBanner && $image['copyright']) {
             $imgBanner['copyright'] = $image['copyright'];
@@ -136,9 +142,10 @@ foreach ($images as $image) {
         $result = generateProcessed($image['path'], $procBase, $imgBanner);
         if ($result) {
             $validProcessedFiles[] = basename($result);
+            $batchCount++;
         }
     } else if (!$procExists) {
-        // No lock — use original as fallback
+        // No lock or batch limit — use original as fallback
     } else {
         if (file_exists($expectedProc)) $validProcessedFiles[] = basename($expectedProc);
         if ($fallbackProc) $validProcessedFiles[] = basename($fallbackProc);
@@ -152,8 +159,9 @@ foreach ($images as $image) {
         $blurBase = $thumbDir . '/' . $image['id'] . '_blur';
         $blurExt = pathinfo($thumbFilename, PATHINFO_EXTENSION);
         $blurPath = $blurBase . '.' . $blurExt;
-        if (!file_exists($blurPath) && $hasLock) {
+        if (!file_exists($blurPath) && $hasLock && $batchCount < $BATCH_LIMIT) {
             generateBlurredThumbnail($thumbPath, $blurPath);
+            $batchCount++;
         }
         if (file_exists($blurPath)) {
             $blurFilename = basename($blurPath);
@@ -219,9 +227,16 @@ if ($lockFp) {
     fclose($lockFp);
 }
 
+// Check if there are still unprocessed images (manifest has fewer entries than originals)
+$pending = count($images) - count($manifest);
+
 // Version hash — includes IDs and image URLs so reprocessing triggers cache busts
 $version = md5(json_encode(array_map(function ($img) {
     return $img['id'] . $img['thumb'] . $img['full'];
 }, $manifest)));
 
-echo json_encode(['version' => $version, 'images' => $manifest]);
+$result = ['version' => $version, 'images' => $manifest];
+if ($pending > 0) {
+    $result['pending'] = $pending;
+}
+echo json_encode($result);

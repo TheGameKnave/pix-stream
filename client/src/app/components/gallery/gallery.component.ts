@@ -377,7 +377,7 @@ export class GalleryComponent {
           this.loading.set(false);
           this.startRiver();
           this.setupObserver();
-          this.startManifestPoll();
+          this.startManifestPoll(res.pending ? 5_000 : 30_000);
           this.checkDeepLink();
         },
         error: () => this.loading.set(false),
@@ -733,24 +733,30 @@ export class GalleryComponent {
     this.destroyRef.onDestroy(() => window.removeEventListener('resize', onResize));
   }
 
-  /** Poll the manifest every 30s; on version change, swap entries and let recycle prune stale cards. */
-  private startManifestPoll(): void {
-    this.pollTimer = window.setInterval(() => {
+  /** Poll the manifest; on version change, swap entries and let recycle prune stale cards. */
+  private startManifestPoll(initialDelay = 30_000): void {
+    const poll = () => {
       this.http.get<ManifestResponse>('/api/manifest').pipe(take(1)).subscribe({
         next: (res) => {
-          if (res.version === this.state.manifestVersion) return;
-          this.state.manifestVersion = res.version;
-          this.allEntries = res.images;
-          this.state.entries = res.images;
-          this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
-          this.entries = this.filterEntries(res.images);
-          this.entryIds = new Set(this.entries.map(e => e.id));
-          this.hasStaleCards = true;
-          this.bustImageCaches();
+          const changed = res.version !== this.state.manifestVersion;
+          if (changed) {
+            this.state.manifestVersion = res.version;
+            this.allEntries = res.images;
+            this.state.entries = res.images;
+            this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
+            this.entries = this.filterEntries(res.images);
+            this.entryIds = new Set(this.entries.map(e => e.id));
+            this.hasStaleCards = true;
+            this.bustImageCaches();
+          }
+          // Poll faster while images are still being processed
+          const delay = res.pending ? 5_000 : 30_000;
+          this.pollTimer = window.setTimeout(poll, delay);
         },
       });
-    }, 30_000);
-    this.destroyRef.onDestroy(() => clearInterval(this.pollTimer));
+    };
+    this.pollTimer = window.setTimeout(poll, initialDelay);
+    this.destroyRef.onDestroy(() => clearTimeout(this.pollTimer));
   }
 
   /** Delete stale thumbnail/image entries from the service worker cache. */

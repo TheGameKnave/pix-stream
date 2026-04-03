@@ -21,6 +21,7 @@ export interface ImageEntry {
 export interface ManifestResponse {
   version: string;
   images: ImageEntry[];
+  pending?: number;
 }
 
 export interface FloatingImage {
