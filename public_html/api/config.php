@@ -68,5 +68,6 @@ function getDefaultConfig(): array {
         'siteFavicon' => '',
         'watermark' => '',
         'sortOrder' => 'random',
+        'density' => 'med',
     ];
 }
