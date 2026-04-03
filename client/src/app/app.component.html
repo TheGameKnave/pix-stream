@@ -24,8 +24,8 @@
     </nav>
   }
   @if (siteConfig.config()?.enabledTags?.length && siteConfig.config()?.tagDisplayMode === 'dropdown') {
-    <div class="tag-dropdown" [class.open]="tagDropdownOpen()">
-      <button class="tag-dropdown-toggle" (click)="toggleDropdown()">
+    <div class="tag-dropdown" [class.open]="tagDropdownOpen()" [class.disabled]="onAdminPage()">
+      <button class="tag-dropdown-toggle" (click)="!onAdminPage() && toggleDropdown()" [attr.aria-disabled]="onAdminPage() || null">
         @if (siteConfig.activeTags().length) {
           <span class="tag-chips">
             @for (tag of siteConfig.activeTags(); track tag) {

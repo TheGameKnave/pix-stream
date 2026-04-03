@@ -152,7 +152,11 @@ export class AppComponent {
 
   goHome(): void {
     this.siteConfig.activeTags.set([]);
-    this.router.navigateByUrl('/');
+    if (this.router.url.startsWith('/admin')) {
+      this.router.navigateByUrl('/');
+    } else {
+      this.location.replaceState('/');
+    }
   }
 
   openAbout(): void {
