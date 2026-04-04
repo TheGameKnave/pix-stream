@@ -1,7 +1,7 @@
 {
   "configVersion": 1,
-  "timestamp": 1775254540296,
-  "index": "/index.csr.html",
+  "timestamp": 1775329057408,
+  "index": "/index.html",
   "assetGroups": [
     {
       "name": "app",
@@ -18,6 +18,7 @@
         "/chunk-DH6BYUFV.js",
         "/chunk-R5V6CFSB.js",
         "/chunk-T2YAMWR4.js",
+        "/index.html",
         "/main-BBEIZV7J.js",
         "/manifest.webmanifest",
         "/styles-7R5P6MXJ.css"
@@ -105,6 +106,7 @@
     "/chunk-DH6BYUFV.js": "c80f77df33778dc037ea5a63fcdbdd8de7222546",
     "/chunk-R5V6CFSB.js": "98b7bfe1f86737ee87d4399447302681916b77aa",
     "/chunk-T2YAMWR4.js": "9bddc9938971211f5a22a1033c34516581d2823c",
+    "/index.html": "548f2ad645f333acd969c60c1a0e9e7d3593dfd9",
     "/main-BBEIZV7J.js": "685f41b9dc45cb1ca3939291ebb824f962fb4455",
     "/manifest.webmanifest": "9c03128e4da0464a675b1ff29b33952ba910aeb5",
     "/styles-7R5P6MXJ.css": "b83fd2d0678e4e883e67862e6be5713116ac0617"

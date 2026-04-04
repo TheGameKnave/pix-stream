@@ -42,6 +42,10 @@ cp -r "$BUILD_DIR"/* public_html/
 # Rename Angular's CSR entry point to index.html
 if [ -f public_html/index.csr.html ]; then
   mv public_html/index.csr.html public_html/index.html
+  # Update ngsw.json to match the renamed file so the service worker caches it
+  if [ -f public_html/ngsw.json ]; then
+    sed -i '' 's|/index\.csr\.html|/index.html|g' public_html/ngsw.json
+  fi
 fi
 
 # Remove sourcemaps (not needed in production)
