@@ -8,7 +8,7 @@ import { laneCount, buildShadow, makeCard, visibleColRange, nearbyIds, GalleryCo
 import { ImageEntry, FloatingImage, GalleryStateService } from '@app/services/gallery-state.service';
 import { SiteConfigService, SiteConfig } from '@app/services/site-config.service';
 import { SeoService } from '@app/services/seo.service';
-import { ConnectivityService } from '@app/services/connectivity.service';
+
 
 describe('laneCount', () => {
   it('defaults to medium density', () => {
@@ -277,10 +277,6 @@ describe('GalleryComponent (DOM)', () => {
         {
           provide: SeoService,
           useValue: { updateTags: () => {}, setKeywords: () => {}, clearKeywords: () => {} },
-        },
-        {
-          provide: ConnectivityService,
-          useValue: { isOnline: signal(true), showOffline: signal(false), start: () => Promise.resolve(), stop: () => {} },
         },
       ],
     }).compileComponents();

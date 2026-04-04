@@ -15,7 +15,7 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
 import { SiteConfigService, slugify } from '@app/services/site-config.service';
-import { ConnectivityService } from '@app/services/connectivity.service';
+
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
 import gsap from 'gsap';
@@ -112,7 +112,7 @@ export class GalleryComponent {
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly state = inject(GalleryStateService);
   readonly siteConfig = inject(SiteConfigService);
-  readonly connectivity = inject(ConnectivityService);
+
   private readonly prefersReducedMotion = this.isBrowser
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -218,20 +218,6 @@ export class GalleryComponent {
         this.pauseRiver();
       } else if (this.riverPaused && !this.lightboxOpen() && !this.nsfwPromptOpen()) {
         this.resumeRiver();
-      }
-    });
-
-    // When work-safe is turned off, prefetch all unblurred NSFW thumbs so they're
-    // cached by the service worker before the user goes offline.
-    effect(() => {
-      const blurOn = this.siteConfig.nsfwBlur();
-      if (!blurOn && this.allEntries.length > 0) {
-        for (const entry of this.allEntries) {
-          if (entry.nsfw && entry.thumbBlur) {
-            new Image().src = entry.thumb;
-            new Image().src = entry.full;
-          }
-        }
       }
     });
 

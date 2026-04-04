@@ -15,7 +15,6 @@
           tabindex="0"
           [attr.aria-label]="'View photo ' + (card.entry.title || card.entry.id)"
           [class.exiting]="card.exiting"
-          [hidden]="card.entry.nsfw && !siteConfig.nsfwBlur() && !connectivity.isOnline()"
           [style.left.px]="card.x"
           [style.top.px]="card.y"
           [style.width.px]="card.w"
@@ -29,7 +28,8 @@
           (keydown.enter)="openLightbox(card, $index)"
           (keydown.space)="openLightbox(card, $index); $event.preventDefault()"
         >
-          <img [src]="card.entry.nsfw && siteConfig.nsfwBlur() && card.entry.thumbBlur ? card.entry.thumbBlur : card.entry.thumb" [alt]="card.entry.id" loading="lazy" />
+          <img [src]="card.entry.nsfw && siteConfig.nsfwBlur() && card.entry.thumbBlur ? card.entry.thumbBlur : card.entry.thumb" [alt]="card.entry.id" loading="lazy"
+            (error)="card.entry.nsfw && card.entry.thumbBlur && $event.target.src !== card.entry.thumbBlur ? $event.target.src = card.entry.thumbBlur : null" />
         </div>
       }
     </div>
