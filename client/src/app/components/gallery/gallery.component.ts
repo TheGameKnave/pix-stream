@@ -253,8 +253,8 @@ export class GalleryComponent {
         this.preloadAllImages();
         this.resolveDisplayThumbs();
       }
-      // Retry lightbox image if it fell back to blurred
-      if (online && this.lightboxOpen() && this.lightboxEl) {
+      // Retry lightbox image if it fell back to blurred (read untracked to avoid triggering on lightbox open)
+      if (online && untracked(() => this.lightboxOpen()) && this.lightboxEl) {
         this.retryLightboxImage();
       }
       // Hide/show share button in open lightbox
@@ -997,7 +997,8 @@ export class GalleryComponent {
     if (!image || !lb) return;
     const img = lb.querySelector('img') as HTMLImageElement;
     if (!img) return;
-    // Only retry if currently showing the blurred fallback
+    // Only retry if blur is off and the image fell back to blurred due to offline
+    if (this.siteConfig.nsfwBlur()) return;
     if (!image.entry.thumbBlur || !img.src.includes(image.entry.thumbBlur)) return;
     // Remove the offline banner
     this.lightboxControls?.querySelector('.lightbox-banner')?.remove();
