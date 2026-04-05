@@ -594,13 +594,19 @@ export class GalleryComponent {
 
     // Deduplicate
     const unique = [...new Set(urls)];
+    if (unique.length === 0) return;
 
     let i = 0;
+    let hasError = false;
+    this.state.downloadState.set('downloading');
     const loadNext = () => {
-      if (i >= unique.length) return;
+      if (i >= unique.length) {
+        this.state.downloadState.set(hasError ? 'error' : 'done');
+        return;
+      }
       const img = new Image();
       img.onload = () => { this.preloadedImages.push(img); loadNext(); };
-      img.onerror = loadNext;
+      img.onerror = () => { hasError = true; loadNext(); };
       img.src = unique[i++];
     };
     // Start after the UI is idle, one at a time to avoid bandwidth contention

@@ -265,6 +265,51 @@ button {
   }
 }
 
+.download-indicator {
+  display: flex;
+  align-items: center;
+  color: var(--color-header-text);
+  filter: var(--color-header-icon-shadow);
+  animation: download-pulse 1.5s ease-in-out infinite;
+
+  .cloud-arrow {
+    animation: cloud-arrow-bob 1s ease-in-out infinite;
+  }
+
+  &.done {
+    animation: download-fade-out 2s ease forwards;
+    animation-delay: 1.5s;
+
+    .cloud-check {
+      stroke: currentColor;
+    }
+  }
+
+  &.error {
+    animation: none;
+    color: #e55;
+
+    .cloud-error {
+      stroke: #e55;
+    }
+  }
+}
+
+@keyframes download-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes cloud-arrow-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes download-fade-out {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
 .update-badge {
   position: absolute;
   top: 4px;

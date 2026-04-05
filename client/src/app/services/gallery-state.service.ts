@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
+
+export type DownloadState = 'idle' | 'downloading' | 'done' | 'error';
 
 export interface ImageEntry {
   id: string;
@@ -50,4 +52,6 @@ export class GalleryStateService {
   entries: ImageEntry[] | null = null;
   offset = 0;
   manifestVersion = '';
+
+  readonly downloadState = signal<DownloadState>('idle');
 }

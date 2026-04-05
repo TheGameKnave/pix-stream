@@ -5,6 +5,7 @@ import { Title } from '@angular/platform-browser';
 import { UpdateService } from '@app/services/update.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 import { SiteConfigService, slugify } from '@app/services/site-config.service';
+import { GalleryStateService } from '@app/services/gallery-state.service';
 import { HttpClient } from '@angular/common/http';
 import { filter, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -21,6 +22,7 @@ import { ScrollIndicatorDirective } from '@app/directives/scroll-indicator.direc
 export class AppComponent {
   readonly updateService = inject(UpdateService);
   protected readonly connectivity = inject(ConnectivityService);
+  protected readonly galleryState = inject(GalleryStateService);
   protected readonly isDevMode = isDevMode();
   protected readonly siteConfig = inject(SiteConfigService);
   protected readonly showHeader = signal(true);
