@@ -8,6 +8,7 @@ import {
   inject,
   PLATFORM_ID,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser, Location } from '@angular/common';
@@ -234,9 +235,15 @@ export class GalleryComponent {
       }
     });
 
-    // Hide/show share button in open lightbox when connectivity changes
+    // When connectivity is restored, retry failed preloads and update lightbox share button
     effect(() => {
       const online = this.connectivity.isOnline();
+      // Retry preload if previous attempt had errors (read untracked to avoid re-triggering)
+      if (online && this.allEntries.length > 0 && untracked(() => this.state.downloadState()) === 'error') {
+        this.preloadAllImages();
+        this.resolveDisplayThumbs();
+      }
+      // Hide/show share button in open lightbox
       const controls = this.lightboxControls;
       if (!controls) return;
       const shareBtn = controls.querySelector('[data-role="share"]') as HTMLElement;
@@ -949,14 +956,14 @@ export class GalleryComponent {
       img.onerror = () => {
         img.onerror = null;
         if (image.entry.thumbBlur) img.src = image.entry.thumbBlur;
-        this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'Go online to view this image');
+        this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'You appear to be offline. Reconnect to view this image.');
       };
       // Load full image
       const fullImg = new Image();
       fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
       fullImg.onerror = () => {
         if (image.entry.thumbBlur && img.src === image.entry.thumbBlur) {
-          this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'Go online to view this image');
+          this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'You appear to be offline. Reconnect to view this image.');
         }
       };
       fullImg.src = image.entry.full;
@@ -1125,7 +1132,7 @@ export class GalleryComponent {
         // Full image failed to load (likely offline / not cached)
         if (image.entry.nsfw && image.entry.thumbBlur) {
           img.src = image.entry.thumbBlur;
-          this.showLightboxBanner(this.lightboxControls || overlay, 'Go online to view this image');
+          this.showLightboxBanner(this.lightboxControls || overlay, 'You appear to be offline. Reconnect to view this image.');
         }
       });
       // If unblurred thumb also fails, fall back to blurred thumb
@@ -1133,7 +1140,7 @@ export class GalleryComponent {
         img.onerror = () => {
           img.onerror = null;
           img.src = image.entry.thumbBlur!;
-          this.showLightboxBanner(this.lightboxControls || overlay, 'Go online to view this image');
+          this.showLightboxBanner(this.lightboxControls || overlay, 'You appear to be offline. Reconnect to view this image.');
         };
       }
     }
