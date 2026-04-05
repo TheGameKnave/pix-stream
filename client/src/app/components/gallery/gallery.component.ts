@@ -928,6 +928,7 @@ export class GalleryComponent {
 
   dismissNsfwPrompt(): void {
     this.nsfwPromptOpen.set(false);
+    this.lightboxControls?.querySelector('.lightbox-banner')?.remove();
     this.lightboxEl?.querySelector('.lightbox-banner')?.remove();
     this.closeLightbox();
   }
@@ -938,6 +939,7 @@ export class GalleryComponent {
     this.siteConfig.toggleNsfw();
     if (!this.lightboxEl) return;
     // Remove the NSFW banner
+    this.lightboxControls?.querySelector('.lightbox-banner')?.remove();
     this.lightboxEl.querySelector('.lightbox-banner')?.remove();
     // Swap the lightbox image to the unblurred version
     const img = this.lightboxEl.querySelector('img') as HTMLImageElement;
@@ -947,14 +949,14 @@ export class GalleryComponent {
       img.onerror = () => {
         img.onerror = null;
         if (image.entry.thumbBlur) img.src = image.entry.thumbBlur;
-        this.showLightboxBanner(this.lightboxEl!, 'Go online to view this image');
+        this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'Go online to view this image');
       };
       // Load full image
       const fullImg = new Image();
       fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
       fullImg.onerror = () => {
         if (image.entry.thumbBlur && img.src === image.entry.thumbBlur) {
-          this.showLightboxBanner(this.lightboxEl!, 'Go online to view this image');
+          this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'Go online to view this image');
         }
       };
       fullImg.src = image.entry.full;
@@ -1123,7 +1125,7 @@ export class GalleryComponent {
         // Full image failed to load (likely offline / not cached)
         if (image.entry.nsfw && image.entry.thumbBlur) {
           img.src = image.entry.thumbBlur;
-          this.showLightboxBanner(overlay, 'Go online to view this image');
+          this.showLightboxBanner(this.lightboxControls || overlay, 'Go online to view this image');
         }
       });
       // If unblurred thumb also fails, fall back to blurred thumb
@@ -1131,7 +1133,7 @@ export class GalleryComponent {
         img.onerror = () => {
           img.onerror = null;
           img.src = image.entry.thumbBlur!;
-          this.showLightboxBanner(overlay, 'Go online to view this image');
+          this.showLightboxBanner(this.lightboxControls || overlay, 'Go online to view this image');
         };
       }
     }
@@ -1166,8 +1168,8 @@ export class GalleryComponent {
         animDone = true;
         trySwap();
         this.addLightboxControls(el, image, isBlurred);
-        if (isBlurred) {
-          this.showLightboxBanner(overlay, 'This image is not work-safe.', {
+        if (isBlurred && this.lightboxControls) {
+          this.showLightboxBanner(this.lightboxControls, 'This image is not work-safe.', {
             label: 'Disable Work-Safe & View',
             handler: () => this.disableNsfwAndOpen(),
           });
