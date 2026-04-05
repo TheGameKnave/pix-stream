@@ -131,6 +131,7 @@ export class GalleryComponent {
   readonly lightboxImage = signal<FloatingImage | null>(null);
   private riverPaused = false;
   private lightboxEl: HTMLElement | null = null;
+  private componentDestroyed = false;
   private lightboxSourceCard: HTMLElement | null = null;
   private urlBeforeLightbox = '/';
   private lightboxControls: HTMLElement | null = null;
@@ -193,6 +194,7 @@ export class GalleryComponent {
 
 
   constructor() {
+    this.destroyRef.onDestroy(() => { this.componentDestroyed = true; });
     if (!this.isBrowser) return;
 
     // Set active tags from route param (supports + delimited multi-tag slugs)
@@ -598,10 +600,12 @@ export class GalleryComponent {
 
     let i = 0;
     let hasError = false;
-    this.state.downloadState.set('downloading');
+    const downloadState = this.state.downloadState;
+    downloadState.set('downloading');
     const loadNext = () => {
+      if (this.componentDestroyed) return;
       if (i >= unique.length) {
-        this.state.downloadState.set(hasError ? 'error' : 'done');
+        downloadState.set(hasError ? 'error' : 'done');
         return;
       }
       const img = new Image();
@@ -643,16 +647,19 @@ export class GalleryComponent {
   private prefetchNsfwEntries(entries: ImageEntry[]): void {
     let remaining = entries.length * 2; // thumb + full per entry
     let hasError = false;
-    this.state.downloadState.set('downloading');
+    const downloadState = this.state.downloadState;
+    downloadState.set('downloading');
     const onDone = () => {
+      if (this.componentDestroyed) return;
       remaining--;
       if (remaining <= 0) {
-        this.state.downloadState.set(hasError ? 'error' : 'done');
+        downloadState.set(hasError ? 'error' : 'done');
       }
     };
     for (const entry of entries) {
       const img = new Image();
       img.onload = () => {
+        if (this.componentDestroyed) return;
         entry._displayThumb = entry.thumb;
         this.cards.update(c => [...c]);
         onDone();
@@ -697,6 +704,7 @@ export class GalleryComponent {
 
     this.rafId = requestAnimationFrame(tick);
     this.destroyRef.onDestroy(() => {
+      this.componentDestroyed = true;
       cancelAnimationFrame(this.rafId);
       // Clear persisted state so re-entering the gallery fetches fresh data
       this.state.cards = null;
