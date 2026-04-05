@@ -265,12 +265,9 @@ button {
   }
 }
 
-.download-indicator {
-  display: flex;
-  align-items: center;
-  color: var(--color-header-text);
-  filter: var(--color-header-icon-shadow);
+.download-indicator.header-icon-btn {
   animation: download-pulse 1.5s ease-in-out infinite;
+  cursor: default;
 
   .cloud-arrow {
     animation: cloud-arrow-bob 1s ease-in-out infinite;
@@ -279,19 +276,12 @@ button {
   &.done {
     animation: download-fade-out 2s ease forwards;
     animation-delay: 1.5s;
-
-    .cloud-check {
-      stroke: currentColor;
-    }
   }
 
   &.error {
     animation: none;
+    opacity: 0.9;
     color: #e55;
-
-    .cloud-error {
-      stroke: #e55;
-    }
   }
 }
 

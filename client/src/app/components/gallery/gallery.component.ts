@@ -623,6 +623,7 @@ export class GalleryComponent {
   private resolveDisplayThumbs(): void {
     const blurOn = this.siteConfig.nsfwBlur();
     let needsUpdate = false;
+    const nsfwToLoad: ImageEntry[] = [];
     for (const entry of this.allEntries) {
       if (!entry.nsfw || !entry.thumbBlur) {
         entry._displayThumb = entry.thumb;
@@ -632,16 +633,37 @@ export class GalleryComponent {
       } else {
         // Blur just turned off — keep blurred thumb until unblurred loads
         entry._displayThumb = entry.thumbBlur;
-        const img = new Image();
-        img.onload = () => {
-          entry._displayThumb = entry.thumb;
-          this.cards.update(c => [...c]);
-        };
-        img.src = entry.thumb;
-        new Image().src = entry.full;
+        nsfwToLoad.push(entry);
       }
     }
     if (needsUpdate) this.cards.update(c => [...c]);
+    if (nsfwToLoad.length > 0) this.prefetchNsfwEntries(nsfwToLoad);
+  }
+
+  private prefetchNsfwEntries(entries: ImageEntry[]): void {
+    let remaining = entries.length * 2; // thumb + full per entry
+    let hasError = false;
+    this.state.downloadState.set('downloading');
+    const onDone = () => {
+      remaining--;
+      if (remaining <= 0) {
+        this.state.downloadState.set(hasError ? 'error' : 'done');
+      }
+    };
+    for (const entry of entries) {
+      const img = new Image();
+      img.onload = () => {
+        entry._displayThumb = entry.thumb;
+        this.cards.update(c => [...c]);
+        onDone();
+      };
+      img.onerror = () => { hasError = true; onDone(); };
+      img.src = entry.thumb;
+      const full = new Image();
+      full.onload = onDone;
+      full.onerror = () => { hasError = true; onDone(); };
+      full.src = entry.full;
+    }
   }
 
   private startRiver(): void {
