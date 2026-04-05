@@ -243,6 +243,10 @@ export class GalleryComponent {
         this.preloadAllImages();
         this.resolveDisplayThumbs();
       }
+      // Retry lightbox image if it fell back to blurred
+      if (online && this.lightboxOpen() && this.lightboxEl) {
+        this.retryLightboxImage();
+      }
       // Hide/show share button in open lightbox
       const controls = this.lightboxControls;
       if (!controls) return;
@@ -974,6 +978,26 @@ export class GalleryComponent {
         this.addLightboxControls(el, image);
       }
     }
+  }
+
+  private retryLightboxImage(): void {
+    const image = this.lightboxImage();
+    const lb = this.lightboxEl;
+    if (!image || !lb) return;
+    const img = lb.querySelector('img') as HTMLImageElement;
+    if (!img) return;
+    // Only retry if currently showing the blurred fallback
+    if (!image.entry.thumbBlur || !img.src.includes(image.entry.thumbBlur)) return;
+    // Remove the offline banner
+    this.lightboxControls?.querySelector('.lightbox-banner')?.remove();
+    lb.querySelector('.lightbox-banner')?.remove();
+    // Try loading the full image
+    const fullImg = new Image();
+    fullImg.onload = () => {
+      img.src = image.entry.full;
+      img.style.objectFit = 'contain';
+    };
+    fullImg.src = image.entry.full;
   }
 
   openLightbox(image: FloatingImage, cardIndex: number): void {
