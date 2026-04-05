@@ -133,6 +133,7 @@ export class GalleryComponent {
   private riverPaused = false;
   private lightboxEl: HTMLElement | null = null;
   private componentDestroyed = false;
+  private activePreloadImg: HTMLImageElement | null = null;
   private lightboxSourceCard: HTMLElement | null = null;
   private urlBeforeLightbox = '/';
   private lightboxControls: HTMLElement | null = null;
@@ -195,7 +196,16 @@ export class GalleryComponent {
 
 
   constructor() {
-    this.destroyRef.onDestroy(() => { this.componentDestroyed = true; });
+    this.destroyRef.onDestroy(() => {
+      this.componentDestroyed = true;
+      // Abort any in-flight preload to prevent callbacks firing after destroy
+      if (this.activePreloadImg) {
+        this.activePreloadImg.onload = null;
+        this.activePreloadImg.onerror = null;
+        this.activePreloadImg.src = '';
+        this.activePreloadImg = null;
+      }
+    });
     if (!this.isBrowser) return;
 
     // Set active tags from route param (supports + delimited multi-tag slugs)
@@ -620,6 +630,7 @@ export class GalleryComponent {
         return;
       }
       const img = new Image();
+      this.activePreloadImg = img;
       img.onload = () => { if (!this.componentDestroyed) this.preloadedImages.push(img); loadNext(); };
       img.onerror = () => { hasError = true; loadNext(); };
       img.src = unique[i++];
