@@ -609,7 +609,7 @@ export class GalleryComponent {
         return;
       }
       const img = new Image();
-      img.onload = () => { this.preloadedImages.push(img); loadNext(); };
+      img.onload = () => { if (!this.componentDestroyed) this.preloadedImages.push(img); loadNext(); };
       img.onerror = () => { hasError = true; loadNext(); };
       img.src = unique[i++];
     };
@@ -958,9 +958,10 @@ export class GalleryComponent {
         }
       };
       fullImg.src = image.entry.full;
-      // Add controls now that the image is viewable
+      // Rebuild controls with full actions now that the image is viewable
       const el = this.canvas()?.nativeElement;
-      if (el && !this.lightboxControls) {
+      if (el) {
+        if (this.lightboxControls) { this.lightboxControls.remove(); this.lightboxControls = null; }
         this.addLightboxControls(el, image);
       }
     }
@@ -1164,7 +1165,7 @@ export class GalleryComponent {
         overlay.style.boxShadow = 'none';
         animDone = true;
         trySwap();
-        if (!isBlurred) this.addLightboxControls(el, image);
+        this.addLightboxControls(el, image, isBlurred);
         if (isBlurred) {
           this.showLightboxBanner(overlay, 'This image is not work-safe.', {
             label: 'Disable Work-Safe & View',
@@ -1192,7 +1193,7 @@ export class GalleryComponent {
     overlay.appendChild(banner);
   }
 
-  private addLightboxControls(canvas: HTMLElement, image: FloatingImage): void {
+  private addLightboxControls(canvas: HTMLElement, image: FloatingImage, hideActions = false): void {
     const lb = this.lightboxEl;
     if (!lb) return;
     const lbRect = lb.getBoundingClientRect();
@@ -1250,10 +1251,12 @@ export class GalleryComponent {
     deleteBtn.className = 'lb-btn lb-btn-delete';
 
     const cfg = this.siteConfig.config();
-    if (cfg?.enableDownload !== false) actions.appendChild(dlBtn);
-    if (cfg?.enableShare !== false && this.connectivity.isOnline()) actions.appendChild(shareBtn);
-    if (cfg?.enableQr !== false) actions.appendChild(qrBtn);
-    if (this.siteConfig.adminAuthenticated()) actions.appendChild(deleteBtn);
+    if (!hideActions) {
+      if (cfg?.enableDownload !== false) actions.appendChild(dlBtn);
+      if (cfg?.enableShare !== false && this.connectivity.isOnline()) actions.appendChild(shareBtn);
+      if (cfg?.enableQr !== false) actions.appendChild(qrBtn);
+      if (this.siteConfig.adminAuthenticated()) actions.appendChild(deleteBtn);
+    }
     if (actions.childElementCount > 0) {
       // Add toggle button for mobile — CSS media query hides/shows it
       const toggle = document.createElement('button');
