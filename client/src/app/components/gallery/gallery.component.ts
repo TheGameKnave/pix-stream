@@ -2028,6 +2028,11 @@ export class GalleryComponent {
         else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.navigateLightbox(-1);
         return;
       }
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (this.riverPaused) this.resumeRiver(); else this.pauseRiver();
+        return;
+      }
       // Arrow keys bump the main stream in the pressed direction
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         this.animateBump(-1);
