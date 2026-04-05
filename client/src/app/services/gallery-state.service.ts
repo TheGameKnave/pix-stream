@@ -16,6 +16,8 @@ export interface ImageEntry {
   captureDate: string;
   title: string;
   description: string;
+  /** Resolved thumb URL for display — updated after preload confirms availability. */
+  _displayThumb?: string;
 }
 
 export interface ManifestResponse {

@@ -28,8 +28,7 @@
           (keydown.enter)="openLightbox(card, $index)"
           (keydown.space)="openLightbox(card, $index); $event.preventDefault()"
         >
-          <img [src]="card.entry.nsfw && siteConfig.nsfwBlur() && card.entry.thumbBlur ? card.entry.thumbBlur : card.entry.thumb" [alt]="card.entry.id" loading="lazy"
-            (error)="card.entry.nsfw && card.entry.thumbBlur && $event.target.src !== card.entry.thumbBlur ? $event.target.src = card.entry.thumbBlur : null" />
+          <img [src]="card.entry._displayThumb || card.entry.thumb" [alt]="card.entry.id" loading="lazy" />
         </div>
       }
     </div>
@@ -39,16 +38,5 @@
       (click)="closeLightbox()"
       aria-hidden="true"
     ></div>
-  }
-  @if (nsfwPromptOpen()) {
-    <div class="nsfw-prompt-overlay" (click)="dismissNsfwPrompt()" (keydown.enter)="dismissNsfwPrompt()" tabindex="0" role="dialog" aria-modal="true" aria-label="Content warning">
-      <div class="nsfw-prompt" (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()" tabindex="-1">
-        <p>This image is marked Not Work-Safe.</p>
-        <div class="nsfw-prompt-actions">
-          <button class="nsfw-prompt-btn primary" (click)="disableNsfwAndOpen()">Disable Work-Safe &amp; View</button>
-          <button class="nsfw-prompt-btn" (click)="dismissNsfwPrompt()">Cancel</button>
-        </div>
-      </div>
-    </div>
   }
 </div>

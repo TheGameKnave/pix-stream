@@ -901,63 +901,45 @@ button {
 // =============================================================================
 // NSFW prompt dialog
 // =============================================================================
-.nsfw-prompt-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1050;
-  background: rgba(0, 0, 0, 0.6);
+.lightbox-banner {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: none;
-}
-
-.nsfw-prompt {
-  background: var(--color-header);
-  color: var(--color-header-text);
-  border: 1px solid rgba(128,128,128,0.2);
-  border-radius: 8px;
-  padding: 1.5rem 2rem;
-  max-width: 340px;
-  width: 90%;
-  text-align: center;
-  text-shadow: none;
-
-  p {
-    font-size: 0.95rem;
-    margin-bottom: 1.25rem;
-  }
-}
-
-.nsfw-prompt-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.nsfw-prompt-btn {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  gap: 0.75rem;
   font-size: 0.85rem;
-  border: 1px solid rgba(128,128,128,0.3);
+  padding: 0.5rem 1rem;
+  background: color-mix(in srgb, var(--color-header) 45%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: var(--color-header-text);
-  opacity: 0.7;
-  transition: all 0.2s ease;
-  cursor: pointer;
+  text-shadow: var(--color-header-glow);
+  opacity: 0;
+  animation: lightbox-banner-in 0.15s ease 0.15s forwards;
 
-  &:hover {
-    opacity: 1;
-  }
-
-  &.primary {
-    border-color: var(--color-accent);
-    color: var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  button {
+    padding: 0.3rem 0.75rem;
+    border-radius: 4px;
+    border: 1px solid rgba(128,128,128,0.3);
+    font-size: 0.8rem;
+    color: var(--color-header-text);
+    background: color-mix(in srgb, var(--color-header) 30%, transparent);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
 
     &:hover {
-      background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+      opacity: 1;
     }
   }
+}
+
+@keyframes lightbox-banner-in {
+  to { opacity: 1; }
 }
 
 // =============================================================================

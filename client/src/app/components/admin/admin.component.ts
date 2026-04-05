@@ -568,8 +568,9 @@ export class AdminComponent implements AfterViewChecked {
             window.location.reload();
           }, 2000);
         },
-        error: (err) => {
-          this.updateStatus.set(err.error?.error || 'Update failed');
+        error: (err: unknown) => {
+          const e = err as { error?: { error?: string } };
+          this.updateStatus.set(e.error?.error || 'Update failed');
           setTimeout(() => this.updateStatus.set(''), 5000);
         },
       });

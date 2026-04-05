@@ -15,6 +15,7 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
 import { SiteConfigService, slugify } from '@app/services/site-config.service';
+import { ConnectivityService } from '@app/services/connectivity.service';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
@@ -112,6 +113,7 @@ export class GalleryComponent {
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly state = inject(GalleryStateService);
   readonly siteConfig = inject(SiteConfigService);
+  private readonly connectivity = inject(ConnectivityService);
 
   private readonly prefersReducedMotion = this.isBrowser
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -219,6 +221,24 @@ export class GalleryComponent {
       } else if (this.riverPaused && !this.lightboxOpen() && !this.nsfwPromptOpen()) {
         this.resumeRiver();
       }
+    });
+
+    // When work-safe mode changes, re-resolve which thumb to display.
+    // Unblurred NSFW thumbs are only swapped in once confirmed loadable.
+    effect(() => {
+      this.siteConfig.nsfwBlur();
+      if (this.allEntries.length > 0) {
+        this.resolveDisplayThumbs();
+      }
+    });
+
+    // Hide/show share button in open lightbox when connectivity changes
+    effect(() => {
+      const online = this.connectivity.isOnline();
+      const controls = this.lightboxControls;
+      if (!controls) return;
+      const shareBtn = controls.querySelector('[data-role="share"]') as HTMLElement;
+      if (shareBtn) shareBtn.style.display = online ? '' : 'none';
     });
 
     // Rebuild river when active tags or sort order change
@@ -349,6 +369,7 @@ export class GalleryComponent {
           this.allEntries = res.images;
           this.state.entries = res.images;
           this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
+          this.resolveDisplayThumbs();
           const entries = this.filterEntries(res.images);
           this.entries = entries;
           this.entryIds = new Set(entries.map(e => e.id));
@@ -456,6 +477,7 @@ export class GalleryComponent {
       activeRows.push(row);
     }
     const colEntries: ImageEntry[] = [];
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let r = 0; r < activeRows.length; r++) {
       colEntries.push(this.pickEntry(usedIds, reverse));
     }
@@ -550,16 +572,28 @@ export class GalleryComponent {
     this.preloadAllImages();
   }
 
-  /** Preload all thumbnails and full images for offline use via the service worker cache. */
+  /** Preload images for offline use via the service worker cache.
+   *  SFW: all thumbs + full images. NSFW: only blurred thumbs (unblurred
+   *  content is prefetched separately when the user toggles blur off). */
   private preloadAllImages(): void {
-    // Prioritize visible cards' full images, then all remaining thumbs + fulls
-    const visibleFulls = this.cards().map(c => c.entry.full);
-    const allThumbs = this.allEntries.map(e => e.thumb);
-    const allFulls = this.allEntries.map(e => e.full);
-    const urls = [...visibleFulls, ...allThumbs, ...allFulls];
-    // Deduplicate while preserving priority order
-    const seen = new Set<string>();
-    const unique = urls.filter(u => { if (seen.has(u)) return false; seen.add(u); return true; });
+    const blurOn = this.siteConfig.nsfwBlur();
+    const urls: string[] = [];
+
+    for (const entry of this.allEntries) {
+      if (entry.nsfw && entry.thumbBlur) {
+        urls.push(entry.thumbBlur);
+        if (!blurOn) {
+          urls.push(entry.thumb);
+          urls.push(entry.full);
+        }
+      } else if (!entry.nsfw) {
+        urls.push(entry.thumb);
+        urls.push(entry.full);
+      }
+    }
+
+    // Deduplicate
+    const unique = [...new Set(urls)];
 
     let i = 0;
     const loadNext = () => {
@@ -571,10 +605,37 @@ export class GalleryComponent {
     };
     // Start after the UI is idle, one at a time to avoid bandwidth contention
     if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(() => loadNext());
+      (window as unknown as { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(() => loadNext());
     } else {
       setTimeout(loadNext, 1000);
     }
+  }
+
+  /** Set _displayThumb on each entry. For NSFW with blur on, use thumbBlur.
+   *  When blur is off, attempt to load the unblurred thumb — keep showing
+   *  the blurred version until the unblurred one is confirmed loadable. */
+  private resolveDisplayThumbs(): void {
+    const blurOn = this.siteConfig.nsfwBlur();
+    let needsUpdate = false;
+    for (const entry of this.allEntries) {
+      if (!entry.nsfw || !entry.thumbBlur) {
+        entry._displayThumb = entry.thumb;
+      } else if (blurOn) {
+        entry._displayThumb = entry.thumbBlur;
+        needsUpdate = true;
+      } else {
+        // Blur just turned off — keep blurred thumb until unblurred loads
+        entry._displayThumb = entry.thumbBlur;
+        const img = new Image();
+        img.onload = () => {
+          entry._displayThumb = entry.thumb;
+          this.cards.update(c => [...c]);
+        };
+        img.src = entry.thumb;
+        new Image().src = entry.full;
+      }
+    }
+    if (needsUpdate) this.cards.update(c => [...c]);
   }
 
   private startRiver(): void {
@@ -831,27 +892,40 @@ export class GalleryComponent {
 
   dismissNsfwPrompt(): void {
     this.nsfwPromptOpen.set(false);
+    this.lightboxEl?.querySelector('.lightbox-banner')?.remove();
     this.closeLightbox();
   }
+
 
   disableNsfwAndOpen(): void {
     this.nsfwPromptOpen.set(false);
     this.siteConfig.toggleNsfw();
+    if (!this.lightboxEl) return;
+    // Remove the NSFW banner
+    this.lightboxEl.querySelector('.lightbox-banner')?.remove();
     // Swap the lightbox image to the unblurred version
-    if (this.lightboxEl) {
-      const img = this.lightboxEl.querySelector('img') as HTMLImageElement;
-      const image = this.lightboxImage();
-      if (img && image) {
-        img.src = image.entry.thumb;
-        // Load full image
-        const fullImg = new Image();
-        fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
-        fullImg.src = image.entry.full;
-        // Add controls now that the image is viewable
-        const el = this.canvas()?.nativeElement;
-        if (el && !this.lightboxControls) {
-          this.addLightboxControls(el, image);
+    const img = this.lightboxEl.querySelector('img') as HTMLImageElement;
+    const image = this.lightboxImage();
+    if (img && image) {
+      img.src = image.entry.thumb;
+      img.onerror = () => {
+        img.onerror = null;
+        if (image.entry.thumbBlur) img.src = image.entry.thumbBlur;
+        this.showLightboxBanner(this.lightboxEl!, 'Go online to view this image');
+      };
+      // Load full image
+      const fullImg = new Image();
+      fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
+      fullImg.onerror = () => {
+        if (image.entry.thumbBlur && img.src === image.entry.thumbBlur) {
+          this.showLightboxBanner(this.lightboxEl!, 'Go online to view this image');
         }
+      };
+      fullImg.src = image.entry.full;
+      // Add controls now that the image is viewable
+      const el = this.canvas()?.nativeElement;
+      if (el && !this.lightboxControls) {
+        this.addLightboxControls(el, image);
       }
     }
   }
@@ -901,14 +975,9 @@ export class GalleryComponent {
 
     this.animateOpen(image, cardIndex);
 
-    // Show NSFW prompt over the blurred lightbox
+    // Show NSFW banner on the blurred lightbox image
     if (image.entry.nsfw && this.siteConfig.nsfwBlur() && image.entry.thumbBlur) {
       this.nsfwPromptOpen.set(true);
-      // Attach swipe to the NSFW overlay so users can swipe past NSFW images
-      requestAnimationFrame(() => {
-        const nsfwOverlay = el?.querySelector('.nsfw-prompt-overlay') as HTMLElement;
-        if (nsfwOverlay) this.attachSwipe(nsfwOverlay, () => this.dismissNsfwPrompt());
-      });
     }
   }
 
@@ -953,11 +1022,6 @@ export class GalleryComponent {
 
     const targetX = (lbVw - targetW) / 2;
     const targetY = (lbVh - targetH) / 2;
-    const scaleX = startW / targetW;
-    const scaleY = startH / targetH;
-    const translateX = (startX + startW / 2) - (targetX + targetW / 2);
-    const translateY = (startY + startH / 2) - (targetY + targetH / 2);
-
     const isBlurred = image.entry.nsfw && this.siteConfig.nsfwBlur() && !!image.entry.thumbBlur;
     const duration = this.prefersReducedMotion ? 0 : 0.45;
 
@@ -1018,7 +1082,21 @@ export class GalleryComponent {
     if (!isBlurred) {
       const fullImg = new Image();
       fullImg.src = image.entry.full;
-      fullImg.decode().then(() => { decodedImg = fullImg; trySwap(); }, () => {});
+      fullImg.decode().then(() => { decodedImg = fullImg; trySwap(); }, () => {
+        // Full image failed to load (likely offline / not cached)
+        if (image.entry.nsfw && image.entry.thumbBlur) {
+          img.src = image.entry.thumbBlur;
+          this.showLightboxBanner(overlay, 'Go online to view this image');
+        }
+      });
+      // If unblurred thumb also fails, fall back to blurred thumb
+      if (image.entry.nsfw && image.entry.thumbBlur) {
+        img.onerror = () => {
+          img.onerror = null;
+          img.src = image.entry.thumbBlur!;
+          this.showLightboxBanner(overlay, 'Go online to view this image');
+        };
+      }
     }
 
     // Animate from card position to center
@@ -1038,6 +1116,7 @@ export class GalleryComponent {
         this.lightboxAnimatingOpen = false;
         // Remove GSAP's internal cache so manual style.transform (pinch zoom) works
         gsap.killTweensOf(overlay);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (overlay as any)._gsap;
         // Re-apply position without GSAP
         overlay.style.left = targetX + 'px';
@@ -1050,8 +1129,31 @@ export class GalleryComponent {
         animDone = true;
         trySwap();
         if (!isBlurred) this.addLightboxControls(el, image);
+        if (isBlurred) {
+          this.showLightboxBanner(overlay, 'This image is not work-safe.', {
+            label: 'Disable Work-Safe & View',
+            handler: () => this.disableNsfwAndOpen(),
+          });
+        }
       },
     });
+  }
+
+  private showLightboxBanner(overlay: HTMLElement, text: string, action?: { label: string; handler: () => void }): void {
+    // Remove existing banner if present
+    overlay.querySelector('.lightbox-banner')?.remove();
+    const banner = document.createElement('div');
+    banner.className = 'lightbox-banner';
+    const span = document.createElement('span');
+    span.textContent = text;
+    banner.appendChild(span);
+    if (action) {
+      const btn = document.createElement('button');
+      btn.textContent = action.label;
+      btn.addEventListener('click', (e) => { e.stopPropagation(); action.handler(); });
+      banner.appendChild(btn);
+    }
+    overlay.appendChild(banner);
   }
 
   private addLightboxControls(canvas: HTMLElement, image: FloatingImage): void {
@@ -1113,7 +1215,7 @@ export class GalleryComponent {
 
     const cfg = this.siteConfig.config();
     if (cfg?.enableDownload !== false) actions.appendChild(dlBtn);
-    if (cfg?.enableShare !== false) actions.appendChild(shareBtn);
+    if (cfg?.enableShare !== false && this.connectivity.isOnline()) actions.appendChild(shareBtn);
     if (cfg?.enableQr !== false) actions.appendChild(qrBtn);
     if (this.siteConfig.adminAuthenticated()) actions.appendChild(deleteBtn);
     if (actions.childElementCount > 0) {
@@ -1219,7 +1321,7 @@ export class GalleryComponent {
         const dy = touchStartY - e.changedTouches[0].clientY;
         if (dy > 20) expand();
         else if (dy < -20) collapse();
-        else if (!touchMoved) { wrapper.classList.contains('lb-info-expanded') ? collapse() : expand(); }
+        else if (!touchMoved) { if (wrapper.classList.contains('lb-info-expanded')) collapse(); else expand(); }
       });
       wrapper.addEventListener('click', (e) => { e.stopPropagation(); });
     }
@@ -1469,7 +1571,7 @@ export class GalleryComponent {
       if (this.lightboxSourceCard) {
         this.lightboxSourceCard.style.transition = 'none';
         this.lightboxSourceCard.style.opacity = '';
-        this.lightboxSourceCard.offsetHeight;
+        void this.lightboxSourceCard.offsetHeight; // force reflow
         this.lightboxSourceCard.style.transition = '';
         this.lightboxSourceCard = null;
       }
@@ -1795,9 +1897,7 @@ export class GalleryComponent {
           this.navigateLightbox(dx < 0 ? 1 : -1);
         } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && elapsed < 300) {
           if (onClose) onClose();
-        } else {
         }
-      } else {
       }
     });
 

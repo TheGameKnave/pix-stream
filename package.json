@@ -8,6 +8,7 @@
     "server": "/opt/homebrew/bin/php -S localhost:8080 -t server/ server/router.php",
     "build": "cd client && npm run build",
     "build:prod": "cd client && npm run build -- --configuration production",
+    "serve:prod": "bash build.sh && /opt/homebrew/bin/php -S localhost:8080 -t public_html/ server/router.php",
     "test": "cd client && npm test",
     "test:php": "cd server && php phpunit.phar --testdox",
     "test:all": "npm test && npm run test:php",

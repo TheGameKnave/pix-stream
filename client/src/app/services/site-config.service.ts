@@ -53,6 +53,7 @@ export class SiteConfigService {
   readonly updateAvailable = signal(false);
   private pendingSlugs: string[] = [];
 
+  /* eslint-disable rxjs-x/no-ignored-subscription, rxjs-x/no-nested-subscribe */
   load(): void {
     this.http.get<SiteConfig>('/api/config').pipe(take(1), catchError(() => EMPTY)).subscribe({
       next: (config) => {
@@ -99,6 +100,7 @@ export class SiteConfigService {
       },
     });
   }
+  /* eslint-enable rxjs-x/no-ignored-subscription, rxjs-x/no-nested-subscribe */
 
   /** Set active tags from URL slugs — resolves against known tags when available. */
   setActiveFromSlugs(slugs: string[]): void {

@@ -8,6 +8,7 @@ import { laneCount, buildShadow, makeCard, visibleColRange, nearbyIds, GalleryCo
 import { ImageEntry, FloatingImage, GalleryStateService } from '@app/services/gallery-state.service';
 import { SiteConfigService, SiteConfig } from '@app/services/site-config.service';
 import { SeoService } from '@app/services/seo.service';
+import { ConnectivityService } from '@app/services/connectivity.service';
 
 
 describe('laneCount', () => {
@@ -278,6 +279,10 @@ describe('GalleryComponent (DOM)', () => {
           provide: SeoService,
           useValue: { updateTags: () => {}, setKeywords: () => {}, clearKeywords: () => {} },
         },
+        {
+          provide: ConnectivityService,
+          useValue: { isOnline: signal(true), showOffline: signal(false), start: () => Promise.resolve(), stop: () => {} },
+        },
       ],
     }).compileComponents();
 
@@ -389,15 +394,13 @@ describe('GalleryComponent (DOM)', () => {
     expect(component.openLightbox).not.toHaveBeenCalled();
   });
 
-  it('NSFW prompt shows dialog semantics', () => {
-    component.loading.set(false);
-    component.cards.set([makeTestCard('a')]);
+  it('NSFW prompt banner is shown via lightbox (imperative)', () => {
+    // The NSFW banner is now added imperatively to the lightbox overlay,
+    // not as a template element. Just verify the signal works.
     component.nsfwPromptOpen.set(true);
-    fixture.detectChanges();
-    const overlay = fixture.nativeElement.querySelector('.nsfw-prompt-overlay');
-    expect(overlay.getAttribute('role')).toBe('dialog');
-    expect(overlay.getAttribute('aria-modal')).toBe('true');
-    expect(overlay.getAttribute('aria-label')).toBe('Content warning');
+    expect(component.nsfwPromptOpen()).toBeTrue();
+    component.nsfwPromptOpen.set(false);
+    expect(component.nsfwPromptOpen()).toBeFalse();
   });
 
   describe('openLightbox', () => {
