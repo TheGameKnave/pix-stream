@@ -45,7 +45,8 @@ export class SiteConfigService {
   readonly allTags = signal<string[]>([]);
   readonly tags = signal<string[]>([]);
   readonly activeTags = signal<string[]>([]);
-  readonly nsfwBlur = signal(this.loadNsfwPref());
+  private readonly nsfwUrlOverride = this.isBrowser && new URLSearchParams(window.location.search).get('nsfw') === 'show';
+  readonly nsfwBlur = signal(this.nsfwUrlOverride ? false : this.loadNsfwPref());
   readonly hasNsfw = signal(false);
   readonly aboutOpen = signal(false);
   readonly adminSetupRequired = signal(false);
@@ -58,7 +59,7 @@ export class SiteConfigService {
     this.http.get<SiteConfig>('/api/config').pipe(take(1), catchError(() => EMPTY)).subscribe({
       next: (config) => {
         this.config.set(config);
-        if (!this.isBrowser || localStorage.getItem('nsfw-blur') === null) {
+        if (!this.nsfwUrlOverride && (!this.isBrowser || localStorage.getItem('nsfw-blur') === null)) {
           this.nsfwBlur.set(config.nsfwBlurDefault);
         }
         if (this.isBrowser) {

@@ -96,7 +96,7 @@ export class AppComponent {
         this.headerRo?.disconnect();
         if (ref) {
           const el = ref.nativeElement;
-          const update = () => document.documentElement.style.setProperty('--header-height', el.offsetHeight + 'px');
+          const update = () => document.documentElement.style.setProperty('--header-height', el.getBoundingClientRect().bottom + 'px');
           this.headerRo = new ResizeObserver(update);
           this.headerRo.observe(el);
           update();
