@@ -164,6 +164,33 @@ npm run tauri android dev                                    # Android
 npm run tauri ios build -- --export-method app-store-connect  # iOS
 ```
 
+### Standalone Android APK (Remote URL)
+
+You can build a sideloadable Android APK that wraps any deployed pix-stream site in a native WebView. No frontend bundling needed — the app points at the remote URL.
+
+```bash
+./build-app.sh <url> <app-name> [icon-url]
+```
+
+Examples:
+
+```bash
+./build-app.sh https://maskphoto.com "Mask Photo"
+./build-app.sh https://example.com/kiosk "My Gallery" https://example.com/icon.png
+```
+
+- If `icon-url` is omitted, fetches `<url>/api/favicon` automatically
+- Generates all required icon sizes (Tauri + Android mipmaps)
+- Signs the APK with a debug keystore for sideloading
+- Output: `<app-name>.apk` in the project root
+
+**Requirements:** Rust, Tauri CLI, Android SDK + NDK, `sips` (macOS), `curl`
+
+**Install on device:**
+```bash
+adb install my-app.apk
+```
+
 ## Deploying to Shared Hosting (Apache + PHP)
 
 Pix Stream runs on any standard PHP host with Apache and mod_rewrite. No Node.js or build tools needed on your server.
