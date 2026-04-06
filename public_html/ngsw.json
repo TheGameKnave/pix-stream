@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1775458108046,
+  "timestamp": 1775460047888,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -21,7 +21,7 @@
         "/index.html",
         "/main-ITAPB7SL.js",
         "/manifest.webmanifest",
-        "/styles-KYLFNQ3G.css"
+        "/styles-RVXTJ3A7.css"
       ],
       "patterns": []
     },
@@ -106,10 +106,10 @@
     "/chunk-OEL25DCB.js": "901fbbd59c1bb1e872c025808f80da108ea1432b",
     "/chunk-SCBOWWLI.js": "055d485f0462c80f17e1dcbd7541bc9d2bf9864b",
     "/chunk-TCAFQP27.js": "627fcc7a2767d3e00ea51aadd79f9fab6140115a",
-    "/index.html": "0ef4b3655bc242b151ab268a34c7481c2ce199b9",
+    "/index.html": "19b3878adfc1a00363a0009b4e145ea390061a09",
     "/main-ITAPB7SL.js": "d7ba26929e95f89a3de26d7fff3ac09b6ece260f",
     "/manifest.webmanifest": "9c03128e4da0464a675b1ff29b33952ba910aeb5",
-    "/styles-KYLFNQ3G.css": "58ee67b7603603abade5bdea80942754cc4fc5f1"
+    "/styles-RVXTJ3A7.css": "732ac7de094a5cc618a4d649a4aa96ea21bee602"
   },
   "navigationUrls": [
     {
