@@ -146,6 +146,8 @@ button {
   padding-left: env(safe-area-inset-left, 0.25rem);
   padding-right: env(safe-area-inset-right, 0.25rem);
   top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
   z-index: 100;
   display: flex;
   align-items: center;
