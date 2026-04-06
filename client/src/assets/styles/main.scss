@@ -65,6 +65,7 @@
 
 html {
   background: #1a1a1a;
+  margin-top: env(safe-area-inset-top) !important;
 }
 
 html, body {
@@ -75,9 +76,6 @@ html, body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  margin-top: env(safe-area-inset-top) !important;
-  margin-left: env(safe-area-inset-left) !important;
-  margin-right: env(safe-area-inset-right) !important;
 }
 
 body {
