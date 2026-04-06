@@ -70,7 +70,6 @@ html {
 html, body {
   height: 100%;
   overflow: hidden;
-  background: var(--color-bg);
   color: var(--color-text);
   text-shadow: var(--color-text-shadow);
   font-family: var(--font-body);
@@ -79,6 +78,10 @@ html, body {
   margin-top: env(safe-area-inset-top) !important;
   margin-left: env(safe-area-inset-left) !important;
   margin-right: env(safe-area-inset-right) !important;
+}
+
+body {
+  background: var(--color-bg);
 }
 
 a {
