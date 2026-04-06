@@ -104,6 +104,13 @@ cd client
 rm -rf src-tauri/gen/android
 npx tauri android init 2>&1
 
+# Enable WebView debugging for inspection
+MAIN_ACTIVITY=$(find src-tauri/gen/android -name "MainActivity.kt" 2>/dev/null | head -1)
+if [ -n "$MAIN_ACTIVITY" ]; then
+  # Add WebView.setWebContentsDebuggingEnabled(true) to onCreate
+  sed -i '' 's/enableEdgeToEdge()/enableEdgeToEdge()\n    android.webkit.WebView.setWebContentsDebuggingEnabled(true)/' "$MAIN_ACTIVITY"
+fi
+
 # Re-apply icons after regeneration
 cd ..
 generate_mipmaps "$ICON_SRC_COPY"

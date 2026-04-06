@@ -15,7 +15,7 @@ import { isPlatformBrowser, Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
-import { SiteConfigService, slugify } from '@app/services/site-config.service';
+import { SiteConfigService, slugify, MISC_TAG } from '@app/services/site-config.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -308,7 +308,23 @@ export class GalleryComponent {
 
   private filterEntries(entries: ImageEntry[]): ImageEntry[] {
     const tags = this.siteConfig.activeTags();
-    const result = tags.length === 0 ? [...entries] : entries.filter(e => tags.some(t => e.tags.includes(t)));
+    const enabled = this.siteConfig.config()?.enabledTags ?? [];
+    const hasMisc = tags.includes(MISC_TAG);
+    const realTags = tags.filter(t => t !== MISC_TAG);
+    let result: ImageEntry[];
+    if (tags.length === 0) {
+      result = [...entries];
+    } else if (hasMisc && realTags.length === 0) {
+      // Only Misc selected — show uncategorised images
+      result = entries.filter(e => !e.tags.some(t => enabled.includes(t)));
+    } else if (hasMisc) {
+      // Misc + real tags — union of both
+      result = entries.filter(e =>
+        realTags.some(t => e.tags.includes(t)) || !e.tags.some(t => enabled.includes(t))
+      );
+    } else {
+      result = entries.filter(e => tags.some(t => e.tags.includes(t)));
+    }
     const sort = this.siteConfig.config()?.sortOrder ?? 'random';
     if (sort === 'random') {
       for (let i = result.length - 1; i > 0; i--) {
@@ -357,10 +373,10 @@ export class GalleryComponent {
     this.vw = el?.clientWidth ?? window.innerWidth;
     this.vh = el?.clientHeight ?? window.innerHeight;
 
-    const flow = this.siteConfig.config()?.flowDirection ?? 'rtl';
+    const flow = this.siteConfig.flowDirection();
     this.vertical = flow === 'ttb' || flow === 'btt';
     const speedMap: Record<string, number> = { off: 0, low: 0.2, med: 0.5, high: 1.2 };
-    const baseMagnitude = speedMap[this.siteConfig.config()?.flowSpeed ?? 'med'] ?? 0.5;
+    const baseMagnitude = speedMap[this.siteConfig.flowSpeed()] ?? 0.5;
     // Scale speed by primary axis length so larger screens scroll proportionally faster
     const axisLen = this.vertical ? this.vh : this.vw;
     const magnitude = baseMagnitude * (axisLen / 1000);
@@ -370,7 +386,7 @@ export class GalleryComponent {
     this.primaryLen = this.vertical ? this.vh : this.vw;
     const crossLen = this.vertical ? this.vw : this.vh;
 
-    const density = this.siteConfig.config()?.density ?? 'med';
+    const density = this.siteConfig.density();
     this.rows = laneCount(this.vw, this.vh, density);
     // For vertical flow, lanes run horizontally so use vw-based count
     if (this.vertical) {
@@ -470,7 +486,7 @@ export class GalleryComponent {
     const visCols = Math.ceil(this.primaryLen / this.colSpacing);
     const usedIds = nearbyIds(allCards, col, this.gridOrigin, this.colSpacing, Math.max(2, visCols), this.vertical);
     const isRandom = (this.siteConfig.config()?.sortOrder ?? 'random') === 'random';
-    const flow = this.siteConfig.config()?.flowDirection ?? 'rtl';
+    const flow = this.siteConfig.flowDirection();
     const originIsRight = flow === 'rtl' || flow === 'ttb';
 
     if (!isRandom) {
@@ -548,7 +564,7 @@ export class GalleryComponent {
     } else {
       // How many columns fit on screen
       const visCols = Math.ceil(this.primaryLen / this.colSpacing);
-      const flow = this.siteConfig.config()?.flowDirection ?? 'rtl';
+      const flow = this.siteConfig.flowDirection();
       const tailCount = 3;
       // Three zones on initial load:
       //   dest-side off-screen: tail entries (z y x) — wrap-around illusion
@@ -833,7 +849,7 @@ export class GalleryComponent {
       const el = this.canvas()?.nativeElement;
       const newVw = el?.clientWidth ?? window.innerWidth;
       const newVh = el?.clientHeight ?? window.innerHeight;
-      const density = this.siteConfig.config()?.density ?? 'med';
+      const density = this.siteConfig.density();
       const newRows = laneCount(newVw, newVh, density);
       if (newRows !== this.rows && this.entries.length > 0) {
         this.initMetrics();

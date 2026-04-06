@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, PLATFORM_ID } from '@angular/core';
+import { Injectable, inject, signal, computed, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Meta, Title } from '@angular/platform-browser';
@@ -7,6 +7,9 @@ import { take, catchError, EMPTY } from 'rxjs';
 export function slugify(tag: string): string {
   return tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
+
+/** Sentinel value for the virtual "Misc" tag that catches uncategorised images. */
+export const MISC_TAG = '__misc__';
 
 export interface SiteConfig {
   title: string;
@@ -32,6 +35,7 @@ export interface SiteConfig {
   sortOrder: 'date-desc' | 'date-asc' | 'random';
   homepageUrl: string;
   density: 'low' | 'med' | 'high';
+  enableMiscTag: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -45,9 +49,30 @@ export class SiteConfigService {
   readonly allTags = signal<string[]>([]);
   readonly tags = signal<string[]>([]);
   readonly activeTags = signal<string[]>([]);
-  private readonly nsfwUrlOverride = this.isBrowser && new URLSearchParams(window.location.search).get('nsfw') === 'show';
+  private readonly urlParams = this.isBrowser ? new URLSearchParams(window.location.search) : null;
+  private readonly nsfwUrlOverride = this.urlParams?.get('nsfw') === 'show';
   readonly nsfwBlur = signal(this.nsfwUrlOverride ? false : this.loadNsfwPref());
   readonly hasNsfw = signal(false);
+
+  // Session overrides: set via URL params, persist for the browser session
+  private readonly sessionDirection = signal(this.loadSessionOverride<SiteConfig['flowDirection']>('direction'));
+  private readonly sessionSpeed = signal(this.loadSessionOverride<SiteConfig['flowSpeed']>('speed'));
+  private readonly sessionDensity = signal(this.loadSessionOverride<SiteConfig['density']>('density'));
+
+  /** Effective flow direction: session override > server config */
+  readonly flowDirection = computed(() => this.sessionDirection() ?? this.config()?.flowDirection ?? 'rtl');
+  /** Effective flow speed: session override > server config */
+  readonly flowSpeed = computed(() => this.sessionSpeed() ?? this.config()?.flowSpeed ?? 'med');
+  /** Effective density: session override > server config */
+  readonly density = computed(() => this.sessionDensity() ?? this.config()?.density ?? 'med');
+
+  /** Which settings currently have a session override active */
+  readonly sessionOverrides = computed(() => ({
+    direction: this.sessionDirection() !== null,
+    speed: this.sessionSpeed() !== null,
+    density: this.sessionDensity() !== null,
+    nsfw: this.nsfwUrlOverride,
+  }));
   readonly aboutOpen = signal(false);
   readonly adminSetupRequired = signal(false);
   readonly adminAuthenticated = signal(false);
@@ -142,7 +167,12 @@ export class SiteConfigService {
 
   private applyTagFilter(allTags: string[]): void {
     const enabled = this.config()?.enabledTags ?? [];
-    this.tags.set(enabled.length > 0 ? allTags.filter(t => enabled.includes(t)) : allTags);
+    const filtered = enabled.length > 0 ? allTags.filter(t => enabled.includes(t)) : allTags;
+    if (this.config()?.enableMiscTag && enabled.length > 0) {
+      this.tags.set([...filtered, MISC_TAG]);
+    } else {
+      this.tags.set(filtered);
+    }
   }
 
   /**
@@ -225,7 +255,7 @@ export class SiteConfigService {
   /** When header color is near-middle lightness, add a glow that's the inverse of the header font color. */
   private applyHeaderGlow(headerHex: string, headerText: string, root: CSSStyleDeclaration): void {
     const [, , l] = this.hexToHsl(headerHex);
-    if (l > 35 && l < 65) {
+    if (l > 40 && l < 60) {
       const glow = headerText === '#222' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)';
       root.setProperty('--color-header-glow',
         `1px 0 4px ${glow}, -1px 0 4px ${glow}, 0 1px 4px ${glow}, 0 -1px 4px ${glow}`);
@@ -302,5 +332,16 @@ export class SiteConfigService {
     const stored = localStorage.getItem('nsfw-blur');
     if (stored !== null) return JSON.parse(stored);
     return true;
+  }
+
+  /** Read a URL param and persist it to sessionStorage, or return existing session value. */
+  private loadSessionOverride<T extends string>(key: string): T | null {
+    if (!this.isBrowser) return null;
+    const urlVal = this.urlParams?.get(key);
+    if (urlVal) {
+      sessionStorage.setItem(`ps-override-${key}`, urlVal);
+      return urlVal as T;
+    }
+    return (sessionStorage.getItem(`ps-override-${key}`) as T) ?? null;
   }
 }

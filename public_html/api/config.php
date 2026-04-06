@@ -48,7 +48,7 @@ http_response_code(405);
 function getDefaultConfig(): array {
     return [
         'title' => 'Pix Stream',
-        'subtitle' => 'A floating photo gallery',
+        'subtitle' => 'A floating image gallery',
         'headerColor' => '#01ddb1',
         'bgColor' => '#808080',
         'fontBody' => 'Raleway',

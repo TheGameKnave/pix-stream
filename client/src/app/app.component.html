@@ -19,7 +19,7 @@
           [class.active]="siteConfig.activeTags().includes(tag)"
           [attr.aria-current]="siteConfig.activeTags().includes(tag) ? 'true' : null"
           (click)="selectNavTag(tag)"
-        >{{ tag }}</button>
+        >{{ tagLabel(tag) }}</button>
       }
     </nav>
   }
@@ -30,7 +30,7 @@
           <span class="tag-chips">
             @for (tag of siteConfig.activeTags(); track tag) {
               <span class="tag-chip" (click)="toggleFilterTag(tag); $event.stopPropagation()" (keydown.enter)="toggleFilterTag(tag); $event.stopPropagation()" tabindex="0">
-                {{ tag }}
+                {{ tagLabel(tag) }}
                 <span class="tag-chip-x">&times;</span>
               </span>
             }
@@ -50,7 +50,7 @@
               (click)="toggleFilterTag(tag)"
             >
               <span class="tag-dropdown-check">@if (siteConfig.activeTags().includes(tag)) { ✓ }</span>
-              {{ tag }}
+              {{ tagLabel(tag) }}
             </button>
           }
         </div>
@@ -79,7 +79,7 @@
         [class.active]="!siteConfig.nsfwBlur()"
         (click)="siteConfig.toggleNsfw()"
         title="{{ siteConfig.nsfwBlur() ? 'NSFW content is hidden' : 'NSFW content is visible' }}"
-      >NSFW {{ siteConfig.nsfwBlur() ? '✕' : '✓' }}</button>
+      ><span class="nsfw-label">NSFW</span></button>
     }
     @if (siteConfig.config()?.enableShare !== false && connectivity.isOnline()) {
       <button class="header-icon-btn" (click)="shareSite()" title="Share" aria-label="Share this site">

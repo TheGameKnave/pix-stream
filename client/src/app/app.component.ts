@@ -4,7 +4,7 @@ import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { UpdateService } from '@app/services/update.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
-import { SiteConfigService, slugify } from '@app/services/site-config.service';
+import { SiteConfigService, slugify, MISC_TAG } from '@app/services/site-config.service';
 import { GalleryStateService } from '@app/services/gallery-state.service';
 import { HttpClient } from '@angular/common/http';
 import { filter, take } from 'rxjs';
@@ -96,7 +96,10 @@ export class AppComponent {
         this.headerRo?.disconnect();
         if (ref) {
           const el = ref.nativeElement;
-          const update = () => document.documentElement.style.setProperty('--header-height', el.offsetHeight + 'px');
+          const update = () => {
+            this.updateTagsWrapped(el);
+            document.documentElement.style.setProperty('--header-height', el.offsetHeight + 'px');
+          };
           this.headerRo = new ResizeObserver(update);
           this.headerRo.observe(el);
           update();
@@ -122,6 +125,10 @@ export class AppComponent {
 
   toggleDropdown(): void {
     this.tagDropdownOpen.update(v => !v);
+  }
+
+  tagLabel(tag: string): string {
+    return tag === MISC_TAG ? 'Misc' : tag;
   }
 
   /** Nav mode: singular select — click swaps the active tag */
@@ -151,6 +158,28 @@ export class AppComponent {
       const next = [...current, tag];
       this.siteConfig.activeTags.set(next);
       this.location.replaceState('/' + next.map(slugify).join('+'));
+    }
+  }
+
+  /**
+   * Check if tag nav/dropdown fits inline with logo + actions.
+   * If not, add .tags-wrapped to push tags to their own row.
+   */
+  private updateTagsWrapped(header: HTMLElement): void {
+    const tags = header.querySelector('.tag-nav, .tag-dropdown') as HTMLElement | null;
+    if (!tags) { header.classList.remove('tags-wrapped'); return; }
+    // Unwrap so everything is on one row for measurement
+    header.classList.remove('tags-wrapped');
+    const logo = header.querySelector('.logo') as HTMLElement | null;
+    const actions = header.querySelector('.actions') as HTMLElement | null;
+    // For nav, scrollWidth gives natural content width (may exceed visible width).
+    // For dropdown, measure the toggle's content since the dropdown itself flexes.
+    const toggle = tags.querySelector('.tag-dropdown-toggle') as HTMLElement | null;
+    const tagsWidth = toggle ? toggle.scrollWidth : tags.scrollWidth;
+    const fixedWidth = (logo?.offsetWidth ?? 0) + (actions?.offsetWidth ?? 0);
+    const buffer = 16;
+    if (fixedWidth + tagsWidth + buffer > header.clientWidth) {
+      header.classList.add('tags-wrapped');
     }
   }
 

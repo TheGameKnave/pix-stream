@@ -104,6 +104,7 @@ export class AdminComponent implements AfterViewChecked {
   sortOrder: 'date-desc' | 'date-asc' | 'random' = 'random';
   homepageUrl = '';
   density: 'low' | 'med' | 'high' = 'med';
+  enableMiscTag = false;
 
   // Update from GitHub
   readonly updateStatus = signal('');
@@ -173,7 +174,7 @@ export class AdminComponent implements AfterViewChecked {
     this.subtitle = c.subtitle;
     this.headerColor = c.headerColor;
     const [, , hdrL] = this.hexToHsl(c.headerColor);
-    this.hdrLightness = Math.round(Math.max(20, Math.min(80, hdrL)));
+    this.hdrLightness = Math.round(hdrL);
     this.bgColor = c.bgColor;
     const [, , bgL] = this.hexToHsl(c.bgColor);
     this.bgLightness = Math.round(Math.max(20, Math.min(80, bgL)));
@@ -195,6 +196,7 @@ export class AdminComponent implements AfterViewChecked {
     this.sortOrder = c.sortOrder ?? 'random';
     this.homepageUrl = c.homepageUrl ?? '';
     this.density = c.density ?? 'med';
+    this.enableMiscTag = c.enableMiscTag ?? false;
 
     if (FONT_OPTIONS.includes(c.fontBody)) {
       this.fontBody = c.fontBody;
@@ -368,7 +370,7 @@ export class AdminComponent implements AfterViewChecked {
 
   onHdrColorInputChange(): void {
     const [, , l] = this.hexToHsl(this.headerColor);
-    this.hdrLightness = Math.round(Math.max(20, Math.min(80, l)));
+    this.hdrLightness = Math.round(l);
     this.hdrCanvasDrawn = false;
     this.onConfigChange();
   }
@@ -476,16 +478,28 @@ export class AdminComponent implements AfterViewChecked {
     this.imageDragOver.set(false);
   }
 
+  private readonly MAX_FILE_SIZE = 16 * 1024 * 1024; // 16 MB
+
   private sendImageFiles(files: FileList): void {
     this.uploadingImages.set(true);
     this.uploadResult.set(null);
     const fd = new FormData();
+    const tooLarge: string[] = [];
     for (const file of Array.from(files)) {
-      fd.append('images[]', file);
+      if (file.size > this.MAX_FILE_SIZE) {
+        tooLarge.push(`${file.name}: exceeds 16 MB limit (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+      } else {
+        fd.append('images[]', file);
+      }
+    }
+    if (!fd.has('images[]')) {
+      this.uploadResult.set({ uploaded: [], errors: tooLarge });
+      this.uploadingImages.set(false);
+      return;
     }
     this.http.post<{ uploaded: string[]; errors: string[] }>('/api/upload', fd).pipe(take(1)).subscribe({
       next: (res) => {
-        this.uploadResult.set(res);
+        this.uploadResult.set({ uploaded: res.uploaded, errors: [...tooLarge, ...res.errors] });
         this.uploadingImages.set(false);
         if (res.uploaded.length > 0) {
           this.loadManifest();
@@ -604,6 +618,7 @@ export class AdminComponent implements AfterViewChecked {
       sortOrder: this.sortOrder,
       homepageUrl: this.homepageUrl,
       density: this.density,
+      enableMiscTag: this.enableMiscTag,
     });
     // Announce save completion (service is fire-and-forget)
     setTimeout(() => this.saveStatus.set('Saved'), 500);

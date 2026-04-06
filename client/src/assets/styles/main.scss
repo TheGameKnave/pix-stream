@@ -167,14 +167,18 @@ button {
   -webkit-backdrop-filter: blur(10px);
   box-shadow: var(--header-shadow);
 
+  // Dropdown fills available space inline so it can center its toggle
+  .tag-dropdown { flex: 1; }
+
   // When JS detects tags don't fit inline, it adds .tags-wrapped
   &.tags-wrapped {
     .tag-nav,
     .tag-dropdown {
       order: 10;
       flex-basis: 100%;
+      margin-top: 0.25rem;
     }
-    .tag-dropdown { display: flex; }
+    .tag-dropdown .tag-dropdown-toggle { flex: 1; }
     // Push actions right when tags have wrapped out of the first row
     .actions { margin-left: auto; }
   }
@@ -229,10 +233,6 @@ button {
   &::-webkit-scrollbar { display: none; }
 }
 
-.app-header.tags-wrapped .tag-nav {
-  flex-wrap: wrap;
-  overflow: visible;
-}
 
 .app-header .actions {
   display: flex;
@@ -864,6 +864,8 @@ button {
 // =============================================================================
 .tag-dropdown {
   position: relative;
+  display: flex;
+  justify-content: center;
 
   &.disabled {
     opacity: 0.35;

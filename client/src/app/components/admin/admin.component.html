@@ -125,7 +125,7 @@
         </div>
         <div class="form-group">
           <label for="cfg-desc">Subtitle</label>
-          <input id="cfg-desc" type="text" [(ngModel)]="subtitle" (ngModelChange)="onConfigChange()" placeholder="A floating photo gallery" />
+          <input id="cfg-desc" type="text" [(ngModel)]="subtitle" (ngModelChange)="onConfigChange()" placeholder="A floating image gallery" />
         </div>
         <div class="form-group">
           <label for="cfg-email">Contact Email</label>
@@ -185,8 +185,8 @@
                     <input
                       type="range"
                       class="bg-lightness-slider"
-                      min="20"
-                      max="80"
+                      min="0"
+                      max="100"
                       aria-label="Lightness"
                       [ngModel]="hdrLightness"
                       (ngModelChange)="hdrLightness = $event; onHdrLightnessChange()"
@@ -345,6 +345,10 @@
           </div>
           @if (hiddenCount() > 0) {
             <div class="admin-hidden-report">
+              <label class="toggle-row misc-toggle">
+                <input type="checkbox" [(ngModel)]="enableMiscTag" (ngModelChange)="onConfigChange()" />
+                <span>Add a <em>Misc</em> category to catch these</span>
+              </label>
               <button class="admin-hidden-toggle" (click)="showHidden.set(!showHidden())">
                 {{ hiddenCount() }} of {{ totalImageCount() }} images won't be visible
                 <span class="admin-forgot-caret" [class.open]="showHidden()">&#x25B6;</span>
@@ -390,7 +394,7 @@
           </div>
         </div>
         <div class="form-group">
-          <span class="form-label">Direction</span>
+          <span class="form-label">Direction @if (siteConfig.sessionOverrides().direction) { <em class="url-override-hint">overridden by URL</em> }</span>
           <div class="flow-picker">
             <label class="flow-option" [class.active]="flowDirection === 'rtl'">
               <input type="radio" name="flow" value="rtl" [(ngModel)]="flowDirection" (ngModelChange)="onConfigChange()" />
@@ -411,7 +415,7 @@
           </div>
         </div>
         <div class="form-group">
-          <span class="form-label">Density</span>
+          <span class="form-label">Density @if (siteConfig.sessionOverrides().density) { <em class="url-override-hint">overridden by URL</em> }</span>
           <div class="flow-picker">
             <label class="flow-option" [class.active]="density === 'low'">
               <input type="radio" name="density" value="low" [(ngModel)]="density" (ngModelChange)="onConfigChange()" />
@@ -428,7 +432,7 @@
           </div>
         </div>
         <div class="form-group">
-          <span class="form-label">Speed</span>
+          <span class="form-label">Speed @if (siteConfig.sessionOverrides().speed) { <em class="url-override-hint">overridden by URL</em> }</span>
           <div class="flow-picker">
             <label class="flow-option" [class.active]="flowSpeed === 'off'">
               <input type="radio" name="speed" value="off" [(ngModel)]="flowSpeed" (ngModelChange)="onConfigChange()" />
@@ -476,7 +480,7 @@
         </label>
         <label class="toggle-row">
           <input type="checkbox" [(ngModel)]="nsfwBlurDefault" (ngModelChange)="onConfigChange()" />
-          <span>Work-safe mode on by default</span>
+          <span>Work-safe mode on by default @if (siteConfig.sessionOverrides().nsfw) { <em class="url-override-hint">overridden by URL</em> }</span>
         </label>
       </div>
     </div>
@@ -501,7 +505,7 @@
         } @else {
           <p>Drag &amp; drop gallery images here</p>
           <p>or click to browse</p>
-          <p style="font-size: 0.75rem; margin-top: 0.5rem">JPG, PNG, GIF, WebP</p>
+          <p style="font-size: 0.75rem; margin-top: 0.5rem">JPG, PNG, GIF, WebP &middot; 16 MB max</p>
         }
       </div>
       <input #imageFileInput type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple (change)="uploadImages($event)" hidden />
