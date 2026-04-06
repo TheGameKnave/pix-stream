@@ -360,7 +360,10 @@ export class GalleryComponent {
     const flow = this.siteConfig.config()?.flowDirection ?? 'rtl';
     this.vertical = flow === 'ttb' || flow === 'btt';
     const speedMap: Record<string, number> = { off: 0, low: 0.2, med: 0.5, high: 1.2 };
-    const magnitude = speedMap[this.siteConfig.config()?.flowSpeed ?? 'med'] ?? 0.5;
+    const baseMagnitude = speedMap[this.siteConfig.config()?.flowSpeed ?? 'med'] ?? 0.5;
+    // Scale speed by primary axis length so larger screens scroll proportionally faster
+    const axisLen = this.vertical ? this.vh : this.vw;
+    const magnitude = baseMagnitude * (axisLen / 1000);
     this.baseSpeed = (flow === 'rtl' || flow === 'ttb') ? magnitude : -magnitude;
 
     // Primary axis = scroll direction, cross axis = lanes
