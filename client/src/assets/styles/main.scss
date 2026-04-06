@@ -72,6 +72,10 @@ html, body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin-top: env(safe-area-inset-top) !important;
+  margin-left: env(safe-area-inset-left) !important;
+  margin-right: env(safe-area-inset-right) !important;
+  margin-bottom: env(safe-area-inset-bottom) !important;
 }
 
 a {
