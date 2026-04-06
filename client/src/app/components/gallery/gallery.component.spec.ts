@@ -221,6 +221,7 @@ const MOCK_CONFIG: SiteConfig = {
   flowDirection: 'rtl', flowSpeed: 'med', contactEmail: '',
   pageHeadTitle: '', description: '', siteLogo: '', siteFavicon: '',
   watermark: '', sortOrder: 'random', homepageUrl: '', density: 'med',
+  enableMiscTag: false,
 };
 
 function makeTestEntry(id: string, overrides: Partial<ImageEntry> = {}): ImageEntry {

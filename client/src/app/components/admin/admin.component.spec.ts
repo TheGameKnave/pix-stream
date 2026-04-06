@@ -40,6 +40,7 @@ const MOCK_CONFIG: SiteConfig = {
   sortOrder: 'random',
   homepageUrl: '',
   density: 'med',
+  enableMiscTag: false,
 };
 
 describe('AdminComponent', () => {

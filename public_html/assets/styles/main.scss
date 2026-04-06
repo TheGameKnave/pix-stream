@@ -65,7 +65,10 @@
 
 html {
   background: #1a1a1a;
-  margin-top: env(safe-area-inset-top) !important;
+
+  &.has-header {
+    margin-top: env(safe-area-inset-top) !important;
+  }
 }
 
 html, body {
@@ -147,8 +150,8 @@ button {
 .app-header {
   position: fixed;
   padding: 0.25rem;
-  padding-left: env(safe-area-inset-left, 0.25rem);
-  padding-right: env(safe-area-inset-right, 0.25rem);
+  padding-left: calc(0.25rem + env(safe-area-inset-left, 0));
+  padding-right: calc(0.25rem + env(safe-area-inset-right, 0));
   top: env(safe-area-inset-top, 0px);
   left: 0;
   right: 0;
@@ -164,21 +167,16 @@ button {
   -webkit-backdrop-filter: blur(10px);
   box-shadow: var(--header-shadow);
 
-  @media (max-width: 640px) {
-    .tag-nav {
-      order: 10;
-      flex-basis: 100%;
-      justify-content: center;
-      margin-top: 0.5rem;
-    }
-
+  // When JS detects tags don't fit inline, it adds .tags-wrapped
+  &.tags-wrapped {
+    .tag-nav,
     .tag-dropdown {
       order: 10;
       flex-basis: 100%;
-      display: flex;
-      justify-content: center;
-      margin-top: 0.5rem;
     }
+    .tag-dropdown { display: flex; }
+    // Push actions right when tags have wrapped out of the first row
+    .actions { margin-left: auto; }
   }
 }
 
@@ -231,6 +229,11 @@ button {
   &::-webkit-scrollbar { display: none; }
 }
 
+.app-header.tags-wrapped .tag-nav {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
 .app-header .actions {
   display: flex;
   gap: 0.25rem;
@@ -239,21 +242,48 @@ button {
 }
 
 .nsfw-btn {
+  position: relative;
   padding: 0.25rem 0;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-header-text);
-  opacity: 0.5;
+  opacity: 0.25;
   cursor: pointer;
   transition: opacity 0.2s ease;
   white-space: nowrap;
 
+  .nsfw-label {
+    position: relative;
+  }
+
+  // Diagonal red strike-through when blur is on (not .active)
+  .nsfw-label::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    height: 2px;
+    background: #e53935;
+    transform: rotate(-16deg);
+    transform-origin: center;
+    transition: opacity 0.2s ease;
+  }
+
   &:hover {
-    opacity: 1;
+    opacity: 0.5;
   }
 
   &.active {
-    opacity: 1;
+    opacity: 0.5;
+
+    .nsfw-label::after {
+      opacity: 0;
+    }
+
+    &:hover {
+      opacity: 1;
+    }
   }
 }
 
@@ -1006,7 +1036,7 @@ button {
   color: var(--color-header-text);
   border: 1px solid rgba(128,128,128,0.2);
   border-radius: 8px;
-  text-shadow: none;
+  text-shadow: var(--color-header-glow);
 
   h2 {
     font-family: var(--font-display);
@@ -1052,6 +1082,12 @@ button {
       display: block;
       font-size: 0.85rem;
       margin-bottom: 0.3rem;
+    }
+
+    .url-override-hint {
+      font-size: 0.75rem;
+      opacity: 0.65;
+      margin-left: 0.3em;
     }
 
     textarea {
