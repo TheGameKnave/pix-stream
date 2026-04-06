@@ -569,9 +569,11 @@ export class AdminComponent implements AfterViewChecked {
           }, 2000);
         },
         error: (err: unknown) => {
-          const e = err as { error?: { error?: string } };
-          this.updateStatus.set(e.error?.error || 'Update failed');
-          setTimeout(() => this.updateStatus.set(''), 5000);
+          const e = err as { error?: { error?: string; detail?: string } };
+          const msg = e.error?.error || 'Update failed';
+          const detail = e.error?.detail ? ` (${e.error.detail})` : '';
+          this.updateStatus.set(msg + detail);
+          setTimeout(() => this.updateStatus.set(''), 10000);
         },
       });
   }

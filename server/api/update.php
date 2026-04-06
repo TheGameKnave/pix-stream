@@ -32,9 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['check'])) {
         'header' => "User-Agent: PixStream\r\n",
         'timeout' => 10,
     ]]);
-    $response = @file_get_contents($apiUrl, false, $ctx);
+    $response = file_get_contents($apiUrl, false, $ctx);
     if (!$response) {
-        echo json_encode(['available' => false, 'current' => $currentVersion, 'latest' => 'unknown', 'error' => 'Could not reach GitHub']);
+        $lastError = error_get_last();
+        echo json_encode(['available' => false, 'current' => $currentVersion, 'latest' => 'unknown', 'error' => 'Could not reach GitHub', 'detail' => $lastError['message'] ?? 'Unknown error']);
         exit;
     }
     $data = json_decode($response, true);
@@ -55,10 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'header' => "User-Agent: PixStream\r\n",
         'timeout' => 60,
     ]]);
-    $zipData = @file_get_contents($zipUrl, false, $ctx);
+    $zipData = file_get_contents($zipUrl, false, $ctx);
     if (!$zipData) {
+        $lastError = error_get_last();
         http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to download update from GitHub']);
+        echo json_encode(['success' => false, 'error' => 'Failed to download update from GitHub', 'detail' => $lastError['message'] ?? 'Unknown error']);
         exit;
     }
     file_put_contents($tmpZip, $zipData);
