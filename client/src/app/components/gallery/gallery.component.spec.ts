@@ -1,12 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
-import { PLATFORM_ID, signal } from '@angular/core';
+import { PLATFORM_ID, signal, computed } from '@angular/core';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { Location } from '@angular/common';
 import { of } from 'rxjs';
 import { laneCount, buildShadow, makeCard, visibleColRange, nearbyIds, GalleryComponent } from './gallery.component';
 import { ImageEntry, FloatingImage, GalleryStateService } from '@app/services/gallery-state.service';
-import { SiteConfigService, SiteConfig } from '@app/services/site-config.service';
+import { SiteConfigService, SiteConfig, MISC_TAG } from '@app/services/site-config.service';
 import { SeoService } from '@app/services/seo.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
 
@@ -259,23 +259,30 @@ describe('GalleryComponent (DOM)', () => {
         },
         { provide: GalleryStateService, useValue: { cards: null, entries: null, offset: 0, manifestVersion: '' } },
         { provide: Location, useValue: { path: () => '/', replaceState: () => {} } },
-        {
-          provide: SiteConfigService,
-          useValue: {
-            config: signal(MOCK_CONFIG),
-            tags: signal([]),
-            activeTags: signal([]),
-            allTags: signal([]),
-            nsfwBlur: signal(false),
-            hasNsfw: signal(false),
-            aboutOpen: signal(false),
-            adminAuthenticated: signal(false),
-            pageTitle: (ctx?: string, photo?: string) => ['Test', ctx, photo].filter(Boolean).join(' | '),
-            setActiveFromSlugs: () => {},
-            toggleNsfw: () => {},
-            saveConfig: () => {},
-          },
-        },
+        (() => {
+          const cfg = signal<SiteConfig>(MOCK_CONFIG);
+          return {
+            provide: SiteConfigService,
+            useValue: {
+              config: cfg,
+              tags: signal([]),
+              activeTags: signal([]),
+              allTags: signal([]),
+              nsfwBlur: signal(false),
+              hasNsfw: signal(false),
+              aboutOpen: signal(false),
+              adminAuthenticated: signal(false),
+              flowDirection: computed(() => cfg()?.flowDirection ?? 'rtl'),
+              flowSpeed: computed(() => cfg()?.flowSpeed ?? 'med'),
+              density: computed(() => cfg()?.density ?? 'med'),
+              sessionOverrides: computed(() => ({ direction: false, speed: false, density: false, nsfw: false })),
+              pageTitle: (ctx?: string, photo?: string) => ['Test', ctx, photo].filter(Boolean).join(' | '),
+              setActiveFromSlugs: () => {},
+              toggleNsfw: () => {},
+              saveConfig: () => {},
+            },
+          };
+        })(),
         {
           provide: SeoService,
           useValue: { updateTags: () => {}, setKeywords: () => {}, clearKeywords: () => {} },
