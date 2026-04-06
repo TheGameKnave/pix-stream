@@ -94,6 +94,13 @@ if (preg_match('#^/storage/(.+)$#', $uri, $matches)) {
     return true;
 }
 
+// Photo deep-link: inject OG meta tags for social-media previews
+if (preg_match('#^/photo/(.+)$#', $uri, $matches)) {
+    $_GET['slug'] = urldecode($matches[1]);
+    require __DIR__ . '/lib/photo-og.php';
+    return true;
+}
+
 // Serve favicon at domain root — browsers request this automatically for every page
 if ($uri === '/favicon.ico' || $uri === '/favicon.svg') {
     require __DIR__ . '/api/serve-favicon.php';
