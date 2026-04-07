@@ -1691,6 +1691,7 @@ export class GalleryComponent {
       this.lightboxImage.set(null);
       if (!willReopen) {
         this.resumeRiver();
+        this.resetViewportZoom();
         this.focusBeforeLightbox?.focus();
         this.focusBeforeLightbox = null;
       }
@@ -2023,6 +2024,15 @@ export class GalleryComponent {
     }
 
     return state;
+  }
+
+  /** Reset iOS browser-level viewport zoom by toggling the viewport meta tag. */
+  private resetViewportZoom(): void {
+    const vp = document.querySelector('meta[name="viewport"]');
+    if (!vp) return;
+    const original = vp.getAttribute('content') || '';
+    vp.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+    requestAnimationFrame(() => vp.setAttribute('content', original));
   }
 
   private listenKeyboard(): void {
