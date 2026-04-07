@@ -62,15 +62,27 @@ function loadImageIndex(): array {
             ? '/api/image/full/' . rawurlencode(basename($procFile))
             : '/api/image/full/' . rawurlencode($img['filename']);
 
+        // Find blurred thumbnail for NSFW images
+        $thumbBlurUrl = '';
+        if ($img['nsfw'] && $thumbUrl) {
+            $thumbExt = pathinfo($thumbFile, PATHINFO_EXTENSION);
+            $blurPath = $thumbDir . '/' . $img['id'] . '_blur.' . $thumbExt;
+            if (file_exists($blurPath)) {
+                $thumbBlurUrl = '/api/image/thumb/' . rawurlencode(basename($blurPath));
+            }
+        }
+
         $result[] = [
             'id'          => $img['id'],
             'title'       => $img['title'] ?? '',
             'description' => $img['description'] ?? '',
             'tags'        => $img['tags'],
             'thumb'       => $thumbUrl,
+            'thumbBlur'   => $thumbBlurUrl,
             'full'        => $fullUrl,
             'width'       => $img['width'],
             'height'      => $img['height'],
+            'nsfw'        => $img['nsfw'],
         ];
     }
 
@@ -115,7 +127,13 @@ function serveWithOgTags(string $slug, string $indexPath): bool {
     $photoTitle = $match['title'] ?: $match['id'];
     $ogTitle = htmlspecialchars($siteTitle . ' | ' . $photoTitle, ENT_QUOTES, 'UTF-8');
     $ogDescription = htmlspecialchars($match['description'] ?: $siteTitle, ENT_QUOTES, 'UTF-8');
-    $ogImage = $origin . ($match['thumb'] ?: $match['full']);
+    // Use blurred thumbnail for NSFW images unless ?nsfw=show
+    $nsfwShow = ($_GET['nsfw'] ?? '') === 'show';
+    if ($match['nsfw'] && !$nsfwShow && $match['thumbBlur']) {
+        $ogImage = $origin . $match['thumbBlur'];
+    } else {
+        $ogImage = $origin . ($match['thumb'] ?: $match['full']);
+    }
     $ogUrl = $origin . '/photo/' . rawurlencode($slug);
     $keywords = !empty($match['tags']) ? htmlspecialchars(implode(', ', $match['tags']), ENT_QUOTES, 'UTF-8') : '';
 
