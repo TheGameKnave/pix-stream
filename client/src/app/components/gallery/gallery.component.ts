@@ -991,15 +991,27 @@ export class GalleryComponent {
     const img = this.lightboxEl.querySelector('img') as HTMLImageElement;
     const image = this.lightboxImage();
     if (img && image) {
+      // Show unblurred thumb immediately
       img.src = image.entry.thumb;
       img.onerror = () => {
         img.onerror = null;
         if (image.entry.thumbBlur) img.src = image.entry.thumbBlur;
         this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'You appear to be offline. Reconnect to view this image.');
       };
-      // Load full image
+      // Load full image as a separate element (so close animation can hide it
+      // and shrink with the thumb's object-fit:cover, avoiding a banner shift)
       const fullImg = new Image();
-      fullImg.onload = () => { img.src = image.entry.full; img.style.objectFit = 'contain'; };
+      fullImg.onload = () => {
+        const bannerH = image.entry.bannerHeight || 0;
+        const fullEl = document.createElement('img');
+        fullEl.src = fullImg.src;
+        fullEl.draggable = false;
+        fullEl.style.cssText = bannerH > 0
+          ? 'position:absolute; top:0; left:0; width:100%; height:auto; display:block;'
+          : 'position:absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; display:block;';
+        this.lightboxEl?.appendChild(fullEl);
+        requestAnimationFrame(() => img.style.visibility = 'hidden');
+      };
       fullImg.onerror = () => {
         if (image.entry.thumbBlur && img.src === image.entry.thumbBlur) {
           this.showLightboxBanner(this.lightboxControls || this.lightboxEl!, 'You appear to be offline. Reconnect to view this image.');
