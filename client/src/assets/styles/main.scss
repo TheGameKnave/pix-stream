@@ -546,7 +546,7 @@ button {
     right: env(safe-area-inset-right, 0px);
   }
   overflow: hidden;
-  touch-action: none;
+  touch-action: pinch-zoom;
   user-select: none;
 
   &.lightbox-active {

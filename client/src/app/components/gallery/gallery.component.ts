@@ -935,7 +935,12 @@ export class GalleryComponent {
         this.userSpeed = Math.max(-25, Math.min(25, this.userSpeed));
       },
       tolerance: 5,
-      preventDefault: true,
+      preventDefault: (self: { event?: Event }) => {
+        const e = self.event;
+        // Allow pinch-zoom (multi-touch) through to the browser
+        if (e instanceof TouchEvent && e.touches.length > 1) return false;
+        return true;
+      },
     });
 
     this.destroyRef.onDestroy(() => this.observer?.kill());
