@@ -115,9 +115,15 @@ function serveWithOgTags(string $slug, string $indexPath): bool {
     $photoTitle = $match['title'] ?: $match['id'];
     $ogTitle = htmlspecialchars($siteTitle . ' | ' . $photoTitle, ENT_QUOTES, 'UTF-8');
     $ogDescription = htmlspecialchars($match['description'] ?: $siteTitle, ENT_QUOTES, 'UTF-8');
-    $ogImage = $origin . $match['full'];
+    $ogImage = $origin . ($match['thumb'] ?: $match['full']);
     $ogUrl = $origin . '/photo/' . rawurlencode($slug);
     $keywords = !empty($match['tags']) ? htmlspecialchars(implode(', ', $match['tags']), ENT_QUOTES, 'UTF-8') : '';
+
+    // Calculate thumbnail dimensions (max 600x600, preserving aspect ratio)
+    $thumbMax = 600;
+    $ratio = min($thumbMax / $match['width'], $thumbMax / $match['height'], 1);
+    $thumbW = (int) round($match['width'] * $ratio);
+    $thumbH = (int) round($match['height'] * $ratio);
 
     $ogTags = "\n"
         . '  <!-- Open Graph / Facebook -->' . "\n"
@@ -126,8 +132,8 @@ function serveWithOgTags(string $slug, string $indexPath): bool {
         . '  <meta property="og:title" content="' . $ogTitle . '" />' . "\n"
         . '  <meta property="og:description" content="' . $ogDescription . '" />' . "\n"
         . '  <meta property="og:image" content="' . $ogImage . '" />' . "\n"
-        . '  <meta property="og:image:width" content="' . $match['width'] . '" />' . "\n"
-        . '  <meta property="og:image:height" content="' . $match['height'] . '" />' . "\n"
+        . '  <meta property="og:image:width" content="' . $thumbW . '" />' . "\n"
+        . '  <meta property="og:image:height" content="' . $thumbH . '" />' . "\n"
         . '  <meta property="og:site_name" content="' . htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8') . '" />' . "\n"
         . "\n"
         . '  <!-- Twitter -->' . "\n"
