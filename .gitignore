@@ -170,3 +170,6 @@ server/config/.password
 # PHPUnit phar (downloaded in CI) and cache
 server/phpunit.phar
 server/.phpunit.result.cache
+
+# Claude Code
+.claude/
