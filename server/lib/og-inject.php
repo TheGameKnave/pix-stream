@@ -69,6 +69,8 @@ function loadImageIndex(): array {
             'tags'        => $img['tags'],
             'thumb'       => $thumbUrl,
             'full'        => $fullUrl,
+            'width'       => $img['width'],
+            'height'      => $img['height'],
         ];
     }
 
@@ -118,11 +120,22 @@ function serveWithOgTags(string $slug, string $indexPath): bool {
     $keywords = !empty($match['tags']) ? htmlspecialchars(implode(', ', $match['tags']), ENT_QUOTES, 'UTF-8') : '';
 
     $ogTags = "\n"
+        . '  <!-- Open Graph / Facebook -->' . "\n"
+        . '  <meta property="og:type" content="article" />' . "\n"
+        . '  <meta property="og:url" content="' . $ogUrl . '" />' . "\n"
         . '  <meta property="og:title" content="' . $ogTitle . '" />' . "\n"
         . '  <meta property="og:description" content="' . $ogDescription . '" />' . "\n"
         . '  <meta property="og:image" content="' . $ogImage . '" />' . "\n"
-        . '  <meta property="og:url" content="' . $ogUrl . '" />' . "\n"
-        . '  <meta property="og:type" content="article" />' . "\n";
+        . '  <meta property="og:image:width" content="' . $match['width'] . '" />' . "\n"
+        . '  <meta property="og:image:height" content="' . $match['height'] . '" />' . "\n"
+        . '  <meta property="og:site_name" content="' . htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8') . '" />' . "\n"
+        . "\n"
+        . '  <!-- Twitter -->' . "\n"
+        . '  <meta name="twitter:card" content="summary_large_image" />' . "\n"
+        . '  <meta name="twitter:url" content="' . $ogUrl . '" />' . "\n"
+        . '  <meta name="twitter:title" content="' . $ogTitle . '" />' . "\n"
+        . '  <meta name="twitter:description" content="' . $ogDescription . '" />' . "\n"
+        . '  <meta name="twitter:image" content="' . $ogImage . '" />' . "\n";
 
     if ($keywords) {
         $ogTags .= '  <meta name="keywords" content="' . $keywords . '" />' . "\n";
