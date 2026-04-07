@@ -27,13 +27,13 @@ RewriteRule ^api/image/full/(.*)$ /storage/originals/$1 [L]
 # Serve favicon at domain root (browsers request this automatically for every page)
 RewriteRule ^favicon\.(ico|svg)$ api/serve-favicon.php [L]
 
+# Photo deep-link: inject OG meta tags for social-media previews
+RewriteRule ^photo/(.+)$ lib/photo-og.php?slug=$1 [L,QSA]
+
 # Block direct access to config files
 RewriteRule ^config/ - [F,L]
 RewriteRule ^lib/ - [F,L]
 RewriteRule \.password$ - [F,L]
-
-# Photo deep-link: inject OG meta tags for social-media previews
-RewriteRule ^photo/(.+)$ lib/photo-og.php?slug=$1 [L,QSA]
 
 # Angular SPA fallback — serve index.html for all non-file, non-API routes
 RewriteCond %{REQUEST_FILENAME} !-f
