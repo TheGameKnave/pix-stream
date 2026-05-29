@@ -59,26 +59,13 @@
   }
 
   <div class="actions">
-    @if (connectivity.showOffline()) {
-      <div class="header-icon-btn offline-indicator" title="You appear to be offline" aria-label="Offline">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="1" y1="1" x2="23" y2="23"/>
-          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
-          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
-          <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
-          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
-          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-          <line x1="12" y1="20" x2="12.01" y2="20"/>
-        </svg>
-      </div>
-    }
-    @if (galleryState.downloadState() !== 'idle') {
-      <div class="header-icon-btn download-indicator" [class.done]="galleryState.downloadState() === 'done'" [class.error]="galleryState.downloadState() === 'error'" [title]="galleryState.downloadState() === 'error' ? 'Some images failed to cache' : galleryState.downloadState() === 'done' ? 'Images cached for offline' : 'Caching images for offline...'">
+    @if (galleryState.downloadState() !== 'idle' || !connectivity.isOnline()) {
+      <div class="header-icon-btn download-indicator" [class.done]="galleryState.downloadState() === 'done' && connectivity.isOnline()" [class.error]="galleryState.downloadState() === 'error' || !connectivity.isOnline()" [title]="!connectivity.isOnline() ? 'You are offline' : galleryState.downloadState() === 'error' ? 'Some images failed to cache' : galleryState.downloadState() === 'done' ? 'Images cached for offline' : 'Caching images for offline...'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-          @if (galleryState.downloadState() === 'downloading') {
+          @if (galleryState.downloadState() === 'downloading' && connectivity.isOnline()) {
             <polyline points="8 13 12 17 16 13" class="cloud-arrow"/>
-          } @else if (galleryState.downloadState() === 'done') {
+          } @else if (galleryState.downloadState() === 'done' && connectivity.isOnline()) {
             <polyline points="8 15 11 18 16 13" class="cloud-check"/>
           } @else {
             <line x1="9" y1="15" x2="15" y2="15" class="cloud-error"/>

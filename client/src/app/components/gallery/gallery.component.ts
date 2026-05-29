@@ -651,7 +651,14 @@ export class GalleryComponent {
       const img = new Image();
       this.activePreloadImg = img;
       img.onload = () => { if (!this.componentDestroyed) this.preloadedImages.push(img); loadNext(); };
-      img.onerror = () => { hasError = true; loadNext(); };
+      img.onerror = () => {
+        hasError = true;
+        if (!this.connectivity.isOnline()) {
+          downloadState.set('error');
+          return;
+        }
+        loadNext();
+      };
       img.src = unique[i++];
     };
     // Start after the UI is idle, one at a time to avoid bandwidth contention
@@ -705,7 +712,11 @@ export class GalleryComponent {
         this.cards.update(c => [...c]);
         onDone();
       };
-      img.onerror = () => { hasError = true; onDone(); };
+      img.onerror = () => {
+        hasError = true;
+        if (!this.connectivity.isOnline()) { downloadState.set('error'); return; }
+        onDone();
+      };
       img.src = entry.thumb;
       const full = new Image();
       full.onload = onDone;
