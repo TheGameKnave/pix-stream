@@ -900,6 +900,7 @@ export class GalleryComponent {
             this.allEntries = res.images;
             this.state.entries = res.images;
             this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
+            this.resolveDisplayThumbs();
             this.entries = this.filterEntries(res.images);
             this.entryIds = new Set(this.entries.map(e => e.id));
             this.hasStaleCards = true;

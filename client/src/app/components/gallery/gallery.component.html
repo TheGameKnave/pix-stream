@@ -28,7 +28,7 @@
           (keydown.enter)="openLightbox(card, $index)"
           (keydown.space)="openLightbox(card, $index); $event.preventDefault()"
         >
-          <img [src]="card.entry._displayThumb || card.entry.thumb" [alt]="card.entry.id" loading="lazy" />
+          <img [src]="card.entry._displayThumb" [alt]="card.entry.id" loading="lazy" />
         </div>
       }
     </div>
