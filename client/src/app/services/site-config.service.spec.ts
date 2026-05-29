@@ -67,6 +67,7 @@ describe('SiteConfigService', () => {
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.removeItem('ps-config');
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
@@ -86,7 +87,7 @@ describe('SiteConfigService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('initializes with null config', () => {
+  it('initializes with null config when no cache exists', () => {
     expect(service.config()).toBeNull();
   });
 

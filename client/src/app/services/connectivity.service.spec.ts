@@ -112,14 +112,13 @@ describe('ConnectivityService', () => {
       service.stop();
     }));
 
-    it('increases interval on non-ok response', fakeAsync(() => {
+    it('goes offline and increases interval on non-ok response', fakeAsync(() => {
       spyOn(globalThis, 'fetch').and.returnValue(
         Promise.resolve(new Response('', { status: 500 }))
       );
       service.start();
       tick();
-      // Should still be "online" (status > 0) but interval increases
-      expect(service.isOnline()).toBeTrue();
+      expect(service.isOnline()).toBeFalse();
       service.stop();
     }));
   });
