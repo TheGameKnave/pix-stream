@@ -5,7 +5,7 @@
     {
       "name": "app",
       "installMode": "prefetch",
-      "updateMode": "prefetch",
+      "updateMode": "lazy",
       "resources": {
         "files": [
           "/favicon.ico",
@@ -39,10 +39,34 @@
   ],
   "dataGroups": [
     {
+      "name": "site-assets",
+      "urls": [
+        "/storage/logo/**",
+        "/storage/watermark/**",
+        "/storage/favicon/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 10,
+        "maxAge": "7d",
+        "timeout": "5s"
+      }
+    },
+    {
+      "name": "api-config",
+      "urls": [
+        "/api/config*"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 5,
+        "maxAge": "1h"
+      }
+    },
+    {
       "name": "api-manifest",
       "urls": [
-        "/api/manifest*",
-        "/api/config*"
+        "/api/manifest*"
       ],
       "cacheConfig": {
         "strategy": "freshness",

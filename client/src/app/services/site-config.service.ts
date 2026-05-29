@@ -45,7 +45,7 @@ export class SiteConfigService {
   private readonly meta = inject(Meta);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  readonly config = signal<SiteConfig | null>(null);
+  readonly config = signal<SiteConfig | null>(this.loadCachedConfig());
   readonly allTags = signal<string[]>([]);
   readonly tags = signal<string[]>([]);
   readonly activeTags = signal<string[]>([]);
@@ -84,6 +84,9 @@ export class SiteConfigService {
     this.http.get<SiteConfig>('/api/config').pipe(take(1), catchError(() => EMPTY)).subscribe({
       next: (config) => {
         this.config.set(config);
+        if (this.isBrowser) {
+          try { localStorage.setItem('ps-config', JSON.stringify(config)); } catch { /* quota */ }
+        }
         if (!this.nsfwUrlOverride && (!this.isBrowser || localStorage.getItem('nsfw-blur') === null)) {
           this.nsfwBlur.set(config.nsfwBlurDefault);
         }
@@ -325,6 +328,14 @@ export class SiteConfigService {
     link.rel = 'stylesheet';
     link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@300;400;500;600;700&display=swap`;
     document.head.appendChild(link);
+  }
+
+  private loadCachedConfig(): SiteConfig | null {
+    if (!this.isBrowser) return null;
+    try {
+      const raw = localStorage.getItem('ps-config');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
   }
 
   private loadNsfwPref(): boolean {

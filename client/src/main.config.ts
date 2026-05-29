@@ -19,7 +19,7 @@ export const appProviders = [
   importProvidersFrom(
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: !isDevMode(),
-      registrationStrategy: 'registerImmediately',
+      registrationStrategy: 'registerWhenStable:5000',
     }),
   ),
 ];

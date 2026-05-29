@@ -1,25 +1,25 @@
 {
   "configVersion": 1,
-  "timestamp": 1775530049260,
+  "timestamp": 1780024864017,
   "index": "/index.html",
   "assetGroups": [
     {
       "name": "app",
       "installMode": "prefetch",
-      "updateMode": "prefetch",
+      "updateMode": "lazy",
       "cacheQueryOptions": {
         "ignoreVary": true
       },
       "urls": [
+        "/chunk-CQOZMSU3.js",
         "/chunk-DAQOROHW.js",
         "/chunk-DH6BYUFV.js",
-        "/chunk-EHIFJXX3.js",
-        "/chunk-JBHPGSD7.js",
-        "/chunk-MBS5KB5X.js",
-        "/chunk-VS4GE63E.js",
-        "/chunk-XKFPUXN7.js",
+        "/chunk-K4Q6SW4S.js",
+        "/chunk-UKERFYLH.js",
+        "/chunk-WVQZ3XUQ.js",
+        "/chunk-ZYVPXPKD.js",
         "/index.html",
-        "/main-ZIDOZP2I.js",
+        "/main-2X2363TF.js",
         "/manifest.webmanifest",
         "/styles-NFPLGIA6.css"
       ],
@@ -53,10 +53,38 @@
   ],
   "dataGroups": [
     {
+      "name": "site-assets",
+      "patterns": [
+        "\\/storage\\/logo\\/.*",
+        "\\/storage\\/watermark\\/.*",
+        "\\/storage\\/favicon\\/.*"
+      ],
+      "strategy": "performance",
+      "maxSize": 10,
+      "maxAge": 604800000,
+      "timeoutMs": 5000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
+      "name": "api-config",
+      "patterns": [
+        "\\/api\\/config[^/]*"
+      ],
+      "strategy": "performance",
+      "maxSize": 5,
+      "maxAge": 3600000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
       "name": "api-manifest",
       "patterns": [
-        "\\/api\\/manifest[^/]*",
-        "\\/api\\/config[^/]*"
+        "\\/api\\/manifest[^/]*"
       ],
       "strategy": "freshness",
       "maxSize": 5,
@@ -99,15 +127,15 @@
     "/assets/fonts/Raleway-Italic.ttf": "afb719661380623cb5b0972db4523c024f9373e7",
     "/assets/fonts/Raleway-Regular.ttf": "1f0329874af08d7978b3e6af9004ef413fe5248a",
     "/assets/fonts/Raleway-VariableFont_wght.ttf": "036a6aa66bef92b9927aa75b7d95587c9066a360",
+    "/chunk-CQOZMSU3.js": "33578141cb960f39e01eeaab500dfc1deba1f3e6",
     "/chunk-DAQOROHW.js": "43aa3e22eadd428c99babbc1519a5e31bd70a473",
     "/chunk-DH6BYUFV.js": "c80f77df33778dc037ea5a63fcdbdd8de7222546",
-    "/chunk-EHIFJXX3.js": "776bb943440feff64b3b250ff57f1a03b2c84d5f",
-    "/chunk-JBHPGSD7.js": "7d3f0ffd1c6a3469a6a217132239e02fd4be425b",
-    "/chunk-MBS5KB5X.js": "46d56b3f285259600a07366794f307ef18f518f1",
-    "/chunk-VS4GE63E.js": "c69f4a5ce40abb4c5c68a9164b94abd0957d8891",
-    "/chunk-XKFPUXN7.js": "35270575b24a271f916cef455db7d8c4e324472e",
-    "/index.html": "82488790394a1db0c5dbc80b25f52c8a3d123bae",
-    "/main-ZIDOZP2I.js": "e56cb17ed6baeb41dc9c4b1ecbf1d088cbdba2cf",
+    "/chunk-K4Q6SW4S.js": "97b1d9832246316fdebba12bb776de07dc196f11",
+    "/chunk-UKERFYLH.js": "ce48708532efafa233d12aef4f9a8cbaf1ed32fd",
+    "/chunk-WVQZ3XUQ.js": "5d34f963a41f99f1654ffc5358f0adb50c1eb018",
+    "/chunk-ZYVPXPKD.js": "0c480412826dc0ad19aedbff6defa0723b3f3e34",
+    "/index.html": "31fbb202b4ff12cc9cdb9b525bbf0b91d1236eb4",
+    "/main-2X2363TF.js": "c373547a794b6b530c87f2416a6135a5b1b349ea",
     "/manifest.webmanifest": "4eb3c26534d732c32ceb67fe28806fff7476a19e",
     "/styles-NFPLGIA6.css": "950f9c52eaf35e138a565afc12c987c477eeb12d"
   },
