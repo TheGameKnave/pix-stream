@@ -591,11 +591,11 @@ button {
   cursor: pointer;
   will-change: transform, scale;
   scale: 1;
-  transition: scale 0.2s ease, opacity 0.4s ease;
+  transition: scale 0.2s ease;
 
   &:hover {
     scale: 1.08;
-    transition: scale 0.2s ease 0.4s, opacity 0.4s ease;
+    transition: scale 0.2s ease 0.4s;
   }
 
   &.exiting {
