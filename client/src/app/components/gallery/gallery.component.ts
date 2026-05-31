@@ -2029,6 +2029,8 @@ export class GalleryComponent {
           didSwipe = true;
           this.navigateLightbox(dx < 0 ? 1 : -1);
         } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && elapsed < 300) {
+          const tgt = document.elementFromPoint(touch.clientX, touch.clientY);
+          if (tgt?.closest('button, a')) return;
           if (onClose) onClose();
         }
       }

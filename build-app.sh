@@ -42,10 +42,14 @@ echo "==> Fetching icon..."
 ICON_DIR="$(mktemp -d)"
 ICON_RAW="$ICON_DIR/icon_raw"
 ICON_SRC="$ICON_DIR/icon_src.png"
-curl -fsSL -o "$ICON_RAW" "$ICON_URL" || {
-  echo "WARNING: Could not fetch icon from $ICON_URL, using default"
-  cp client/src-tauri/icon.png "$ICON_RAW"
-}
+if [ -f "$ICON_URL" ]; then
+  cp "$ICON_URL" "$ICON_RAW"
+else
+  curl -fsSL -o "$ICON_RAW" "$ICON_URL" || {
+    echo "WARNING: Could not fetch icon from $ICON_URL, using default"
+    cp client/src-tauri/icon.png "$ICON_RAW"
+  }
+fi
 # Convert to PNG if not already (handles GIF, JPEG, ICO, etc.)
 sips -s format png "$ICON_RAW" --out "$ICON_SRC" >/dev/null 2>&1 || cp "$ICON_RAW" "$ICON_SRC"
 
@@ -57,6 +61,7 @@ for size in 32 64 128 256; do
 done
 sips -z 256 256 "$ICON_SRC" --out "$TAURI_ICONS/128x128@2x.png" >/dev/null 2>&1
 cp "$TAURI_ICONS/256x256.png" "$TAURI_ICONS/icon.png" 2>/dev/null || true
+sips -z 1024 1024 "$ICON_SRC" --out "client/src-tauri/icon.png" >/dev/null 2>&1
 
 # Android mipmap sizes: mdpi=48, hdpi=72, xhdpi=96, xxhdpi=144, xxxhdpi=192
 ANDROID_RES="client/src-tauri/gen/android/app/src/main/res"
