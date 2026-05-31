@@ -17,9 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/favicon.php';
-requireAuth();
 
 $serverRoot = __DIR__ . '/..';
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    require __DIR__ . '/serve-favicon.php';
+    exit;
+}
+
+requireAuth();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_FILES['favicon'])) {

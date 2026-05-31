@@ -686,7 +686,7 @@ button {
 }
 
 // Mobile: toggle-driven actions
-@media (hover: none), (pointer: coarse) {
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
   .lb-actions-toggle {
     display: flex;
     position: fixed;
@@ -1821,7 +1821,7 @@ button {
 // Reduced motion — respect user preference
 // =============================================================================
 // Hide chevrons on touch devices — swipe handles navigation
-@media (hover: none), (pointer: coarse) {
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
   .lb-chevron {
     display: none;
   }
