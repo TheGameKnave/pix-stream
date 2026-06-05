@@ -58,9 +58,10 @@
         "/api/config*"
       ],
       "cacheConfig": {
-        "strategy": "performance",
+        "strategy": "freshness",
         "maxSize": 5,
-        "maxAge": "1h"
+        "maxAge": "7d",
+        "timeout": "3s"
       }
     },
     {
@@ -72,7 +73,7 @@
         "strategy": "freshness",
         "maxSize": 5,
         "maxAge": "1h",
-        "timeout": "5s"
+        "timeout": "3s"
       }
     },
     {

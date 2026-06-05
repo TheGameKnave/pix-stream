@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1780203095383,
+  "timestamp": 1780620715205,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -73,9 +73,10 @@
       "patterns": [
         "\\/api\\/config[^/]*"
       ],
-      "strategy": "performance",
+      "strategy": "freshness",
       "maxSize": 5,
-      "maxAge": 3600000,
+      "maxAge": 604800000,
+      "timeoutMs": 3000,
       "cacheQueryOptions": {
         "ignoreVary": true
       },
@@ -89,7 +90,7 @@
       "strategy": "freshness",
       "maxSize": 5,
       "maxAge": 3600000,
-      "timeoutMs": 5000,
+      "timeoutMs": 3000,
       "cacheQueryOptions": {
         "ignoreVary": true
       },
