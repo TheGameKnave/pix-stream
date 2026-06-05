@@ -53,6 +53,18 @@
       }
     },
     {
+      "name": "api-tags",
+      "urls": [
+        "/api/tags*"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 5,
+        "maxAge": "7d",
+        "timeout": "3s"
+      }
+    },
+    {
       "name": "api-config",
       "urls": [
         "/api/config*"

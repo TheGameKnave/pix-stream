@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1780620715205,
+  "timestamp": 1780621576574,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -63,6 +63,20 @@
       "maxSize": 10,
       "maxAge": 604800000,
       "timeoutMs": 5000,
+      "cacheQueryOptions": {
+        "ignoreVary": true
+      },
+      "version": 1
+    },
+    {
+      "name": "api-tags",
+      "patterns": [
+        "\\/api\\/tags[^/]*"
+      ],
+      "strategy": "freshness",
+      "maxSize": 5,
+      "maxAge": 604800000,
+      "timeoutMs": 3000,
       "cacheQueryOptions": {
         "ignoreVary": true
       },
