@@ -79,6 +79,10 @@ export class AppComponent {
       }
     });
 
+    if (this.isBrowser && navigator.storage?.persist) {
+      void navigator.storage.persist();
+    }
+
     afterNextRender(() => {
       const onDocClick = (e: MouseEvent) => {
         if (!this.tagDropdownOpen()) return;

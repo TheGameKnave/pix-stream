@@ -9,6 +9,7 @@
       "resources": {
         "files": [
           "/favicon.ico",
+          "/favicon.svg",
           "/index.csr.html",
           "/manifest.webmanifest",
           "/*.css",
@@ -18,7 +19,7 @@
     },
     {
       "name": "fonts",
-      "installMode": "lazy",
+      "installMode": "prefetch",
       "updateMode": "prefetch",
       "resources": {
         "files": [
@@ -28,7 +29,7 @@
     },
     {
       "name": "icons",
-      "installMode": "lazy",
+      "installMode": "prefetch",
       "updateMode": "prefetch",
       "resources": {
         "files": [
@@ -48,7 +49,7 @@
       "cacheConfig": {
         "strategy": "performance",
         "maxSize": 10,
-        "maxAge": "7d",
+        "maxAge": "30d",
         "timeout": "5s"
       }
     },
@@ -58,9 +59,9 @@
         "/api/tags*"
       ],
       "cacheConfig": {
-        "strategy": "freshness",
+        "strategy": "performance",
         "maxSize": 5,
-        "maxAge": "7d",
+        "maxAge": "30d",
         "timeout": "3s"
       }
     },
@@ -70,9 +71,9 @@
         "/api/config*"
       ],
       "cacheConfig": {
-        "strategy": "freshness",
+        "strategy": "performance",
         "maxSize": 5,
-        "maxAge": "7d",
+        "maxAge": "30d",
         "timeout": "3s"
       }
     },
@@ -82,9 +83,9 @@
         "/api/manifest*"
       ],
       "cacheConfig": {
-        "strategy": "freshness",
+        "strategy": "performance",
         "maxSize": 5,
-        "maxAge": "1h",
+        "maxAge": "30d",
         "timeout": "3s"
       }
     },

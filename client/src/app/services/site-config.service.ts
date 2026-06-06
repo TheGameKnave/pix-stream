@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Meta, Title } from '@angular/platform-browser';
 import { take, catchError, EMPTY } from 'rxjs';
+import { IndexedDbService } from './indexeddb.service';
 
 export function slugify(tag: string): string {
   return tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -44,6 +45,7 @@ export class SiteConfigService {
   private readonly titleService = inject(Title);
   private readonly meta = inject(Meta);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly idb = inject(IndexedDbService);
 
   readonly config = signal<SiteConfig | null>(this.loadCachedConfig());
   readonly allTags = signal<string[]>([]);
@@ -106,7 +108,7 @@ export class SiteConfigService {
       },
     });
 
-    this.http.get<string[]>('/api/tags').pipe(take(1), catchError(() => EMPTY)).subscribe({
+    this.http.get<string[]>('/api/tags').pipe(take(1)).subscribe({
       next: (tags) => {
         this.allTags.set(tags);
         this.applyTagFilter(tags);
@@ -114,6 +116,18 @@ export class SiteConfigService {
           this.resolveSlugsTags(this.pendingSlugs);
           this.pendingSlugs = [];
         }
+        void this.idb.setCache('tags', tags);
+      },
+      error: () => {
+        void this.idb.getCache<string[]>('tags').then(cached => {
+          if (!cached) return;
+          this.allTags.set(cached);
+          this.applyTagFilter(cached);
+          if (this.pendingSlugs.length) {
+            this.resolveSlugsTags(this.pendingSlugs);
+            this.pendingSlugs = [];
+          }
+        });
       },
     });
 

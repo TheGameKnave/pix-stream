@@ -17,6 +17,7 @@ import { HttpClient } from '@angular/common/http';
 import { SeoService } from '@app/services/seo.service';
 import { SiteConfigService, slugify, MISC_TAG } from '@app/services/site-config.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
+import { IndexedDbService } from '@app/services/indexeddb.service';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs';
@@ -115,6 +116,7 @@ export class GalleryComponent {
   private readonly state = inject(GalleryStateService);
   readonly siteConfig = inject(SiteConfigService);
   private readonly connectivity = inject(ConnectivityService);
+  private readonly idb = inject(IndexedDbService);
 
   private readonly prefersReducedMotion = this.isBrowser
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -402,34 +404,47 @@ export class GalleryComponent {
   }
 
 
+  private applyManifest(res: ManifestResponse): void {
+    this.allEntries = res.images;
+    this.state.entries = res.images;
+    this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
+    this.resolveDisplayThumbs();
+    const entries = this.filterEntries(res.images);
+    this.entries = entries;
+    this.entryIds = new Set(entries.map(e => e.id));
+    this.state.manifestVersion = res.version;
+    if (entries.length === 0) {
+      this.empty.set(true);
+      this.loading.set(false);
+      return;
+    }
+    this.initMetrics();
+    this.initCards(entries);
+    this.loading.set(false);
+    this.startRiver();
+    this.setupObserver();
+    this.startManifestPoll(res.pending ? 5_000 : 30_000);
+    this.checkDeepLink();
+  }
+
   private fetchManifest(): void {
     this.http
       .get<ManifestResponse>('/api/manifest')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          this.allEntries = res.images;
-          this.state.entries = res.images;
-          this.siteConfig.hasNsfw.set(res.images.some(img => img.nsfw));
-          this.resolveDisplayThumbs();
-          const entries = this.filterEntries(res.images);
-          this.entries = entries;
-          this.entryIds = new Set(entries.map(e => e.id));
-          this.state.manifestVersion = res.version;
-          if (entries.length === 0) {
-            this.empty.set(true);
-            this.loading.set(false);
-            return;
-          }
-          this.initMetrics();
-          this.initCards(entries);
-          this.loading.set(false);
-          this.startRiver();
-          this.setupObserver();
-          this.startManifestPoll(res.pending ? 5_000 : 30_000);
-          this.checkDeepLink();
+          void this.idb.setCache('manifest', res);
+          this.applyManifest(res);
         },
-        error: () => this.loading.set(false),
+        error: () => {
+          void this.idb.getCache<ManifestResponse>('manifest').then(cached => {
+            if (cached) {
+              this.applyManifest(cached);
+            } else {
+              this.loading.set(false);
+            }
+          });
+        },
       });
   }
 
@@ -894,6 +909,7 @@ export class GalleryComponent {
     const poll = () => {
       this.http.get<ManifestResponse>('/api/manifest').pipe(take(1)).subscribe({
         next: (res) => {
+          void this.idb.setCache('manifest', res);
           const changed = res.version !== this.state.manifestVersion;
           if (changed) {
             this.state.manifestVersion = res.version;
