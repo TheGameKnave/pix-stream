@@ -433,14 +433,18 @@ export class GalleryComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
+          console.log('[manifest] Fetched from network, version:', res.version, 'images:', res.images.length);
           void this.idb.setCache('manifest', res);
           this.applyManifest(res);
         },
-        error: () => {
+        error: (err) => {
+          console.warn('[manifest] Network fetch failed, trying IDB cache:', err?.message ?? err);
           void this.idb.getCache<ManifestResponse>('manifest').then(cached => {
             if (cached) {
+              console.log('[manifest] Loaded from IDB cache, version:', cached.version, 'images:', cached.images.length);
               this.applyManifest(cached);
             } else {
+              console.warn('[manifest] No IDB cache available');
               this.loading.set(false);
             }
           });
@@ -909,6 +913,7 @@ export class GalleryComponent {
     const poll = () => {
       this.http.get<ManifestResponse>('/api/manifest').pipe(take(1)).subscribe({
         next: (res) => {
+          console.log('[manifest] Poll result, version:', res.version, 'changed:', res.version !== this.state.manifestVersion);
           void this.idb.setCache('manifest', res);
           const changed = res.version !== this.state.manifestVersion;
           if (changed) {

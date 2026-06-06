@@ -51,9 +51,10 @@ export class UpdateService {
       .pipe(startWith(0), takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         if (!isTauri() && this.updates?.isEnabled) {
-          this.updates.checkForUpdate().catch(err =>
-            console.error('SW: checkForUpdate failed:', err)
-          );
+          console.log('[SW] Checking for update at', new Date().toISOString());
+          this.updates.checkForUpdate()
+            .then(found => console.log('[SW] Update check complete, update found:', found))
+            .catch(err => console.error('[SW] checkForUpdate failed:', err));
         }
         this.checkTauriUpdate();
       });

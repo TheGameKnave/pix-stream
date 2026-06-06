@@ -110,6 +110,7 @@ export class SiteConfigService {
 
     this.http.get<string[]>('/api/tags').pipe(take(1)).subscribe({
       next: (tags) => {
+        console.log('[tags] Fetched from network:', tags.length, 'tags');
         this.allTags.set(tags);
         this.applyTagFilter(tags);
         if (this.pendingSlugs.length) {
@@ -118,9 +119,11 @@ export class SiteConfigService {
         }
         void this.idb.setCache('tags', tags);
       },
-      error: () => {
+      error: (err) => {
+        console.warn('[tags] Network fetch failed, trying IDB cache:', err?.message ?? err);
         void this.idb.getCache<string[]>('tags').then(cached => {
           if (!cached) return;
+          console.log('[tags] Loaded from IDB cache:', cached.length, 'tags');
           this.allTags.set(cached);
           this.applyTagFilter(cached);
           if (this.pendingSlugs.length) {
