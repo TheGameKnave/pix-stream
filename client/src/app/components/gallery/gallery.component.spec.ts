@@ -9,6 +9,7 @@ import { ImageEntry, FloatingImage, GalleryStateService } from '@app/services/ga
 import { SiteConfigService, SiteConfig, MISC_TAG } from '@app/services/site-config.service';
 import { SeoService } from '@app/services/seo.service';
 import { ConnectivityService } from '@app/services/connectivity.service';
+import { IndexedDbService } from '@app/services/indexeddb.service';
 
 
 describe('laneCount', () => {
@@ -290,6 +291,10 @@ describe('GalleryComponent (DOM)', () => {
         {
           provide: ConnectivityService,
           useValue: { isOnline: signal(true), showOffline: signal(false), start: () => Promise.resolve(), stop: () => {} },
+        },
+        {
+          provide: IndexedDbService,
+          useValue: { getCache: () => Promise.resolve(undefined), setCache: () => Promise.resolve() },
         },
       ],
     }).compileComponents();
@@ -809,9 +814,10 @@ describe('GalleryComponent (DOM)', () => {
         expect(component.loading()).toBeFalse();
       });
 
-      it('handles fetch error', () => {
+      it('handles fetch error', async () => {
         comp().fetchManifest();
         httpMock.expectOne('/api/manifest').flush('error', { status: 500, statusText: 'Error' });
+        await Promise.resolve(); // let IDB fallback promise settle
         expect(component.loading()).toBeFalse();
       });
     });
