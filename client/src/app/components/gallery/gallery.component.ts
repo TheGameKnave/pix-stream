@@ -926,6 +926,7 @@ export class GalleryComponent {
             this.entryIds = new Set(this.entries.map(e => e.id));
             this.hasStaleCards = true;
             this.bustImageCaches();
+            this.siteConfig.reloadTags();
           }
           // Poll faster while images are still being processed
           const delay = res.pending ? 5_000 : 30_000;

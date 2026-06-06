@@ -9,12 +9,5 @@
   "scope": "./",
   "start_url": "./",
   "categories": ["photography"],
-  "icons": [
-    {
-      "src": "favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
-  ]
+  "icons": []
 }

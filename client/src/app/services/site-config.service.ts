@@ -148,6 +148,18 @@ export class SiteConfigService {
   }
   /* eslint-enable rxjs-x/no-ignored-subscription, rxjs-x/no-nested-subscribe */
 
+  reloadTags(): void {
+    this.http.get<string[]>('/api/tags').pipe(take(1)).subscribe({
+      next: (tags) => {
+        console.log('[tags] Reloaded after manifest change:', tags.length, 'tags');
+        void this.idb.setCache('tags', tags);
+        this.allTags.set(tags);
+        this.applyTagFilter(tags);
+      },
+      error: () => console.warn('[tags] Reload failed'),
+    });
+  }
+
   /** Set active tags from URL slugs — resolves against known tags when available. */
   setActiveFromSlugs(slugs: string[]): void {
     const known = this.tags();

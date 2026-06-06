@@ -281,6 +281,7 @@ describe('GalleryComponent (DOM)', () => {
               setActiveFromSlugs: () => {},
               toggleNsfw: () => {},
               saveConfig: () => {},
+              reloadTags: () => {},
             },
           };
         })(),
