@@ -38,7 +38,7 @@ export class UpdateService {
       this.updates.versionUpdates
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(event => {
-          console.log('[SW] versionUpdates event:', event.type);
+          console.log('[SW] versionUpdates event:', event.type, event);
           if (event.type === 'VERSION_READY') {
             this.logService.log('SW: New version ready');
             this.updates!.activateUpdate().then(() => {
