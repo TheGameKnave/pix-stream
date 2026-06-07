@@ -8,8 +8,6 @@
       "updateMode": "lazy",
       "resources": {
         "files": [
-          "/favicon.ico",
-          "/favicon.svg",
           "/index.csr.html",
           "/manifest.webmanifest",
           "/*.css",
