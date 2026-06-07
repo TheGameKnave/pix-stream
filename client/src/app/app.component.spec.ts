@@ -63,6 +63,7 @@ describe('AppComponent', () => {
       setActiveFromSlugs: jasmine.createSpy('setActiveFromSlugs'),
       toggleNsfw: jasmine.createSpy('toggleNsfw'),
       reloadTags: jasmine.createSpy('reloadTags'),
+      reloadConfig: jasmine.createSpy('reloadConfig'),
     };
 
     await TestBed.configureTestingModule({

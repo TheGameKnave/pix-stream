@@ -927,6 +927,7 @@ export class GalleryComponent {
             this.hasStaleCards = true;
             this.bustImageCaches();
             this.siteConfig.reloadTags();
+            this.siteConfig.reloadConfig();
           }
           // Poll faster while images are still being processed
           const delay = res.pending ? 5_000 : 30_000;

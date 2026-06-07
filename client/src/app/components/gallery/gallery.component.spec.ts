@@ -282,6 +282,7 @@ describe('GalleryComponent (DOM)', () => {
               toggleNsfw: () => {},
               saveConfig: () => {},
               reloadTags: () => {},
+              reloadConfig: () => {},
             },
           };
         })(),

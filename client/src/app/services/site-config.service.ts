@@ -148,6 +148,23 @@ export class SiteConfigService {
   }
   /* eslint-enable rxjs-x/no-ignored-subscription, rxjs-x/no-nested-subscribe */
 
+  reloadConfig(): void {
+    this.http.get<SiteConfig>('/api/config').pipe(take(1), catchError(() => EMPTY)).subscribe({
+      next: (config) => {
+        console.log('[config] Reloaded after manifest change');
+        this.config.set(config);
+        if (this.isBrowser) {
+          try { localStorage.setItem('ps-config', JSON.stringify(config)); } catch { /* quota */ }
+          this.applyTheme(config);
+          this.titleService.setTitle(this.pageTitle());
+        }
+        if (this.allTags().length > 0) {
+          this.applyTagFilter(this.allTags());
+        }
+      },
+    });
+  }
+
   reloadTags(): void {
     this.http.get<string[]>('/api/tags').pipe(take(1)).subscribe({
       next: (tags) => {
