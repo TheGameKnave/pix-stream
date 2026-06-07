@@ -41,6 +41,13 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ /index.html [L]
 
+# Service worker files must never be cached by the browser
+<FilesMatch "^(ngsw-worker\.js|ngsw\.json|safety-worker\.js)$">
+  Header set Cache-Control "no-cache, no-store, must-revalidate"
+  Header set Pragma "no-cache"
+  Header set Expires "0"
+</FilesMatch>
+
 # PHP settings
 php_value upload_max_filesize 50M
 php_value post_max_size 55M
