@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { SwUpdate } from '@angular/service-worker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval, startWith } from 'rxjs';
+import { Router } from '@angular/router';
 
 import { check } from '@tauri-apps/plugin-updater';
 import { ask } from '@tauri-apps/plugin-dialog';
@@ -21,6 +22,7 @@ export class UpdateService {
   private readonly logService = inject(LogService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly router = inject(Router);
 
   private confirming = false;
 
@@ -39,7 +41,8 @@ export class UpdateService {
           if (event.type === 'VERSION_READY') {
             this.logService.log('SW: New version ready');
             this.updates!.activateUpdate().then(() => {
-              if (confirm('A new version is available. Reload now?')) {
+              console.log('[SW] New version activated, kiosk:', this.router.url.startsWith('/kiosk'));
+              if (this.router.url.startsWith('/kiosk') || confirm('A new version is available. Reload now?')) {
                 globalThis.location.reload();
               }
             });
