@@ -13,7 +13,7 @@ import { isTauri } from '@tauri-apps/api/core';
 import { ENVIRONMENT } from 'src/environments/environment';
 import { LogService } from './log.service';
 
-const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 @Injectable({ providedIn: 'root' })
 export class UpdateService {
@@ -41,8 +41,8 @@ export class UpdateService {
           if (event.type === 'VERSION_READY') {
             this.logService.log('SW: New version ready');
             this.updates!.activateUpdate().then(() => {
-              console.log('[SW] New version activated, kiosk:', this.router.url.startsWith('/kiosk'));
-              if (this.router.url.startsWith('/kiosk') || confirm('A new version is available. Reload to update?')) {
+              console.log('[SW] New version activated; kiosk:', this.router.url.startsWith('/kiosk'));
+              if (this.router.url.startsWith('/kiosk') || confirm('A new version is available. Reload now?')) {
                 globalThis.location.reload();
               }
             });
