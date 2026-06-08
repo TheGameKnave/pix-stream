@@ -1,12 +1,12 @@
 {
   "configVersion": 1,
-  "timestamp": 1780909039496,
+  "timestamp": 1780909220479,
   "index": "/index.html",
   "assetGroups": [
     {
       "name": "app",
-      "installMode": "lazy",
-      "updateMode": "lazy",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
       "cacheQueryOptions": {
         "ignoreVary": true
       },
