@@ -5,7 +5,7 @@
     {
       "name": "app",
       "installMode": "prefetch",
-      "updateMode": "prefetch",
+      "updateMode": "lazy",
       "resources": {
         "files": [
           "/index.csr.html",
@@ -18,7 +18,7 @@
     {
       "name": "fonts",
       "installMode": "prefetch",
-      "updateMode": "prefetch",
+      "updateMode": "lazy",
       "resources": {
         "files": [
           "/assets/fonts/**"
@@ -28,7 +28,7 @@
     {
       "name": "icons",
       "installMode": "prefetch",
-      "updateMode": "prefetch",
+      "updateMode": "lazy",
       "resources": {
         "files": [
           "/assets/icons/**"
