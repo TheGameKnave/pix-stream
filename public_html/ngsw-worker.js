@@ -1551,7 +1551,7 @@ ${msgIdle}`, { headers: this.adapter.newHeaders({ "Content-Type": "text/plain" }
       this.controlTable = this.db.open("control");
       this.ngswStatePath = this.adapter.parseUrl("ngsw/state", this.scope.registration.scope).path;
       this.scope.addEventListener("install", (event) => {
-        event.waitUntil(this.scope.skipWaiting());
+        event.waitUntil((async () => { try { const manifest = await this.fetchLatestManifest(); const hash = hashManifest(manifest); if (!this.versions.has(hash)) { this.versions.set(hash, new AppVersion(this.scope, this.adapter, this.db, this.idle, this.debugger, manifest, hash)); } await this.versions.get(hash).initializeFully(); } catch(e) { this.debugger.log(e, "install: initializeFully"); } await this.scope.skipWaiting(); })());
       });
       this.scope.addEventListener("activate", (event) => {
         event.waitUntil((async () => {

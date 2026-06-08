@@ -53,6 +53,21 @@ if [ "$CONFIG" = "production" ]; then
   find public_html -name '*.map' -delete
 fi
 
+# Patch ngsw-worker.js: delay skipWaiting until prefetch assets are fully cached.
+# Angular NGSW bug: skipWaiting() fires immediately on install, activating the new
+# SW before assets are cached. If network drops mid-activation, navigations crash
+# instead of serving the previously-cached version. Fix: wait for fetchLatestManifest
+# + initializeFully before yielding control. See angular/angular #45377.
+NGSW="public_html/ngsw-worker.js"
+OLD='event.waitUntil(this.scope.skipWaiting());'
+NEW='event.waitUntil((async () => { try { const manifest = await this.fetchLatestManifest(); const hash = hashManifest(manifest); if (!this.versions.has(hash)) { this.versions.set(hash, new AppVersion(this.scope, this.adapter, this.db, this.idle, this.debugger, manifest, hash)); } await this.versions.get(hash).initializeFully(); } catch(e) { this.debugger.log(e, "install: initializeFully"); } await this.scope.skipWaiting(); })());'
+if grep -qF "$OLD" "$NGSW"; then
+  sed -i '' "s|${OLD}|${NEW}|" "$NGSW"
+  echo "==> Patched ngsw-worker.js: skipWaiting deferred until initializeFully"
+else
+  echo "WARNING: ngsw-worker.js patch target not found — Angular may have changed the install handler. Verify manually."
+fi
+
 # Remove SSR files (not used on shared hosting)
 rm -f public_html/server.mjs public_html/main.server.mjs
 rm -f public_html/index.server.html
