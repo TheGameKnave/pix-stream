@@ -41,7 +41,7 @@ export class UpdateService {
           if (event.type === 'VERSION_READY') {
             this.logService.log('SW: New version ready');
             this.updates!.activateUpdate().then(() => {
-              console.log('[SW] New version activated; kiosk:', this.router.url.startsWith('/kiosk'));
+              console.log('[SW] New version activated, kiosk:', this.router.url.startsWith('/kiosk'));
               if (this.router.url.startsWith('/kiosk') || confirm('A new version is available. Reload now?')) {
                 globalThis.location.reload();
               }
