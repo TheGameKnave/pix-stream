@@ -38,6 +38,18 @@ echo "    Icon:       $ICON_URL"
 echo ""
 
 # --- 1. Fetch and generate icons ---
+# The icon steps below overwrite the tracked icon.png, and the config step
+# patches tauri.conf.json; restore both no matter how the script exits.
+TAURI_CONF="client/src-tauri/tauri.conf.json"
+APP_ICON="client/src-tauri/icon.png"
+cp "$TAURI_CONF" "$TAURI_CONF.bak"
+cp "$APP_ICON" "$APP_ICON.bak"
+restore_originals() {
+  if [ -f "$TAURI_CONF.bak" ]; then mv "$TAURI_CONF.bak" "$TAURI_CONF"; fi
+  if [ -f "$APP_ICON.bak" ]; then mv "$APP_ICON.bak" "$APP_ICON"; fi
+}
+trap restore_originals EXIT
+
 echo "==> Fetching icon..."
 ICON_DIR="$(mktemp -d)"
 ICON_RAW="$ICON_DIR/icon_raw"
@@ -84,10 +96,6 @@ rm -rf "$ICON_DIR"
 
 # --- 2. Patch tauri.conf.json ---
 echo "==> Patching tauri.conf.json..."
-TAURI_CONF="client/src-tauri/tauri.conf.json"
-
-# Save original to restore later
-cp "$TAURI_CONF" "$TAURI_CONF.bak"
 
 # Use node to patch JSON cleanly
 node -e "
@@ -127,9 +135,9 @@ npx tauri android build --apk 2>&1
 BUILD_EXIT=$?
 cd ..
 
-# --- 5. Restore original config ---
-echo "==> Restoring original tauri.conf.json..."
-mv "$TAURI_CONF.bak" "$TAURI_CONF"
+# --- 5. Restore original config and icon ---
+echo "==> Restoring original tauri.conf.json and icon.png..."
+restore_originals
 rm -f "$ICON_SRC_COPY"
 
 if [ $BUILD_EXIT -ne 0 ]; then
