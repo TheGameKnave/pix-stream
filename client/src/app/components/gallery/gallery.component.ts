@@ -661,6 +661,10 @@ export class GalleryComponent {
     const unique = [...new Set(urls)];
     if (unique.length === 0) return;
 
+    // Release the previous preload generation — holding every Image from
+    // every manifest version leaks memory on long-running kiosks
+    this.preloadedImages = [];
+
     let i = 0;
     let hasError = false;
     const downloadState = this.state.downloadState;
@@ -954,7 +958,11 @@ export class GalleryComponent {
             this.entries = this.filterEntries(res.images);
             this.entryIds = new Set(this.entries.map(e => e.id));
             this.hasStaleCards = true;
-            this.bustImageCaches();
+            // Re-warm the caches after busting, or an off-network reload
+            // later has no images to serve
+            void this.bustImageCaches().then(() => {
+              if (!this.componentDestroyed) this.preloadAllImages();
+            });
             this.siteConfig.reloadTags();
             this.siteConfig.reloadConfig();
           }
@@ -969,16 +977,16 @@ export class GalleryComponent {
   }
 
   /** Delete stale thumbnail/image entries from the service worker cache. */
-  private bustImageCaches(): void {
-    if (!('caches' in window)) return;
-    caches.keys().then(names => {
-      for (const name of names) {
-        // Angular ngsw data caches are named like "ngsw:...:data:dynamic:thumbnails:cache"
-        if (name.includes('thumbnails') || name.includes('images')) {
-          caches.delete(name);
-        }
-      }
-    });
+  private bustImageCaches(): Promise<void> {
+    if (!('caches' in window)) return Promise.resolve();
+    return caches.keys().then(names =>
+      Promise.all(
+        names
+          // Angular ngsw data caches are named like "ngsw:...:data:dynamic:thumbnails:cache"
+          .filter(name => name.includes('thumbnails') || name.includes('images'))
+          .map(name => caches.delete(name))
+      )
+    ).then(() => undefined);
   }
 
   private setupObserver(): void {
