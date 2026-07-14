@@ -7,7 +7,7 @@
     "beforeDevCommand": "ng serve --hmr",
     "devUrl": "http://localhost:6200",
     "beforeBuildCommand": "npm run build -- --configuration=production",
-    "frontendDist": "../dist/angular-momentum/browser"
+    "frontendDist": "../dist/pix-stream/browser"
   },
   "app": {
     "windows": [
@@ -21,7 +21,10 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost https: wss:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'",
+      "dangerousDisableAssetCspModification": [
+        "style-src"
+      ]
     }
   },
   "bundle": {
@@ -52,7 +55,7 @@
       "bundleVersion": "1"
     },
     "android": {
-      "minSdkVersion": 35,
+      "minSdkVersion": 24,
       "versionCode": 1
     }
   },

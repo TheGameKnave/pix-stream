@@ -26,7 +26,9 @@ export class ConnectivityService {
 
   constructor() {
     if (!this.isBrowser) return;
-    this.pingUrl = globalThis.location.origin + '/favicon.ico';
+    // Hit the API, not a static file — static serving can be up while PHP is down,
+    // and the favicon route needs auth inside the wrapped APK
+    this.pingUrl = globalThis.location.origin + '/api/health';
 
     window.addEventListener('online', () => {
       this._isOnline.set(true);

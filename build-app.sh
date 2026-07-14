@@ -117,6 +117,13 @@ cd client
 rm -rf src-tauri/gen/android
 npx tauri android init 2>&1
 
+# Current Android Gradle Plugin / Kotlin toolchains require JDK 17; the
+# generated project still targets 1.8 (both must match or gradle errors)
+GRADLE_KTS="src-tauri/gen/android/app/build.gradle.kts"
+if [ -f "$GRADLE_KTS" ]; then
+  perl -0777 -pi -e 's/    kotlinOptions \{\n        jvmTarget = "1\.8"\n    \}/    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n    kotlinOptions {\n        jvmTarget = "17"\n    }/' "$GRADLE_KTS"
+fi
+
 # Enable WebView debugging for inspection
 MAIN_ACTIVITY=$(find src-tauri/gen/android -name "MainActivity.kt" 2>/dev/null | head -1)
 if [ -n "$MAIN_ACTIVITY" ]; then

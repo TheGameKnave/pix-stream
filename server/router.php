@@ -20,6 +20,7 @@ $routes = [
     '/api/watermark'  => '/api/watermark.php',
     '/api/delete'     => '/api/delete.php',
     '/api/update'     => '/api/update.php',
+    '/api/health'     => '/api/health.php',
 ];
 
 // Exact match
