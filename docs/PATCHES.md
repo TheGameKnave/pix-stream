@@ -345,7 +345,7 @@ open items you must adopt.*
   *Superseded:* (4) was incomplete — 21.3.8 discovered the *SSR* server (the one
   browsers actually hit) was still serving the worker with a 1-year cache; apply
   both halves.
-  *pix-stream:* done independently during the May–June SW campaign, all five pieces — skipWaiting deferral patched by `build.sh` (`c78c53c`, same angular/angular#45377), cache-first `performance` strategy with shorter timeouts (`9bbb8d0`), `updateMode: lazy` (`fff2697`), no-cache worker headers (`.htaccess`, `01924db`/`e8a95c3`), `navigator.storage.persist()` (`app.component.ts`).
+  *pix-stream:* done independently during the May–June SW campaign, all five pieces — skipWaiting deferral patched by `build.sh` (`c78c53c`, same angular/angular#45377), cache-first `performance` strategy with shorter timeouts (`9bbb8d0`), `updateMode: lazy` (`fff2697`), no-cache worker headers (`.htaccess`, `01924db`/`e8a95c3`), `navigator.storage.persist()` (`app.component.ts`). Revised 2026-07-14: the cache-first piece is partially reversed — the API groups (manifest/config/tags) are back on freshness+timeout, because cache-first served polls from cache for the full maxAge and froze update propagation; image groups stay cache-first with maxAge 3650d since offline kiosks were purging entries at the 30d expiry.
 
 - [x] **[client] Eviction-resistant IndexedDB cache store** (`e2016d7`)
   Even with persistent storage, the SW cache is the most eviction-prone tier. A new

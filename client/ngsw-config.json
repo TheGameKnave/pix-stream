@@ -47,7 +47,7 @@
       "cacheConfig": {
         "strategy": "performance",
         "maxSize": 10,
-        "maxAge": "30d",
+        "maxAge": "3650d",
         "timeout": "5s"
       }
     },
@@ -57,9 +57,9 @@
         "/api/tags*"
       ],
       "cacheConfig": {
-        "strategy": "performance",
+        "strategy": "freshness",
         "maxSize": 5,
-        "maxAge": "30d",
+        "maxAge": "3650d",
         "timeout": "3s"
       }
     },
@@ -69,9 +69,9 @@
         "/api/config*"
       ],
       "cacheConfig": {
-        "strategy": "performance",
+        "strategy": "freshness",
         "maxSize": 5,
-        "maxAge": "30d",
+        "maxAge": "3650d",
         "timeout": "3s"
       }
     },
@@ -81,9 +81,9 @@
         "/api/manifest*"
       ],
       "cacheConfig": {
-        "strategy": "performance",
+        "strategy": "freshness",
         "maxSize": 5,
-        "maxAge": "30d",
+        "maxAge": "3650d",
         "timeout": "3s"
       }
     },
@@ -95,7 +95,7 @@
       "cacheConfig": {
         "strategy": "performance",
         "maxSize": 500,
-        "maxAge": "30d"
+        "maxAge": "3650d"
       }
     },
     {
@@ -106,7 +106,7 @@
       "cacheConfig": {
         "strategy": "performance",
         "maxSize": 500,
-        "maxAge": "30d"
+        "maxAge": "3650d"
       }
     }
   ],

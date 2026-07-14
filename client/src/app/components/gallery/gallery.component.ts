@@ -970,6 +970,12 @@ export class GalleryComponent {
           const delay = res.pending ? 5_000 : 30_000;
           this.pollTimer = window.setTimeout(poll, delay);
         },
+        error: () => {
+          // Keep polling through failures (offline with an empty cache
+          // surfaces as an error) — a dead poll chain means a kiosk never
+          // sees another upload until someone reloads it
+          this.pollTimer = window.setTimeout(poll, 60_000);
+        },
       });
     };
     this.pollTimer = window.setTimeout(poll, initialDelay);
