@@ -339,6 +339,42 @@ describe('GalleryComponent (DOM)', () => {
     expect(cards.length).toBe(2);
   });
 
+  it('rebaseWorld returns offset to 0 without moving cards on screen', () => {
+    const comp = component as any;
+    comp.offset = 250_000;
+    comp.gridOrigin = 250_100;
+    comp.vertical = false;
+    const card = makeTestCard('a', { x: 250_200, y: 40 });
+    component.cards.set([card]);
+    const screenXBefore = card.x - comp.offset;
+
+    comp.rebaseWorld();
+
+    expect(comp.offset).toBe(0);
+    expect(comp.gridOrigin).toBe(100);
+    const rebased = component.cards()[0];
+    expect(rebased.x - comp.offset).toBe(screenXBefore);
+    expect(rebased.y).toBe(40); // cross axis untouched
+  });
+
+  it('rebaseWorld shifts y for vertical flow', () => {
+    const comp = component as any;
+    comp.offset = -300_000;
+    comp.gridOrigin = -299_900;
+    comp.vertical = true;
+    const card = makeTestCard('a', { x: 40, y: -299_800 });
+    component.cards.set([card]);
+    const screenYBefore = card.y - comp.offset;
+
+    comp.rebaseWorld();
+
+    expect(comp.offset).toBe(0);
+    expect(comp.gridOrigin).toBe(100);
+    const rebased = component.cards()[0];
+    expect(rebased.y - comp.offset).toBe(screenYBefore);
+    expect(rebased.x).toBe(40); // cross axis untouched
+  });
+
   it('cards have role="button" and tabindex="0"', () => {
     component.loading.set(false);
     component.cards.set([makeTestCard('a')]);

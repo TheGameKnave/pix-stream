@@ -36,6 +36,10 @@ async function loadObserver(): Promise<void> {
 }
 
 const MAX_ROTATION = 15;
+// Rebase world coordinates when the camera drifts this far from origin.
+// Well under float32 transform precision loss (~1e6) and Blink's
+// LayoutUnit saturation (~33.5e6), and far beyond any real viewport.
+const REBASE_THRESHOLD = 200_000;
 let _nextCardUid = 1;
 
 /** Which column indices should be materialized for a given camera offset. */
@@ -752,6 +756,12 @@ export class GalleryComponent {
       const speed = this.baseSpeed + this.userSpeed;
       this.offset += speed;
 
+      // Rebase world coordinates before they grow past layout-engine limits
+      // (a kiosk left running for days otherwise piles cards at one edge)
+      if (Math.abs(this.offset) > REBASE_THRESHOLD) {
+        this.rebaseWorld();
+      }
+
       // Update container (single GPU-composited transform — won't disturb GIFs)
       const el = this.canvas()?.nativeElement;
       if (el) {
@@ -782,6 +792,25 @@ export class GalleryComponent {
       this.state.entries = null;
       this.state.offset = 0;
     });
+  }
+
+  /** Shift the whole world (camera, grid, cards) so offset returns to 0.
+   *  Uniform along the primary axis, so nothing moves on screen — the
+   *  container transform compensates within the same frame. */
+  private rebaseWorld(): void {
+    const shift = this.offset;
+    this.offset = 0;
+    this.gridOrigin -= shift;
+    const cards = this.cards();
+    for (const card of cards) {
+      if (this.vertical) {
+        card.y -= shift;
+      } else {
+        card.x -= shift;
+      }
+    }
+    this.cards.set([...cards]);
+    this.persistState();
   }
 
   /** Add columns about to scroll into view, remove columns that scrolled out. */
