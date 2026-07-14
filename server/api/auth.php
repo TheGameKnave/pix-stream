@@ -17,6 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/rate-limit.php';
+
+const LOGIN_MAX_FAILURES = 8;
+const LOGIN_WINDOW_SECONDS = 600;
 
 $action = basename($_SERVER['PATH_INFO'] ?? '');
 
@@ -47,12 +51,20 @@ switch ($action) {
         break;
 
     case 'login':
+        if (isRateLimited('login', LOGIN_MAX_FAILURES, LOGIN_WINDOW_SECONDS)) {
+            header('Retry-After: ' . rateLimitRetryAfter('login', LOGIN_WINDOW_SECONDS));
+            http_response_code(429);
+            echo json_encode(['error' => 'Too many failed attempts; try again later']);
+            break;
+        }
         $input = json_decode(file_get_contents('php://input'), true);
         $password = $input['password'] ?? '';
         if (verifyPassword($password)) {
+            clearRateLimit('login');
             startSession();
             echo json_encode(['success' => true]);
         } else {
+            recordRateLimitFailure('login', LOGIN_WINDOW_SECONDS);
             http_response_code(401);
             echo json_encode(['error' => 'Invalid password']);
         }

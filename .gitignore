@@ -167,6 +167,9 @@ server/favicon.svg
 # Admin password
 server/config/.password
 
+# Runtime rate-limit buckets
+server/config/ratelimit/
+
 # PHPUnit phar (downloaded in CI) and cache
 server/phpunit.phar
 server/.phpunit.result.cache

@@ -35,6 +35,7 @@ cp -r server/lib public_html/
 
 # Prevent leaking password file from config into build output
 rm -f public_html/config/.password
+rm -rf public_html/config/ratelimit
 
 # Client build output
 cp -r "$BUILD_DIR"/* public_html/

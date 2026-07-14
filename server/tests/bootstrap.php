@@ -18,3 +18,4 @@ foreach ([TEST_ORIGINALS, TEST_THUMBNAILS, TEST_CONFIG] as $d) {
 require_once __DIR__ . '/../lib/image.php';
 require_once __DIR__ . '/../lib/scanner.php';
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/rate-limit.php';
