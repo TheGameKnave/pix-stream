@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1784030633085,
+  "timestamp": 1784048590281,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -11,15 +11,15 @@
         "ignoreVary": true
       },
       "urls": [
-        "/chunk-27BJWQSU.js",
         "/chunk-3YCY44CK.js",
         "/chunk-4HUEODG2.js",
         "/chunk-7KXWHNY2.js",
         "/chunk-DAQOROHW.js",
         "/chunk-DH6BYUFV.js",
+        "/chunk-UNJAZI2Q.js",
         "/chunk-YQPWH3SR.js",
         "/index.html",
-        "/main-FUOAXXQN.js",
+        "/main-ZPVKENB5.js",
         "/manifest.webmanifest",
         "/styles-M4O2A6AO.css"
       ],
@@ -61,7 +61,7 @@
       ],
       "strategy": "performance",
       "maxSize": 10,
-      "maxAge": 2592000000,
+      "maxAge": 315360000000,
       "timeoutMs": 5000,
       "cacheQueryOptions": {
         "ignoreVary": true
@@ -73,9 +73,9 @@
       "patterns": [
         "\\/api\\/tags[^/]*"
       ],
-      "strategy": "performance",
+      "strategy": "freshness",
       "maxSize": 5,
-      "maxAge": 2592000000,
+      "maxAge": 315360000000,
       "timeoutMs": 3000,
       "cacheQueryOptions": {
         "ignoreVary": true
@@ -87,9 +87,9 @@
       "patterns": [
         "\\/api\\/config[^/]*"
       ],
-      "strategy": "performance",
+      "strategy": "freshness",
       "maxSize": 5,
-      "maxAge": 2592000000,
+      "maxAge": 315360000000,
       "timeoutMs": 3000,
       "cacheQueryOptions": {
         "ignoreVary": true
@@ -101,9 +101,9 @@
       "patterns": [
         "\\/api\\/manifest[^/]*"
       ],
-      "strategy": "performance",
+      "strategy": "freshness",
       "maxSize": 5,
-      "maxAge": 2592000000,
+      "maxAge": 315360000000,
       "timeoutMs": 3000,
       "cacheQueryOptions": {
         "ignoreVary": true
@@ -117,7 +117,7 @@
       ],
       "strategy": "performance",
       "maxSize": 500,
-      "maxAge": 2592000000,
+      "maxAge": 315360000000,
       "cacheQueryOptions": {
         "ignoreVary": true
       },
@@ -130,7 +130,7 @@
       ],
       "strategy": "performance",
       "maxSize": 500,
-      "maxAge": 2592000000,
+      "maxAge": 315360000000,
       "cacheQueryOptions": {
         "ignoreVary": true
       },
@@ -142,15 +142,15 @@
     "/assets/fonts/Raleway-Italic.ttf": "afb719661380623cb5b0972db4523c024f9373e7",
     "/assets/fonts/Raleway-Regular.ttf": "1f0329874af08d7978b3e6af9004ef413fe5248a",
     "/assets/fonts/Raleway-VariableFont_wght.ttf": "036a6aa66bef92b9927aa75b7d95587c9066a360",
-    "/chunk-27BJWQSU.js": "dcd3bdf82ef253464d01e201124afafb714bb049",
     "/chunk-3YCY44CK.js": "4a4331c49c0b87a3c0afcd4ec68cc8c98efbef5b",
     "/chunk-4HUEODG2.js": "916547e5a8496910410911d8500debc574a816a9",
     "/chunk-7KXWHNY2.js": "c31d5270c83ecb03588cae2c9f61fbf751553a0f",
     "/chunk-DAQOROHW.js": "43aa3e22eadd428c99babbc1519a5e31bd70a473",
     "/chunk-DH6BYUFV.js": "c80f77df33778dc037ea5a63fcdbdd8de7222546",
+    "/chunk-UNJAZI2Q.js": "827d2aef7ba3c83d8f8c7048ccf052cff4fe3643",
     "/chunk-YQPWH3SR.js": "32c75cb7ce39991e9e50642746051a1879f52b3b",
-    "/index.html": "e8debb60e68ed5c3d371db42f504fea67310c48a",
-    "/main-FUOAXXQN.js": "99b0ca57dc52dac3e9ae79a062eb0a3ddcbca526",
+    "/index.html": "b07888e88e53217f4f738c0ed9dd995026bdf930",
+    "/main-ZPVKENB5.js": "1d57002e0623a75c5d9bf9906fd5d402eeec436c",
     "/manifest.webmanifest": "a0101cc925c6ef13bdf57f758aacd805727a7c5c",
     "/styles-M4O2A6AO.css": "dbe94abed9cbf3b3d983b7a6dbdf58ee25c48b6e"
   },
