@@ -13,6 +13,7 @@ RewriteRule ^api/favicon$ api/favicon.php [L,QSA]
 RewriteRule ^api/watermark$ api/watermark.php [L,QSA]
 RewriteRule ^api/delete$ api/delete.php [L,QSA]
 RewriteRule ^api/update$ api/update.php [L,QSA]
+RewriteRule ^api/health$ api/health.php [L,QSA]
 
 # Serve images from storage (with .gif.jpg static fallback for thumbnails)
 RewriteCond %{DOCUMENT_ROOT}/storage/thumbnails/$1 -f
